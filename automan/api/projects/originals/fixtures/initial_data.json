@@ -1,0 +1,899 @@
+[
+{
+  "model": "auth.user",
+  "pk": 1,
+  "fields": {
+    "password": "pbkdf2_sha256$120000$wvlIhF1JINWe$NUSDTqU9QmIglJMewAe+VIuFNlRkOd3aHDYrXMnXXR8=",
+    "last_login": "2019-06-04T02:27:29.160Z",
+    "is_superuser": false,
+    "username": "test1",
+    "first_name": "",
+    "last_name": "",
+    "email": "test1@gmail.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2019-06-04T02:27:29.063Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 2,
+  "fields": {
+    "password": "pbkdf2_sha256$120000$hkIolbUeyZgF$0bHkHzCh7bcGysHurIVzuzXv2b7SRv53cMNgS6kqU0g=",
+    "last_login": "2019-06-06T03:44:14.680Z",
+    "is_superuser": false,
+    "username": "test2",
+    "first_name": "",
+    "last_name": "",
+    "email": "test2@gmail.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2019-06-06T03:44:14.558Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "l5fi5q2hqu7hnqvxu91chkgymivvrejf",
+  "fields": {
+    "session_data": "M2VhMjBmMTQyZWUxOTBmN2UyZTg2ZWEzZDA1NGRlMmQ3MWQ0ZDBkMDp7Il9hdXRoX3VzZXJfaWQiOiIxIiwiX2F1dGhfdXNlcl9iYWNrZW5kIjoiZGphbmdvLmNvbnRyaWIuYXV0aC5iYWNrZW5kcy5Nb2RlbEJhY2tlbmQiLCJfYXV0aF91c2VyX2hhc2giOiI0MmVhZDE1MTY4MmZmMDcwYjhmZTRmYjFlZjIxYzhjZmI1MjgxOWQwIn0=",
+    "expire_date": "2019-06-18T02:27:29.162Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "qm7n9gkoh2awlxiots1v79ccaibng1fi",
+  "fields": {
+    "session_data": "MmI2M2VmZjVhNWVlNmRhODlmY2M0OGNjZGZmNDgwMzQxZGY4NzM5Yjp7Il9hdXRoX3VzZXJfaWQiOiIyIiwiX2F1dGhfdXNlcl9iYWNrZW5kIjoiZGphbmdvLmNvbnRyaWIuYXV0aC5iYWNrZW5kcy5Nb2RlbEJhY2tlbmQiLCJfYXV0aF91c2VyX2hhc2giOiJlZDY5YjQ2NTEzNjZjYWRjNDU4ZDc1NTFlYWFmZGJiODU4NmMzM2FhIn0=",
+    "expire_date": "2019-06-20T03:44:14.683Z"
+  }
+},
+{
+  "model": "projects.projects",
+  "pk": 1,
+  "fields": {
+    "name": "test001_2dbb",
+    "description": "2DBB",
+    "label_type": "BB2D",
+    "created_at": "2019-06-04T02:28:02.438Z",
+    "delete_flag": false,
+    "owner_id": 1
+  }
+},
+{
+  "model": "projects.projects",
+  "pk": 2,
+  "fields": {
+    "name": "test_pro_2",
+    "description": "tesst2_user_project",
+    "label_type": "BB2D",
+    "created_at": "2019-06-06T03:44:52.002Z",
+    "delete_flag": false,
+    "owner_id": 2
+  }
+},
+{
+  "model": "projects.klassset",
+  "pk": 1,
+  "fields": {
+    "project": 1,
+    "user_id": 1,
+    "created_at": "2019-06-04T02:29:03.306Z",
+    "delete_flag": false
+  }
+},
+{
+  "model": "projects.klassklassset",
+  "pk": 1,
+  "fields": {
+    "name": "car",
+    "klass_set": 1,
+    "config": "{\"color\": \"#FF6900\", \"minSize\": {\"x\": 10, \"y\": 10, \"z\": 10}}",
+    "delete_flag": false
+  }
+},
+{
+  "model": "projects.klassklassset",
+  "pk": 2,
+  "fields": {
+    "name": "cat",
+    "klass_set": 1,
+    "config": "{\"color\": \"#FCB900\", \"minSize\": {\"x\": 10, \"y\": 10, \"z\": 10}}",
+    "delete_flag": false
+  }
+},
+{
+  "model": "projects.klassklassset",
+  "pk": 3,
+  "fields": {
+    "name": "dog",
+    "klass_set": 1,
+    "config": "{\"color\": \"#7BDCB5\", \"minSize\": {\"x\": 10, \"y\": 10, \"z\": 10}}",
+    "delete_flag": false
+  }
+},
+{
+  "model": "projects.klassklassset",
+  "pk": 4,
+  "fields": {
+    "name": "sky",
+    "klass_set": 1,
+    "config": "{\"color\": \"#00D084\", \"minSize\": {\"x\": 10, \"y\": 10, \"z\": 10}}",
+    "delete_flag": false
+  }
+},
+{
+  "model": "groups.groups",
+  "pk": 1,
+  "fields": {
+    "project": 1,
+    "name": "admin",
+    "delete_flag": false
+  }
+},
+{
+  "model": "groups.groups",
+  "pk": 2,
+  "fields": {
+    "project": 1,
+    "name": "default",
+    "delete_flag": false
+  }
+},
+{
+  "model": "groups.groups",
+  "pk": 3,
+  "fields": {
+    "project": 2,
+    "name": "admin",
+    "delete_flag": false
+  }
+},
+{
+  "model": "groups.groups",
+  "pk": 4,
+  "fields": {
+    "project": 2,
+    "name": "default",
+    "delete_flag": false
+  }
+},
+{
+  "model": "members.members",
+  "pk": 1,
+  "fields": {
+    "user": [
+      "test1"
+    ],
+    "group": 1,
+    "project": 1,
+    "delete_flag": false
+  }
+},
+{
+  "model": "members.members",
+  "pk": 2,
+  "fields": {
+    "user": [
+      "test2"
+    ],
+    "group": 3,
+    "project": 2,
+    "delete_flag": false
+  }
+},
+{
+  "model": "calibrations.calibration",
+  "pk": 1,
+  "fields": {
+    "created_at": "2019-06-04T02:29:49.373Z",
+    "name": "a_calibration.yml",
+    "content": "{\"camera_extrinsic_mat\": [[0.012803375545881623, 0.042993610587510334, 0.9989933047940216, 0.9032504893832716], [-0.9992600576416322, 0.03678816731799284, 0.011223544334362734, 0.018657137938160744], [-0.036268592151793844, -0.9983978065851473, 0.04343281051571446, -0.9501376435691947], [0.0, 0.0, 0.0, 1.0]], \"camera_mat\": [[1329.5918364724644, 0.0, 409.66689605363854], [0.0, 1352.5801277021133, 198.0283717905549], [0.0, 0.0, 1.0]], \"dist_coeff\": [[-0.19083160016015355], [1.28326975106925], [-0.013730580408697759], [0.011414507787370035], [0.0]]}",
+    "delete_flag": false,
+    "project": 1
+  }
+},
+{
+  "model": "datasets.labeldataset",
+  "pk": 1,
+  "fields": {
+    "original": 1,
+    "created_at": "2019-06-04T03:56:31.143Z",
+    "updated_at": "2019-06-04T03:56:31.143Z",
+    "file_path": "/share/1/dataset_1_1559620588/",
+    "name": "a_rosbag.bag",
+    "delete_flag": false,
+    "frame_count": 34,
+    "project": 1
+  }
+},
+{
+  "model": "datasets.datasetdatasetcandidate",
+  "pk": 1,
+  "fields": {
+    "dataset": 1,
+    "dataset_candidate": 1
+  }
+},
+{
+  "model": "annotations.annotation",
+  "pk": 1,
+  "fields": {
+    "dataset": 1,
+    "name": "new_annotation_bb2d",
+    "created_at": "2019-06-04T03:56:47.237Z",
+    "delete_flag": false,
+    "project": 1
+  }
+},
+{
+  "model": "annotations.archivedlabeldataset",
+  "pk": 1,
+  "fields": {
+    "file_path": "/share/1",
+    "file_name": "dataset_1_1559620588_1559620717.tar.gz",
+    "date": "2019-06-04T03:58:43.695Z",
+    "progress": 0,
+    "delete_flag": false,
+    "annotation": 1
+  }
+},
+{
+  "model": "annotations.archivedlabeldataset",
+  "pk": 2,
+  "fields": {
+    "file_path": "/share/1",
+    "file_name": "dataset_1_1559620588_1559622606.tar.gz",
+    "date": "2019-06-04T04:30:12.763Z",
+    "progress": 0,
+    "delete_flag": false,
+    "annotation": 1
+  }
+},
+{
+  "model": "annotations.archivedlabeldataset",
+  "pk": 3,
+  "fields": {
+    "file_path": "/share/1",
+    "file_name": "dataset_1_1559620588_1559623078.tar.gz",
+    "date": "2019-06-04T04:38:03.504Z",
+    "progress": 0,
+    "delete_flag": false,
+    "annotation": 1
+  }
+},
+{
+  "model": "annotations.archivedlabeldataset",
+  "pk": 4,
+  "fields": {
+    "file_path": "/share/1",
+    "file_name": "dataset_1_1559620588_1559719153.tar.gz",
+    "date": "2019-06-05T07:19:19.975Z",
+    "progress": 0,
+    "delete_flag": false,
+    "annotation": 1
+  }
+},
+{
+  "model": "annotations.annotationprogress",
+  "pk": 1,
+  "fields": {
+    "annotation": 1,
+    "user": 1,
+    "state": "created",
+    "progress": 0,
+    "frame_progress": 0,
+    "updated_at": "2019-06-04T03:56:47.242Z"
+  }
+},
+{
+  "model": "annotations.annotationprogress",
+  "pk": 2,
+  "fields": {
+    "annotation": 1,
+    "user": 1,
+    "state": "editing",
+    "progress": 0,
+    "frame_progress": 1,
+    "updated_at": "2019-06-04T04:29:07.313Z"
+  }
+},
+{
+  "model": "annotations.annotationprogress",
+  "pk": 3,
+  "fields": {
+    "annotation": 1,
+    "user": 1,
+    "state": "editing",
+    "progress": 0,
+    "frame_progress": 2,
+    "updated_at": "2019-06-04T04:29:56.669Z"
+  }
+},
+{
+  "model": "annotations.datasetobject",
+  "pk": 1,
+  "fields": {
+    "annotation": 1,
+    "frame": 1
+  }
+},
+{
+  "model": "annotations.datasetobject",
+  "pk": 2,
+  "fields": {
+    "annotation": 1,
+    "frame": 1
+  }
+},
+{
+  "model": "annotations.datasetobject",
+  "pk": 3,
+  "fields": {
+    "annotation": 1,
+    "frame": 1
+  }
+},
+{
+  "model": "annotations.datasetobject",
+  "pk": 4,
+  "fields": {
+    "annotation": 1,
+    "frame": 1
+  }
+},
+{
+  "model": "annotations.datasetobject",
+  "pk": 5,
+  "fields": {
+    "annotation": 1,
+    "frame": 1
+  }
+},
+{
+  "model": "annotations.datasetobject",
+  "pk": 6,
+  "fields": {
+    "annotation": 1,
+    "frame": 1
+  }
+},
+{
+  "model": "annotations.datasetobject",
+  "pk": 7,
+  "fields": {
+    "annotation": 1,
+    "frame": 1
+  }
+},
+{
+  "model": "annotations.datasetobject",
+  "pk": 8,
+  "fields": {
+    "annotation": 1,
+    "frame": 1
+  }
+},
+{
+  "model": "annotations.datasetobject",
+  "pk": 9,
+  "fields": {
+    "annotation": 1,
+    "frame": 2
+  }
+},
+{
+  "model": "annotations.datasetobject",
+  "pk": 10,
+  "fields": {
+    "annotation": 1,
+    "frame": 2
+  }
+},
+{
+  "model": "annotations.datasetobject",
+  "pk": 11,
+  "fields": {
+    "annotation": 1,
+    "frame": 2
+  }
+},
+{
+  "model": "annotations.datasetobject",
+  "pk": 12,
+  "fields": {
+    "annotation": 1,
+    "frame": 2
+  }
+},
+{
+  "model": "annotations.datasetobject",
+  "pk": 13,
+  "fields": {
+    "annotation": 1,
+    "frame": 2
+  }
+},
+{
+  "model": "annotations.datasetobject",
+  "pk": 14,
+  "fields": {
+    "annotation": 1,
+    "frame": 2
+  }
+},
+{
+  "model": "annotations.datasetobject",
+  "pk": 15,
+  "fields": {
+    "annotation": 1,
+    "frame": 2
+  }
+},
+{
+  "model": "annotations.datasetobject",
+  "pk": 16,
+  "fields": {
+    "annotation": 1,
+    "frame": 2
+  }
+},
+{
+  "model": "annotations.datasetobject",
+  "pk": 17,
+  "fields": {
+    "annotation": 1,
+    "frame": 2
+  }
+},
+{
+  "model": "annotations.datasetobjectannotation",
+  "pk": 1,
+  "fields": {
+    "object": 1,
+    "created_at": "2019-06-04T04:29:07.285Z",
+    "delete_flag": false,
+    "name": "car",
+    "content": "{\"1\": {\"min_x_2d\": 536, \"min_y_2d\": 204, \"max_x_2d\": 585, \"max_y_2d\": 243}}"
+  }
+},
+{
+  "model": "annotations.datasetobjectannotation",
+  "pk": 2,
+  "fields": {
+    "object": 2,
+    "created_at": "2019-06-04T04:29:07.287Z",
+    "delete_flag": false,
+    "name": "car",
+    "content": "{\"1\": {\"min_x_2d\": 742, \"min_y_2d\": 185, \"max_x_2d\": 798, \"max_y_2d\": 256}}"
+  }
+},
+{
+  "model": "annotations.datasetobjectannotation",
+  "pk": 3,
+  "fields": {
+    "object": 3,
+    "created_at": "2019-06-04T04:29:07.293Z",
+    "delete_flag": false,
+    "name": "car",
+    "content": "{\"1\": {\"min_x_2d\": -48, \"min_y_2d\": 204, \"max_x_2d\": 38, \"max_y_2d\": 389}}"
+  }
+},
+{
+  "model": "annotations.datasetobjectannotation",
+  "pk": 4,
+  "fields": {
+    "object": 4,
+    "created_at": "2019-06-04T04:29:07.296Z",
+    "delete_flag": false,
+    "name": "car",
+    "content": "{\"1\": {\"min_x_2d\": 12, \"min_y_2d\": 218, \"max_x_2d\": 89, \"max_y_2d\": 376}}"
+  }
+},
+{
+  "model": "annotations.datasetobjectannotation",
+  "pk": 5,
+  "fields": {
+    "object": 5,
+    "created_at": "2019-06-04T04:29:07.302Z",
+    "delete_flag": false,
+    "name": "car",
+    "content": "{\"1\": {\"min_x_2d\": 1, \"min_y_2d\": 201, \"max_x_2d\": 192, \"max_y_2d\": 359}}"
+  }
+},
+{
+  "model": "annotations.datasetobjectannotation",
+  "pk": 6,
+  "fields": {
+    "object": 6,
+    "created_at": "2019-06-04T04:29:07.305Z",
+    "delete_flag": false,
+    "name": "cat",
+    "content": "{\"1\": {\"min_x_2d\": 51, \"min_y_2d\": 197, \"max_x_2d\": 269, \"max_y_2d\": 328}}"
+  }
+},
+{
+  "model": "annotations.datasetobjectannotation",
+  "pk": 7,
+  "fields": {
+    "object": 7,
+    "created_at": "2019-06-04T04:29:07.308Z",
+    "delete_flag": false,
+    "name": "cat",
+    "content": "{\"1\": {\"min_x_2d\": 342, \"min_y_2d\": 116, \"max_x_2d\": 388, \"max_y_2d\": 166}}"
+  }
+},
+{
+  "model": "annotations.datasetobjectannotation",
+  "pk": 8,
+  "fields": {
+    "object": 8,
+    "created_at": "2019-06-04T04:29:07.310Z",
+    "delete_flag": false,
+    "name": "dog",
+    "content": "{\"1\": {\"min_x_2d\": 197, \"min_y_2d\": 46, \"max_x_2d\": 470, \"max_y_2d\": 198}}"
+  }
+},
+{
+  "model": "annotations.datasetobjectannotation",
+  "pk": 9,
+  "fields": {
+    "object": 9,
+    "created_at": "2019-06-04T04:29:56.636Z",
+    "delete_flag": false,
+    "name": "dog",
+    "content": "{\"1\": {\"min_x_2d\": 194, \"min_y_2d\": 32, \"max_x_2d\": 461, \"max_y_2d\": 170}}"
+  }
+},
+{
+  "model": "annotations.datasetobjectannotation",
+  "pk": 10,
+  "fields": {
+    "object": 10,
+    "created_at": "2019-06-04T04:29:56.640Z",
+    "delete_flag": false,
+    "name": "car",
+    "content": "{\"1\": {\"min_x_2d\": 534, \"min_y_2d\": 202, \"max_x_2d\": 580, \"max_y_2d\": 239}}"
+  }
+},
+{
+  "model": "annotations.datasetobjectannotation",
+  "pk": 11,
+  "fields": {
+    "object": 11,
+    "created_at": "2019-06-04T04:29:56.644Z",
+    "delete_flag": false,
+    "name": "car",
+    "content": "{\"1\": {\"min_x_2d\": 738, \"min_y_2d\": 182, \"max_x_2d\": 797, \"max_y_2d\": 259}}"
+  }
+},
+{
+  "model": "annotations.datasetobjectannotation",
+  "pk": 12,
+  "fields": {
+    "object": 12,
+    "created_at": "2019-06-04T04:29:56.657Z",
+    "delete_flag": false,
+    "name": "car",
+    "content": "{\"1\": {\"min_x_2d\": 558, \"min_y_2d\": 188, \"max_x_2d\": 597, \"max_y_2d\": 231}}"
+  }
+},
+{
+  "model": "annotations.datasetobjectannotation",
+  "pk": 13,
+  "fields": {
+    "object": 13,
+    "created_at": "2019-06-04T04:29:56.659Z",
+    "delete_flag": false,
+    "name": "car",
+    "content": "{\"1\": {\"min_x_2d\": 17, \"min_y_2d\": 200, \"max_x_2d\": 239, \"max_y_2d\": 318}}"
+  }
+},
+{
+  "model": "annotations.datasetobjectannotation",
+  "pk": 14,
+  "fields": {
+    "object": 14,
+    "created_at": "2019-06-04T04:29:56.661Z",
+    "delete_flag": false,
+    "name": "car",
+    "content": "{\"1\": {\"min_x_2d\": -34, \"min_y_2d\": 201, \"max_x_2d\": 175, \"max_y_2d\": 362}}"
+  }
+},
+{
+  "model": "annotations.datasetobjectannotation",
+  "pk": 15,
+  "fields": {
+    "object": 15,
+    "created_at": "2019-06-04T04:29:56.664Z",
+    "delete_flag": false,
+    "name": "car",
+    "content": "{\"1\": {\"min_x_2d\": 234, \"min_y_2d\": 189, \"max_x_2d\": 275, \"max_y_2d\": 319}}"
+  }
+},
+{
+  "model": "annotations.datasetobjectannotation",
+  "pk": 16,
+  "fields": {
+    "object": 16,
+    "created_at": "2019-06-04T04:29:56.666Z",
+    "delete_flag": false,
+    "name": "car",
+    "content": "{\"1\": {\"min_x_2d\": 267, \"min_y_2d\": 205, \"max_x_2d\": 293, \"max_y_2d\": 307}}"
+  }
+},
+{
+  "model": "annotations.datasetobjectannotation",
+  "pk": 17,
+  "fields": {
+    "object": 17,
+    "created_at": "2019-06-04T04:29:56.668Z",
+    "delete_flag": false,
+    "name": "car",
+    "content": "{\"1\": {\"min_x_2d\": 271, \"min_y_2d\": 202, \"max_x_2d\": 361, \"max_y_2d\": 279}}"
+  }
+},
+{
+  "model": "originals.original",
+  "pk": 1,
+  "fields": {
+    "name": "a_rosbag.bag",
+    "user_id": 1,
+    "size": 84172241,
+    "file_type": "rosbag",
+    "registered_at": "2019-06-04T02:29:32.610Z",
+    "uploaded_at": "2019-06-04T02:29:33.392Z",
+    "analyzed_at": "2019-06-04T03:54:47.876Z",
+    "canceled_at": null,
+    "delete_flag": false,
+    "project": 1,
+    "storage": 1,
+    "status": "analyzed"
+  }
+},
+{
+  "model": "originals.original",
+  "pk": 2,
+  "fields": {
+    "name": "a_rosbag.bag",
+    "user_id": 1,
+    "size": 0,
+    "file_type": "rosbag",
+    "registered_at": "2019-06-05T07:21:09.242Z",
+    "uploaded_at": null,
+    "analyzed_at": null,
+    "canceled_at": null,
+    "delete_flag": false,
+    "project": 1,
+    "storage": 1,
+    "status": "registered"
+  }
+},
+{
+  "model": "originals.original",
+  "pk": 3,
+  "fields": {
+    "name": "b_rosbag.bag",
+    "user_id": 1,
+    "size": 84172241,
+    "file_type": "rosbag",
+    "registered_at": "2019-06-05T07:21:28.590Z",
+    "uploaded_at": null,
+    "analyzed_at": null,
+    "canceled_at": null,
+    "delete_flag": false,
+    "project": 1,
+    "storage": 1,
+    "status": "registered"
+  }
+},
+{
+  "model": "originals.original",
+  "pk": 4,
+  "fields": {
+    "name": "c_rosbag.bag",
+    "user_id": 1,
+    "size": 84172241,
+    "file_type": "rosbag",
+    "registered_at": "2019-06-05T07:22:03.571Z",
+    "uploaded_at": null,
+    "analyzed_at": null,
+    "canceled_at": null,
+    "delete_flag": false,
+    "project": 1,
+    "storage": 1,
+    "status": "registered"
+  }
+},
+{
+  "model": "originals.original",
+  "pk": 5,
+  "fields": {
+    "name": "d_rosbag.bag",
+    "user_id": 1,
+    "size": 84172241,
+    "file_type": "rosbag",
+    "registered_at": "2019-06-05T07:23:13.740Z",
+    "uploaded_at": null,
+    "analyzed_at": null,
+    "canceled_at": null,
+    "delete_flag": false,
+    "project": 1,
+    "storage": 1,
+    "status": "registered"
+  }
+},
+{
+  "model": "originals.original",
+  "pk": 6,
+  "fields": {
+    "name": "d_rosbag.bag",
+    "user_id": 1,
+    "size": 84172241,
+    "file_type": "rosbag",
+    "registered_at": "2019-06-05T07:29:45.994Z",
+    "uploaded_at": null,
+    "analyzed_at": null,
+    "canceled_at": null,
+    "delete_flag": false,
+    "project": 1,
+    "storage": 1,
+    "status": "registered"
+  }
+},
+{
+  "model": "originals.original",
+  "pk": 7,
+  "fields": {
+    "name": "e_rosbag.bag",
+    "user_id": 1,
+    "size": 84172241,
+    "file_type": "rosbag",
+    "registered_at": "2019-06-05T07:30:10.359Z",
+    "uploaded_at": null,
+    "analyzed_at": null,
+    "canceled_at": null,
+    "delete_flag": false,
+    "project": 1,
+    "storage": 1,
+    "status": "registered"
+  }
+},
+{
+  "model": "originals.original",
+  "pk": 8,
+  "fields": {
+    "name": "f_rosbag.bag",
+    "user_id": 1,
+    "size": 84172241,
+    "file_type": "rosbag",
+    "registered_at": "2019-06-05T07:31:28.239Z",
+    "uploaded_at": null,
+    "analyzed_at": null,
+    "canceled_at": null,
+    "delete_flag": false,
+    "project": 1,
+    "storage": 1,
+    "status": "registered"
+  }
+},
+{
+  "model": "originals.datasetcandidate",
+  "pk": 1,
+  "fields": {
+    "original": 1,
+    "data_type": "IMAGE",
+    "frame_count": 34,
+    "analyzed_info": "{\"topic_name\": \"/image_raw\", \"msg_type\": \"sensor_msgs/Image\"}"
+  }
+},
+{
+  "model": "originals.datasetcandidate",
+  "pk": 2,
+  "fields": {
+    "original": 1,
+    "data_type": "PCD",
+    "frame_count": 22,
+    "analyzed_info": "{\"topic_name\": \"/points_raw\", \"msg_type\": \"sensor_msgs/PointCloud2\"}"
+  }
+},
+{
+  "model": "jobs.job",
+  "pk": 3,
+  "fields": {
+    "job_type": "analyzer",
+    "user_id": 1,
+    "registered_at": "2019-06-04T03:54:45.305Z",
+    "project": 1,
+    "job_config": "{\"storage_type\": \"LOCAL_NFS\", \"storage_config\": {\"mount_path\": \"/share\", \"volume_name\": \"mydata\", \"claim_name\": \"nfs-claim2\", \"base_dir\": \"/1\", \"path\": \"/share/1/a_rosbag.bag/raw/a_rosbag.bag\"}, \"automan_config\": {\"host\": \"http://automan-website:8080\", \"jwt\": \"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6InRlc3QxIiwiZXhwIjoxNTU5NzA2ODg1LCJlbWFpbCI6InRlc3QxQGdtYWlsLmNvbSJ9.mFqCKXBcZCdL4llr6MG-F13Rc8gQnAc_VT35uqqPA1s\", \"path\": \"/projects/1/originals/1/\"}}",
+    "status": "SUCCEEDED",
+    "started_at": "2019-06-04T03:54:45Z",
+    "completed_at": "2019-06-04T03:54:48Z"
+  }
+},
+{
+  "model": "jobs.job",
+  "pk": 4,
+  "fields": {
+    "job_type": "extractor",
+    "user_id": 1,
+    "registered_at": "2019-06-04T03:56:28.113Z",
+    "project": 1,
+    "job_config": "{\"storage_type\": \"LOCAL_NFS\", \"storage_config\": {\"mount_path\": \"/share\", \"volume_name\": \"mydata\", \"claim_name\": \"nfs-claim2\", \"base_dir\": \"/1\", \"path\": \"/share/1/a_rosbag.bag/raw/a_rosbag.bag\", \"output_dir\": \"/share/1/dataset_1_1559620588/\"}, \"automan_config\": {\"host\": \"http://automan-website:8080\", \"jwt\": \"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6InRlc3QxIiwiZXhwIjoxNTU5NzA2OTg4LCJlbWFpbCI6InRlc3QxQGdtYWlsLmNvbSJ9.cI5d7MPlh-YLk_5yaW2FWEYloUT5W4T5yZJoEImwTxs\", \"path\": \"/projects/1/datasets/\"}, \"raw_data_config\": {\"original_id\": 1, \"candidates\": [1], \"records\": {\"/image_raw\": 1}}}",
+    "status": "SUCCEEDED",
+    "started_at": "2019-06-04T03:56:28Z",
+    "completed_at": "2019-06-04T03:56:32Z"
+  }
+},
+{
+  "model": "jobs.job",
+  "pk": 5,
+  "fields": {
+    "job_type": "archiver",
+    "user_id": 1,
+    "registered_at": "2019-06-04T03:58:37.930Z",
+    "project": 1,
+    "job_config": "{\"storage_type\": \"LOCAL_NFS\", \"storage_config\": {\"mount_path\": \"/share\", \"volume_name\": \"mydata\", \"claim_name\": \"nfs-claim2\", \"base_dir\": \"/1\"}, \"automan_config\": {\"host\": \"http://automan-website:8080\", \"jwt\": \"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6InRlc3QxIiwiZXhwIjoxNTU5NzA3MTE3LCJlbWFpbCI6InRlc3QxQGdtYWlsLmNvbSJ9.RSnX2hPPI5sLH60hCNSrPO7zf9T64gI4FkGF6HbBCAM\", \"path\": \"/projects/1/annotations/1/\"}, \"archive_config\": {\"project_id\": 1, \"dataset_id\": 1, \"annotation_id\": 1, \"original_id\": 1, \"archive_dir\": \"/share/1\", \"archive_name\": \"dataset_1_1559620588_1559620717\"}}",
+    "status": "SUCCEEDED",
+    "started_at": "2019-06-04T03:58:37Z",
+    "completed_at": "2019-06-04T03:58:44Z"
+  }
+},
+{
+  "model": "jobs.job",
+  "pk": 6,
+  "fields": {
+    "job_type": "archiver",
+    "user_id": 1,
+    "registered_at": "2019-06-04T04:30:06.780Z",
+    "project": 1,
+    "job_config": "{\"storage_type\": \"LOCAL_NFS\", \"storage_config\": {\"mount_path\": \"/share\", \"volume_name\": \"mydata\", \"claim_name\": \"nfs-claim2\", \"base_dir\": \"/1\"}, \"automan_config\": {\"host\": \"http://automan-website:8080\", \"jwt\": \"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6InRlc3QxIiwiZXhwIjoxNTU5NzA5MDA2LCJlbWFpbCI6InRlc3QxQGdtYWlsLmNvbSJ9.xWPyVXP7XT6iUshHrsq9gh8zEcahEx-ZbGLgnhLAz74\", \"path\": \"/projects/1/annotations/1/\"}, \"archive_config\": {\"project_id\": 1, \"dataset_id\": 1, \"annotation_id\": 1, \"original_id\": 1, \"archive_dir\": \"/share/1\", \"archive_name\": \"dataset_1_1559620588_1559622606\"}}",
+    "status": "SUCCEEDED",
+    "started_at": "2019-06-04T04:30:06Z",
+    "completed_at": "2019-06-04T04:30:13Z"
+  }
+},
+{
+  "model": "jobs.job",
+  "pk": 7,
+  "fields": {
+    "job_type": "archiver",
+    "user_id": 1,
+    "registered_at": "2019-06-04T04:37:58.136Z",
+    "project": 1,
+    "job_config": "{\"storage_type\": \"LOCAL_NFS\", \"storage_config\": {\"mount_path\": \"/share\", \"volume_name\": \"mydata\", \"claim_name\": \"nfs-claim2\", \"base_dir\": \"/1\"}, \"automan_config\": {\"host\": \"http://automan-website:8080\", \"jwt\": \"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6InRlc3QxIiwiZXhwIjoxNTU5NzA5NDc4LCJlbWFpbCI6InRlc3QxQGdtYWlsLmNvbSJ9.6ZQYcPeattuJVSRrwphZnN9rwrZk1ZhvV3Ry9Ut15J4\", \"path\": \"/projects/1/annotations/1/\"}, \"archive_config\": {\"project_id\": 1, \"dataset_id\": 1, \"annotation_id\": 1, \"original_id\": 1, \"archive_dir\": \"/share/1\", \"archive_name\": \"dataset_1_1559620588_1559623078\"}}",
+    "status": "SUCCEEDED",
+    "started_at": "2019-06-04T04:37:58Z",
+    "completed_at": "2019-06-04T04:38:03Z"
+  }
+},
+{
+  "model": "jobs.job",
+  "pk": 8,
+  "fields": {
+    "job_type": "archiver",
+    "user_id": 1,
+    "registered_at": "2019-06-05T07:19:13.726Z",
+    "project": 1,
+    "job_config": "{\"storage_type\": \"LOCAL_NFS\", \"storage_config\": {\"mount_path\": \"/share\", \"volume_name\": \"mydata\", \"claim_name\": \"nfs-claim2\", \"base_dir\": \"/1\"}, \"automan_config\": {\"host\": \"http://automan-website:8080\", \"jwt\": \"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6InRlc3QxIiwiZXhwIjoxNTU5ODA1NTUzLCJlbWFpbCI6InRlc3QxQGdtYWlsLmNvbSJ9.A5D42EJlghpXVxedtGXvlxdj7OYBvGSfvLMtJG-9-BM\", \"path\": \"/projects/1/annotations/1/\"}, \"archive_config\": {\"project_id\": 1, \"dataset_id\": 1, \"annotation_id\": 1, \"original_id\": 1, \"archive_dir\": \"/share/1\", \"archive_name\": \"dataset_1_1559620588_1559719153\"}}",
+    "status": "SUCCEEDED",
+    "started_at": "2019-06-05T07:19:13Z",
+    "completed_at": "2019-06-05T07:19:20Z"
+  }
+},
+{
+  "model": "storages.storage",
+  "pk": 1,
+  "fields": {
+    "storage_type": "LOCAL_NFS",
+    "storage_config": "{\"mount_path\": \"/share\", \"volume_name\": \"mydata\", \"claim_name\": \"nfs-claim2\", \"base_dir\": \"/1\"}",
+    "created_at": "2019-06-04T02:29:17.208Z",
+    "updated_at": "2019-06-04T02:29:17.208Z",
+    "project": 1,
+    "delete_flag": false
+  }
+}
+]

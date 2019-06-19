@@ -1,0 +1,37 @@
+{% extends "top_base.html" %}
+
+{% block title %}SIGNUP{% endblock title %}
+{% block content %}
+<div id="wrap">
+    <div id="loginform">
+        <div class="container">
+            <h2>Signup</h2>
+            <form method="post">
+                {% csrf_token %}
+                {{ form.username.errors }}
+                {{ form.email.errors }}
+                {{ form.password1.errors }}
+                {{ form.password2.errors }}
+                <br />
+                {{ form.username.label_tag }}
+                <br />
+                {{ form.username }}
+                <br /><br />
+                {{ form.email.label_tag }}
+                <br />
+                {{ form.email }}
+                <br /><br />
+                {{ form.password1.label_tag }}
+                <br />
+                {{ form.password1 }}
+                <br /><br />
+                {{ form.password2.label_tag }}
+                <br />
+                {{ form.password2 }}
+                <br /><br />
+                <input type="submit" class="btn btn-info" value="Register" />
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}

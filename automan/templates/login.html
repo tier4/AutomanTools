@@ -1,0 +1,63 @@
+{% extends "top_base.html" %}
+
+{% block title %}TERM{% endblock title %}
+{% block content %}
+
+<div id="loginform">
+    <div class="container">
+        <h2>LOGIN</h2>
+        <br/>
+        <h4><font color="Red">{{ message }}</font></h4>
+        <div class="row main-low-margin ">
+            <form>
+                {% csrf_token %}
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="name" id="username" name="username" class="form-control">
+                    <label>Password</label>
+                    <input type="password" id="password" name="password" class="form-control">
+                </div>
+                <input type="button" class="btn btn-info" value="Login" onclick="login()">
+                <a href="{% url 'accounts:signup' %}"><h5>Create an account</h5></a>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+
+let DEFAULT_ENTRANCE = '/application/mypage';
+function pathCheck(url) {
+  if ( /^\/application\//.test(url) ) {
+    return url;
+  }
+  return DEFAULT_ENTRANCE;
+}
+function nextPage() {
+  let hash = window.location.search.slice(1).split('&');
+  let next = DEFAULT_ENTRANCE;
+  for (let i = 0; i < hash.length; i++) {
+    let array = hash[i].split('=');
+    if (array[0] == 'next') {
+      next = array[1];
+      break;
+    }
+  }
+  return pathCheck(next);
+}
+function login() {
+  let userInfo = {
+    username: $("#username").val(),
+    password: $("#password").val(),
+  };
+  RequestClient.post('/accounts/auth/', userInfo, (res) => {
+    localStorage.setItem('automan_jwt', res.token);
+    let url = nextPage();
+    window.open(url, '_self');
+  }, (err) => {
+    alert('Login Error')
+  })
+}
+</script>
+
+{% endblock content %}
+

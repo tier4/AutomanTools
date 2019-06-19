@@ -1,0 +1,11 @@
+{% extends "application_base.html" %}
+{% load render_bundle from webpack_loader %}
+
+{% block title %}Application{% endblock title %}
+{% block content %}
+
+<div id="wrapper"></div>
+
+{% render_bundle 'application' %}
+{% endblock content %}
+

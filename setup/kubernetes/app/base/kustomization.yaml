@@ -1,0 +1,4 @@
+namespace: default
+resources:
+  - app-deployment.yaml
+  - rbac.yaml

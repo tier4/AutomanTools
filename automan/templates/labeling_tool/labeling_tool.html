@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+    <meta http-equiv="Expires" content="3600">
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+        <meta name="description" content="Automan is an open self-driving AI. Let's try.">
+        <meta name="author" content="TierIV">
+        <meta property="og:title" content="Automan" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="/static/img/ai_image.jpg" />
+        <meta property="og:site_name" content="Automan" />
+        <meta property="og:description" content="Automan is an open self-driving AI. Let's try." />
+        <link rel="shortcut icon" href="/static/img/favicon.ico">
+
+        <!-- favicon -->
+        <link rel="icon" href="/static/img/favicon.ico">
+        <!--[if IE]>
+            <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <![endif]-->
+        <title>Automan</title>
+
+        <!-- CSS -->
+        <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+        <!-- Custom Fonts -->
+        <link href="/static/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+        <!-- Custom Style -->
+        <link href="/static/css/main.css" rel="stylesheet">
+        <link href="/static/css/labeltool.css?ver=1.3" rel="stylesheet">
+    </head>
+    <body>
+    <div id="wrapper">
+        <div id="label-header">
+              <ul class="label-header-left-items">
+                  <li class="label-header-item left">
+                        <a class="label-header-brand label-header-column" href='/application/mypage/'>Automan</a>
+                  </li>
+              </ul>
+              <ul class="label-header-right-items">
+                  <li class="label-header-item label-header-column">
+                        <ul class="file-select">
+                            <li class="label-header-item">
+                                  <button id="previous-frame-button" class="file-select-left-button">
+                                      <i class="fa fa-arrow-left file-select-arrow"></i>
+                                  </button>
+                            </li>
+                            <li class="label-header-item">
+                                  <input class="black-input file-select-input" type="number" id="page_num"
+                                      placeholder="" value="" />
+                            </li>
+                            <li class="label-header-item">
+                                  <button id="next-frame-button" class="file-select-right-button">
+                                      <i class="fa fa-arrow-right file-select-arrow"></i>
+                                  </button>
+                            </li>
+                        </ul>
+                  </li>
+                  <li class="label-header-item label-header-column">
+                      <input class="black-input" type="number" id="frame-skip"
+                         placeholder="skip" value=""/>
+                  </li>
+                  <!--
+                  <li class="label-header-item label-header-column">
+                        <form name="js">
+                            <p class="label-header-button label-header-toggle-button"
+                                onClick="LabelTool.resetBBoxes()">Reset</p>
+                        </form>
+                  </li>
+                  <li class="label-header-item label-header-column">
+                        <form name="js">
+                            <p class="label-header-button label-header-toggle-button"
+                                id="hold-toggle-button" onClick="labelTool.saveFrame()">Save</p>
+                        </form>
+                  </li>
+                  -->
+          </ul>
+        </div>
+
+        <div id="label-tool-wrapper">
+              <div class="jpeg-label-sidebar">
+                  <div class="jpeg-label-sidebar-header">
+                        <p class="jpeg-label-sidebar-header-text">Classes</p>
+                  </div>
+                  <ul class="jpeg-label-sidebar-list" id="class-list">
+                  </ul>
+              </div>
+              <div class="jpeg-label-sidebar second">
+                  <div class="jpeg-label-sidebar-header">
+                        <p class="jpeg-label-sidebar-header-text">Bounding Boxes</p>
+                  </div>
+                  <div id="jpeg-label-sidebar-body">
+                        <ul class="jpeg-label-sidebar-list" id="bbox-table">
+                        </ul>
+                    <div class="jpeg-label-sidebar-item plus" onClick="">
+                        <i class="fa fa-plus label-tool-sidebar-text" id="bbox-number--1"></i>
+                    </div>
+              </div>
+          </div>
+
+        <div id="canvas3d" style="z-index: 0; background-color: #000000;"></div>
+        <div id="jpeg-label-canvas"></div>
+        </div>
+        <!-- /.jpeg-label-wrapper -->
+
+
+            <!-- /.label-tool-wrapper -->
+            <script src="/static/js/labeling_tool/three.min.js"></script>
+            <script src="/static/js/labeling_tool/PCDLoader.js"></script>
+            <script src="/static/js/labeling_tool/OrbitControls.js"></script>
+            <script src="/static/js/labeling_tool/Detector.js"></script>
+            <script src='/static/js/labeling_tool/dat.gui.min.js'></script>
+            <script src="/static/js/labeling_tool/raphael.min.js"></script>
+{% load render_bundle from webpack_loader %}
+{% render_bundle 'label_tool' %}
+    <!-- /.page-wrapper -->
+    </div>
+    <!-- ./wrapper -->
+    </body>
+</html>

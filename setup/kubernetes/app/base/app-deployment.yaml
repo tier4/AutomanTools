@@ -1,0 +1,97 @@
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  name: automan-labeling-service
+spec:
+  ports:
+  - name: "8080"
+    port: 8080
+    targetPort: 8000
+    nodePort: 30080
+  type : NodePort
+  selector:
+    app: automan-labeling
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app-pv-claim
+  labels:
+    app: automan-labeling
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  name: automan-labeling-app
+spec:
+  replicas: 2
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: automan-labeling
+    spec:
+      containers:
+        - image: automan-labeling-app:latest
+          name: automan-labeling-app
+          imagePullPolicy: Never
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            timeoutSeconds: 3
+            periodSeconds: 10
+            failureThreshold: 3
+          ports:
+            - containerPort: 8000
+          resources: {}
+          volumeMounts:
+            - mountPath: "/share"
+              name: app-persistent-storage
+          env:
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: user
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: password
+            - name: MYSQL_HOST
+              value: automan-labeling-mysql
+            - name: MYSQL_DB_NAME
+              value: automan_labeling
+            - name: MOUNT_PATH
+              value: /share
+            - name: VOLUME_NAME
+              value: app-persistent-storage
+            - name: CLAIM_NAME
+              value: app-pv-claim
+            - name: AZURE_STORAGE_ACCOUNT
+              value: ""
+            - name: AZURE_STORAGE_KEY
+              value: ""
+            - name: AUTOMAN_URL
+              value: automan-labeling-service
+            - name: AUTOMAN_PORT
+              value: "8080"
+      restartPolicy: Always
+      volumes:
+        - name: app-persistent-storage
+          persistentVolumeClaim:
+            claimName: app-pv-claim
+status: {}
