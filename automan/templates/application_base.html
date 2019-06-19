@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+	<meta http-equiv="Expires" content="3600">
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+	<meta name="description" content="Automan is an open self-driving AI. Let's try.">
+	<meta name="author" content="TierIV">
+	<meta property="og:title" content="Automan" />
+	<meta property="og:type" content="website" />
+	<meta property="og:image" content="/static/img/ai_image.jpg" />
+	<meta property="og:site_name" content="Automan" />
+	<meta property="og:description" content="Automan is an open self-driving AI. Let's try." />
+	<link rel="shortcut icon" href="/static/img/favicon.ico">
+
+	<!-- favicon -->
+	<link rel="icon" href="/static/img/favicon.ico">
+	<!--[if IE]>
+	    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+	<![endif]-->
+	<title>Automan</title>
+
+	<!-- CSS -->
+	<link href="/static/css/bootstrap.min.css" rel="stylesheet">
+  <link href="/static/css/react-bootstrap-table-all.min.css" rel="stylesheet" >
+  <!--STORAGE SDK-->
+  <script src="/static/js/azure-storage.blob.min.js"></script>
+	<!-- Custom Style -->
+	<link href="/static/css/main.css" rel="stylesheet">
+	<link href="/static/css/klassset.css" rel="stylesheet">
+</head>
+
+<body>
+	{% block content %}
+	{{ content }}
+	{% endblock %}
+</body>
+</html>

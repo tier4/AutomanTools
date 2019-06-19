@@ -1,0 +1,80 @@
+- hosts: automan-labeling
+  connection: local
+  become: yes
+
+  tasks:
+  - name: Add Docker GPG key
+    apt_key: url=https://download.docker.com/linux/ubuntu/gpg
+
+  - name: Add Docker APT repository
+    apt_repository:
+      repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ansible_distribution_release}} stable
+
+  - name: Install list of packages
+    apt:
+      pkg: "{{ item }}"
+      state: present
+      update_cache: yes
+    with_items:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
+      - docker.io
+      - python3-dev
+      - python3-pip
+
+  - name: Install Docker-CE
+    apt:
+      name: docker-ce=18.06.0~ce~3-0~ubuntu
+      state: present
+      update_cache: yes
+
+  - name: usermod -aG docker vagrant
+    user:
+      name: vagrant
+      groups: docker
+
+  - name: download
+    get_url:
+      url: https://storage.googleapis.com/kubernetes-release/release/v1.14.0/bin/linux/amd64/kubectl
+      dest: /usr/local/bin/
+      mode: 0755
+      owner: root
+      group: root
+
+  - name: download
+    get_url:
+      url: https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+      dest: /usr/local/bin/minikube
+      mode: 0755
+      owner: root
+      group: root
+
+  - name: mkdir direcrory
+    file: path=/share
+          state=directory
+          owner=root
+          group=root
+          mode=1777
+
+  - name: start Minikube temporary
+    command: minikube start --vm-driver none
+
+  - name: waiting
+    command: sleep 30
+
+  - name: stopping Minikube
+    command: minikube stop
+
+  - name: waiting
+    command: sleep 30
+
+  - shell: mv /root/.kube /home/vagrant/.kube
+  - shell: chown -R vagrant:vagrant /home/vagrant/.kube
+
+  - shell: mv /root/.minikube /home/vagrant/.minikube
+  - shell: chown -R vagrant:vagrant /home/vagrant/.minikube
+
+  - name: change path
+    command: sed -i -e 's|root|home\/vagrant|g' /home/vagrant/.kube/config

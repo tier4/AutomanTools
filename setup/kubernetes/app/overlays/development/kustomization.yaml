@@ -1,0 +1,8 @@
+commonLabels:
+  variant: develop
+commonAnnotations:
+  note: Hello, I am development!
+bases:
+- ../../base
+patchesStrategicMerge:
+- deployment.yaml

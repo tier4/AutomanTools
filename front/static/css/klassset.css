@@ -1,0 +1,16 @@
+.color-pane {
+  width: 18px;
+  height: 18px;
+  border-radius: 2px;
+}
+.color-picker-pop {
+  position: absolute;
+  z-index: 2;
+}
+.color-picker-cover {
+  position: fixed;
+  top: 0px;
+  right: 0px;
+  bottom: 0px;
+  left: 0px;
+}
