@@ -52,7 +52,8 @@ class OriginalManager(object):
                     analyzed_info=json.dumps(candidate['analyzed_info'])
                 )
                 new_dataset_candidate.save()
-
+        if status == 'invalid':
+            original.canceled_at = timezone.datetime.now()
         original.status = status
         original.save()
 
