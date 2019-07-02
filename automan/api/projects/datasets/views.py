@@ -98,14 +98,14 @@ def download_local_nfs_image(request, project_id, dataset_id, candidate_id, fram
     candidate = original_manager.get_dataset_candidate(candidate_id)
     analyzed_info = json.loads(candidate['analyzed_info'])
     msg_type = analyzed_info['msg_type']
-    if msg_type == 'sensor_msgs/Image':
-        extension = '.jpg'
-    elif msg_type == 'sensor_msgs/PointCloud2':
+    if msg_type == 'sensor_msgs/PointCloud2':
         extension = '.pcd'
+    else:
+        extension = '.jpg'
 
     file_path = dataset_dir + candidate_id + '_' + str(frame).zfill(6) + extension
     image = open(file_path, "rb").read()
 
-    if msg_type == 'sensor_msgs/Image':
-        return HttpResponse(image, content_type="image/jpeg")
-    return HttpResponse(image, content_type="application/octet-stream")
+    if msg_type == 'sensor_msgs/PointCloud2':
+        return HttpResponse(image, content_type="application/octet-stream")
+    return HttpResponse(image, content_type="image/jpeg")
