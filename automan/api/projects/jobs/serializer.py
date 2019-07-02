@@ -157,6 +157,8 @@ class JobSerializer(serializers.ModelSerializer):
     @classmethod
     @transaction.atomic
     def analyze(cls, user_id, project_id, original_id):
+        project = ProjectManager().get_project(project_id, user_id)
+        label_type = project['label_type']
         original = OriginalManager().get_original(project_id, original_id, status='uploaded')
         storage = StorageSerializer().get_storage(project_id, original['storage_id'])
         storage_config = copy.deepcopy(storage['storage_config'])
@@ -164,7 +166,7 @@ class JobSerializer(serializers.ModelSerializer):
             storage['storage_type'], storage['storage_config'], original['name'])
         storage_config.update({'path': original_path})
         automan_config = cls.__get_automan_config(user_id)
-        automan_config.update({'path': '/projects/' + project_id + '/originals/' + str(original_id) + '/'})
+        automan_config.update({'path': '/projects/' + project_id + '/originals/' + str(original_id) + '/', 'label_type': label_type})
         job_config = {
             'storage_type': storage['storage_type'],
             'storage_config': storage_config,
