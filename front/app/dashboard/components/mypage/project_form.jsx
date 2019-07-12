@@ -81,7 +81,7 @@ export default class Popup extends React.Component {
             autoFocus
             margin="dense"
             id="name"
-            label="Name"
+            label="Project Name"
             type="name"
             onChange={this.handleTextFieldChange}
             fullWidth
