@@ -48,10 +48,15 @@ export default class Popup extends React.Component {
       },
       res => {
         this.setState({ result: 'Failed' });
+	this.setState({result_res: true});
       }
     );
   };
   render() {
+    let err_form;
+    if(this.state.result_res){
+	err_form = (style.backgroundColor = '#ff0000'; 
+    )};
     const title = 'New Project';
     const clickEv = () => {
       this.props.hide();
@@ -85,6 +90,7 @@ export default class Popup extends React.Component {
             type="name"
             onChange={this.handleTextFieldChange}
             fullWidth
+	    {err_form}
           />
           <TextField
             margin="dense"
@@ -93,12 +99,14 @@ export default class Popup extends React.Component {
             type="description"
             onChange={this.handleTextFieldChange}
             fullWidth
+	    {err_form}
           />
           <InputLabel htmlFor="labelType">Label Type</InputLabel>
           <Select
             autoFocus
             value={this.state.labelType || false}
             onChange={this.handleChangeLabelType}
+	    {err_form}
           >
             {labelTypeMenu}
           </Select>
