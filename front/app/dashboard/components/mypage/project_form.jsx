@@ -9,6 +9,7 @@ import MenuItem from '@material-ui/core/MenuItem';
 import Select from '@material-ui/core/Select';
 import TextField from '@material-ui/core/TextField';
 import Close from '@material-ui/icons/Close';
+//import FormControl from '@material-ui/core/FormControl';
 //import NavigateBefore from '@material-ui/icons/NavigateBefore';
 //import NavigateNext from '@material-ui/icons/NavigateNext';
 import Send from '@material-ui/icons/Send';
@@ -56,26 +57,38 @@ export default class Popup extends React.Component {
       },
       res => {
         this.setState({ result: 'Failed' });
-	this.errForm()
-	this.normalForm()
+	    this.normalForm()
+        this.errForm()
 	}
     );
   };
   render() {
     let err;
     if(this.state.err_form){
-	    err = (
-			    <FormControl className={classes.formControl} error>
-			    <InputLabel htmlFor="projectname-error">Project Name</InputLabel>
-			    <Input
-			    id="projectname-error"
-			    value={name}
-			    onChange={handleChange}
-			    aria-describedby="projectname-error-text"
-			    />
-			    <FormHelperText id="projectname-error-text">Error</FormHelperText>
-			    </FormControl>
-		  );
+//	    err = (
+//			    <FormControl className={classes.formControl} error>
+//			    <InputLabel htmlFor="projectname-error">Project Name</InputLabel>
+//			    <Input
+//			    id="projectname-error"
+//			    value={name}
+//			    onChange={handleChange}
+//			    aria-describedby="projectname-error-text"
+//			    />
+//			    <FormHelperText id="projectname-error-text">Error</FormHelperText>
+//			    </FormControl>
+//		  );
+        err = (
+			<TextField
+			error
+            autoFocus
+            margin="dense"
+            id="standard-error"
+            label="Project Name"
+            type="name"
+            onChange={this.handleTextFieldChange}
+            fullWidth
+          />
+              )
     };
     let normal;
     if(this.state.normal_form){
@@ -109,46 +122,37 @@ export default class Popup extends React.Component {
     });
 
     return (
-      <Dialog
-        open={this.props.open}
-        onClose={this.props.hide}
-        aria-labelledby="form-dialog-title"
-      >
-        <CardHeader action={closeButton} title={title} />
-        <DialogContent>
-//          <TextField
-//            autoFocus
-//            margin="dense"
-//            id="name"
-//            label="Project Name"
-//            type="name"
-//            onChange={this.handleTextFieldChange}
-//            fullWidth
-//          />
-          {normal}
-	  {err}
-	  <TextField
-            margin="dense"
-            id="description"
-            label="Description"
-            type="description"
-            onChange={this.handleTextFieldChange}
-            fullWidth
-          />
-          <InputLabel htmlFor="labelType">Label Type</InputLabel>
-          <Select
-            autoFocus
-            value={this.state.labelType || false}
-            onChange={this.handleChangeLabelType}
-          >
-            {labelTypeMenu}
-          </Select>
-          <br />
-          <Fab color="primary" onClick={this.request}>
-            <Send />
-          </Fab>
-        </DialogContent>
-      </Dialog>
+            <Dialog
+            open={this.props.open}
+            onClose={this.props.hide}
+            aria-labelledby="form-dialog-title"
+            >
+            <CardHeader action={closeButton} title={title} />
+            <DialogContent>
+                {normal}
+                {err}
+                <TextField
+                    margin="dense"
+                    id="description"
+                    label="Description"
+                    type="description"
+                    onChange={this.handleTextFieldChange}
+                    fullWidth
+                />
+                <InputLabel htmlFor="labelType">Label Type</InputLabel>
+                <Select
+                    autoFocus
+                    value={this.state.labelType || false}
+                    onChange={this.handleChangeLabelType}
+                >
+                    {labelTypeMenu}
+                </Select>
+                <br />
+                <Fab color="primary" onClick={this.request}>
+                    <Send />
+                </Fab>
+            </DialogContent>
+        </Dialog>
     );
   }
 }
