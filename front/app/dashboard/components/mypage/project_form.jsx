@@ -23,7 +23,9 @@ export default class Popup extends React.Component {
       result: 'Requesting',
       name: '',
       description: '',
-      labelType: null
+      labelType: null,
+      err_form: false,
+      normal_form: true
     };
   }
   handleTextFieldChange = e => {
@@ -31,6 +33,12 @@ export default class Popup extends React.Component {
   };
   handleChangeLabelType = e => {
     this.setState({ labelType: e.target.value });
+  };
+  errForm(){
+    this.setState({err_form: true });
+  };
+  normalForm(){
+    this.setState({normal_form: false});
   };
   request = () => {
     this.setState({ requesting: true });
@@ -48,15 +56,41 @@ export default class Popup extends React.Component {
       },
       res => {
         this.setState({ result: 'Failed' });
-	this.setState({result_res: true});
-      }
+	this.errForm()
+	this.normalForm()
+	}
     );
   };
   render() {
-    let err_form;
-    if(this.state.result_res){
-	err_form = (style.backgroundColor = '#ff0000'; 
-    )};
+    let err;
+    if(this.state.err_form){
+	    err = (
+			    <FormControl className={classes.formControl} error>
+			    <InputLabel htmlFor="projectname-error">Project Name</InputLabel>
+			    <Input
+			    id="projectname-error"
+			    value={name}
+			    onChange={handleChange}
+			    aria-describedby="projectname-error-text"
+			    />
+			    <FormHelperText id="projectname-error-text">Error</FormHelperText>
+			    </FormControl>
+		  );
+    };
+    let normal;
+    if(this.state.normal_form){
+	    normal = (
+			    <TextField
+			    autoFocus
+			    margin="dense"
+			    id="name"
+			    label="Project Name"
+			    type="name"
+			    onChange={this.handleTextFieldChange}
+			    fullWidth
+			    />
+		     );
+    };
     const title = 'New Project';
     const clickEv = () => {
       this.props.hide();
@@ -82,31 +116,30 @@ export default class Popup extends React.Component {
       >
         <CardHeader action={closeButton} title={title} />
         <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            id="name"
-            label="Project Name"
-            type="name"
-            onChange={this.handleTextFieldChange}
-            fullWidth
-	    {err_form}
-          />
-          <TextField
+//          <TextField
+//            autoFocus
+//            margin="dense"
+//            id="name"
+//            label="Project Name"
+//            type="name"
+//            onChange={this.handleTextFieldChange}
+//            fullWidth
+//          />
+          {normal}
+	  {err}
+	  <TextField
             margin="dense"
             id="description"
             label="Description"
             type="description"
             onChange={this.handleTextFieldChange}
             fullWidth
-	    {err_form}
           />
           <InputLabel htmlFor="labelType">Label Type</InputLabel>
           <Select
             autoFocus
             value={this.state.labelType || false}
             onChange={this.handleChangeLabelType}
-	    {err_form}
           >
             {labelTypeMenu}
           </Select>
