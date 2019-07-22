@@ -25,8 +25,10 @@ export default class Popup extends React.Component {
       name: '',
       description: '',
       labelType: null,
-      err_form: false,
-      normal_form: true
+      name_errform: false,
+      des_errform: false,
+      name_normalform: true,
+      des_normalform: true
     };
   }
   handleTextFieldChange = e => {
@@ -35,11 +37,17 @@ export default class Popup extends React.Component {
   handleChangeLabelType = e => {
     this.setState({ labelType: e.target.value });
   };
-  errForm(){
-    this.setState({err_form: true });
+  name_errForm(){
+    this.setState({name_errform: true });
   };
-  normalForm(){
-    this.setState({normal_form: false});
+  des_errForm(){
+    this.setState({des_errform: true});
+  };
+  name_normalForm(){
+    this.setState({name_normalform: false});
+  };
+  des_normalForm(){
+    this.setState({des_normalform: false});  
   };
   request = () => {
     this.setState({ requesting: true });
@@ -57,42 +65,56 @@ export default class Popup extends React.Component {
       },
       res => {
         this.setState({ result: 'Failed' });
-	    this.normalForm()
-        this.errForm()
-	}
+        if((this.state.name=='') && (this.state.description=='')){
+            this.name_errForm();
+            this.name_normalForm();
+            this.des_errFrom();
+            this.des_normalForm();
+        }else if(this.state.name==''){
+            this.name_errForm();
+            this.name_normalForm();
+        }else if(this.state.description==''){
+            this.des_errFrom();
+            this.des_normalForm();
+        }
+      }
     );
   };
   render() {
-    let err;
-    if(this.state.err_form){
-//	    err = (
-//			    <FormControl className={classes.formControl} error>
-//			    <InputLabel htmlFor="projectname-error">Project Name</InputLabel>
-//			    <Input
-//			    id="projectname-error"
-//			    value={name}
-//			    onChange={handleChange}
-//			    aria-describedby="projectname-error-text"
-//			    />
-//			    <FormHelperText id="projectname-error-text">Error</FormHelperText>
-//			    </FormControl>
-//		  );
-        err = (
-			<TextField
-			error
-            autoFocus
-            margin="dense"
-            id="standard-error"
-            label="Project Name"
-            type="name"
-            onChange={this.handleTextFieldChange}
-            fullWidth
-          />
-              )
-    };
-    let normal;
-    if(this.state.normal_form){
-	    normal = (
+    let name_err;
+    let des_err;
+    if(this.state.name_errform){
+       name_err = (
+ 	            <TextField
+	            error
+                autoFocus
+                margin="dense"
+                id="standard-error"
+                label="Project Name"
+                type="name"
+                onChange={this.handleTextFieldChange}
+                fullWidth
+                />
+            );
+    }
+    if(this.state.des_errform){
+       des_err = (
+                <TextField
+                error
+                autoFocus
+                margin="dense"
+                id="standard-error"
+                label="Description"
+                type="description"
+                onChange={this.handleTextFieldChange}
+                fullWidth
+                />
+            );
+    }
+    let name_normal;
+    let des_normal;
+    if(this.state.name_normalform){
+	    name_normal = (
 			    <TextField
 			    autoFocus
 			    margin="dense"
@@ -102,8 +124,21 @@ export default class Popup extends React.Component {
 			    onChange={this.handleTextFieldChange}
 			    fullWidth
 			    />
-		     );
-    };
+		    );
+    }
+    if(this.state.des_normalform){
+        des_normal = (
+                <TextField
+                margin="dense"
+                id="description"
+                label="Description"
+                type="description"
+                type="description"
+                onChange={this.handleTextFieldChange}
+                fullWidth
+                />
+            );
+    }
     const title = 'New Project';
     const clickEv = () => {
       this.props.hide();
@@ -129,16 +164,10 @@ export default class Popup extends React.Component {
             >
             <CardHeader action={closeButton} title={title} />
             <DialogContent>
-                {normal}
-                {err}
-                <TextField
-                    margin="dense"
-                    id="description"
-                    label="Description"
-                    type="description"
-                    onChange={this.handleTextFieldChange}
-                    fullWidth
-                />
+                {name_normal}
+                {name_err}
+                {des_normal}
+                {des_err}
                 <InputLabel htmlFor="labelType">Label Type</InputLabel>
                 <Select
                     autoFocus
