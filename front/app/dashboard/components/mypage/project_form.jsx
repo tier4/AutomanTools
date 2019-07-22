@@ -9,7 +9,7 @@ import MenuItem from '@material-ui/core/MenuItem';
 import Select from '@material-ui/core/Select';
 import TextField from '@material-ui/core/TextField';
 import Close from '@material-ui/icons/Close';
-//import FormControl from '@material-ui/core/FormControl';
+import FormControl from '@material-ui/core/FormControl';
 //import NavigateBefore from '@material-ui/icons/NavigateBefore';
 //import NavigateNext from '@material-ui/icons/NavigateNext';
 import Send from '@material-ui/icons/Send';
@@ -37,18 +37,18 @@ export default class Popup extends React.Component {
   handleChangeLabelType = e => {
     this.setState({ labelType: e.target.value });
   };
-  name_errForm(){
-    this.setState({name_errform: true });
-  };
-  des_errForm(){
-    this.setState({des_errform: true});
-  };
-  name_normalForm(){
-    this.setState({name_normalform: false});
-  };
-  des_normalForm(){
-    this.setState({des_normalform: false});  
-  };
+  //name_errForm(){
+  //  this.setState({name_errform: true });
+  //};
+  //des_errForm(){
+  //  this.setState({des_errform: true});
+  //};
+  //name_normalForm(){
+  //  this.setState({name_normalform: false});
+  //};
+  //des_normalForm(){
+  //  this.setState({des_normalform: false});  
+  //};
   request = () => {
     this.setState({ requesting: true });
     const data = {
@@ -66,16 +66,16 @@ export default class Popup extends React.Component {
       res => {
         this.setState({ result: 'Failed' });
         if((this.state.name=='') && (this.state.description=='')){
-            this.name_errForm();
-            this.name_normalForm();
-            this.des_errFrom();
-            this.des_normalForm();
+            this.setState({name_errform: true});
+            this.setState({name_normalform: false});
+            this.setState({des_errform: true});
+            this.setState({des_normalform: false});
         }else if(this.state.name==''){
-            this.name_errForm();
-            this.name_normalForm();
+            this.setState({name_errform: true});
+            this.setState({name_normalform: false});
         }else if(this.state.description==''){
-            this.des_errFrom();
-            this.des_normalForm();
+            this.setState({des_errform: true});
+            this.setState({des_normalform: false});
         }
       }
     );
@@ -98,18 +98,32 @@ export default class Popup extends React.Component {
             );
     }
     if(this.state.des_errform){
-       des_err = (
-                <TextField
-                error
-                autoFocus
-                margin="dense"
-                id="standard-error"
-                label="Description"
-                type="description"
+//       des_err = (
+//                <TextField
+//                error
+//                autoFocus
+//                margin="dense"
+//                id="standard-error"
+//                label="Description"
+//                type="description"
+//                onChange={this.handleTextFieldChange}
+//                fullWidth
+//                />
+//            );
+
+        des_err = ( 
+                <FormControl className={classes.formControl} error>
+                <InputLabel htmlFor="component-error">Project Name</InputLabel>
+                <Input
+                id="component-error"
+                value={name}
                 onChange={this.handleTextFieldChange}
-                fullWidth
+                aria-describedby="component-error-text"
                 />
-            );
+                <FormHelperText id="component-error-text">Please enter a valid project name.</FormHelperText>
+                </FormControl>
+
+                );
     }
     let name_normal;
     let des_normal;
