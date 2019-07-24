@@ -10,10 +10,12 @@ import Select from '@material-ui/core/Select';
 import TextField from '@material-ui/core/TextField';
 import Close from '@material-ui/icons/Close';
 import FormControl from '@material-ui/core/FormControl';
-//import NavigateBefore from '@material-ui/icons/NavigateBefore';
-//import NavigateNext from '@material-ui/icons/NavigateNext';
+import { makeStyles } from '@material-ui/core/styles';
+import FilledInput from '@material-ui/core/FilledInput';
+import FormHelperText from '@material-ui/core/FormHelperText';
+import Input from '@material-ui/core/Input';
+import OutlinedInput from '@material-ui/core/OutlinedInput';
 import Send from '@material-ui/icons/Send';
-
 import { SUPPORT_LABEL_TYPES } from 'automan/services/const';
 
 export default class Popup extends React.Component {
@@ -37,18 +39,6 @@ export default class Popup extends React.Component {
   handleChangeLabelType = e => {
     this.setState({ labelType: e.target.value });
   };
-  //name_errForm(){
-  //  this.setState({name_errform: true });
-  //};
-  //des_errForm(){
-  //  this.setState({des_errform: true});
-  //};
-  //name_normalForm(){
-  //  this.setState({name_normalform: false});
-  //};
-  //des_normalForm(){
-  //  this.setState({des_normalform: false});  
-  //};
   request = () => {
     this.setState({ requesting: true });
     const data = {
@@ -84,49 +74,63 @@ export default class Popup extends React.Component {
     let name_err;
     let des_err;
     if(this.state.name_errform){
-       name_err = (
- 	            <TextField
-	            error
-                autoFocus
-                margin="dense"
-                id="standard-error"
-                label="Project Name"
-                type="name"
-                onChange={this.handleTextFieldChange}
-                fullWidth
-                />
-            );
+        name_err = ( 
+                <FormControl 
+                    error
+                    fullWidth>
+                    <InputLabel htmlFor="component-error">Project Name</InputLabel>
+                    <Input
+                        autoFocus
+                        id="component-error"
+                        margin="dense"
+                        type="name"
+                        onChange={this.handleTextFieldChange}
+                        fullWidth
+                        aria-describedby="component-error-text"
+                    />
+                    <FormHelperText id="component-error-text">Please enter a valid project name.</FormHelperText>
+                );
     }
     if(this.state.des_errform){
-//       des_err = (
-//                <TextField
-//                error
-//                autoFocus
-//                margin="dense"
-//                id="standard-error"
-//                label="Description"
-//                type="description"
-//                onChange={this.handleTextFieldChange}
-//                fullWidth
-//                />
-//            );
-
         des_err = ( 
-                <FormControl className={classes.formControl} error>
-                <InputLabel htmlFor="component-error">Project Name</InputLabel>
-                <Input
-                id="component-error"
-                value={name}
-                onChange={this.handleTextFieldChange}
-                aria-describedby="component-error-text"
-                />
-                <FormHelperText id="component-error-text">Please enter a valid project name.</FormHelperText>
+                <FormControl 
+                    error
+                    fullWidth>
+                    <InputLabel htmlFor="component-error">Description</InputLabel>
+                    <Input
+                        autoFocus
+                        id="component-error"
+                        margin="dense"
+                        type="description"
+                        onChange={this.handleTextFieldChange}
+                        fullWidth
+                        aria-describedby="component-error-text"
+                    />
+                    <FormHelperText id="component-error-text">Please enter a valid description.</FormHelperText>
                 </FormControl>
 
                 );
     }
+    if(this.state.label_errform){
+        label_err = (
+                <FormControl className
+                    error
+                    fullWidth>
+                    <InputLabel htmlFor="labelType-error">Label Type</InputLabel>
+                    <Select
+                        autoFocus
+                        value={this.state.labelType || false}
+                        onChange={this.handleChangeLabelType}
+                    >
+                    {labelTypeMenu}
+                    </Select>
+                    <FormHelperText>Please choose a label.</FormHelperText>
+                </FormControl>
+                );
+    }
     let name_normal;
     let des_normal;
+    let label_normal;
     if(this.state.name_normalform){
 	    name_normal = (
 			    <TextField
@@ -152,6 +156,18 @@ export default class Popup extends React.Component {
                 fullWidth
                 />
             );
+    }
+    if(this.state.label_normalform){
+        label_normal = (
+                <InputLabel htmlFor="labelType">Label Type</InputLabel>
+                <Select
+                    autoFocus
+                    value={this.state.labelType || false}
+                    onChange={this.handleChangeLabelType}
+                >
+                    {labelTypeMenu}
+                </Select>
+                );
     }
     const title = 'New Project';
     const clickEv = () => {
@@ -182,14 +198,8 @@ export default class Popup extends React.Component {
                 {name_err}
                 {des_normal}
                 {des_err}
-                <InputLabel htmlFor="labelType">Label Type</InputLabel>
-                <Select
-                    autoFocus
-                    value={this.state.labelType || false}
-                    onChange={this.handleChangeLabelType}
-                >
-                    {labelTypeMenu}
-                </Select>
+                {label_normal}
+                {label_err}
                 <br />
                 <Fab color="primary" onClick={this.request}>
                     <Send />
