@@ -19,193 +19,216 @@ import Send from '@material-ui/icons/Send';
 import { SUPPORT_LABEL_TYPES } from 'automan/services/const';
 
 export default class Popup extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      requesting: false,
-      result: 'Requesting',
-      name: '',
-      description: '',
-      labelType: null,
-      name_errform: false,
-      des_errform: false,
-      name_normalform: true,
-      des_normalform: true
+    constructor(props) {
+        super(props);
+        this.state = {
+            requesting: false,
+            result: 'Requesting',
+            name: '',
+            description: '',
+            labelType: null,
+            name_errform: false,
+            des_errform: false,
+            label_errform: true,
+            name_normalform: true,
+            des_normalform: true,
+            label_normalform: false
+        };
+    }
+    handleTextFieldChange = e => {
+        this.setState({ [e.target.id]: e.target.value });
     };
-  }
-  handleTextFieldChange = e => {
-    this.setState({ [e.target.id]: e.target.value });
-  };
-  handleChangeLabelType = e => {
-    this.setState({ labelType: e.target.value });
-  };
-  request = () => {
-    this.setState({ requesting: true });
-    const data = {
-      name: this.state.name,
-      description: this.state.description,
-      label_type: this.state.labelType
+    handleChangeLabelType = e => {
+        this.setState({ labelType: e.target.value });
     };
-    RequestClient.post(
-      '/projects/',
-      data,
-      res => {
-        this.setState({ result: 'Success' });
-        this.props.handlePostSubmit();
-      },
-      res => {
-        this.setState({ result: 'Failed' });
-        if((this.state.name=='') && (this.state.description=='')){
-            this.setState({name_errform: true});
-            this.setState({name_normalform: false});
-            this.setState({des_errform: true});
-            this.setState({des_normalform: false});
-        }else if(this.state.name==''){
-            this.setState({name_errform: true});
-            this.setState({name_normalform: false});
-        }else if(this.state.description==''){
-            this.setState({des_errform: true});
-            this.setState({des_normalform: false});
-        }
-      }
-    );
-  };
-  render() {
-    let name_err;
-    let des_err;
-    if(this.state.name_errform){
-        name_err = ( 
-                <FormControl 
+    request = () => {
+        this.setState({ requesting: true });
+        const data = {
+            name: this.state.name,
+            description: this.state.description,
+            label_type: this.state.labelType
+        };
+        RequestClient.post(
+                '/projects/',
+                data,
+                res => {
+                    this.setState({ result: 'Success' });
+                    this.props.handlePostSubmit();
+                },
+                res => {
+                    this.setState({ result: 'Failed' });
+                    //if((this.state.name=='') && (this.state.description=='')){
+                    //    this.setState({name_errform: true});
+                    //    this.setState({name_normalform: false});
+                    //    this.setState({des_errform: true});
+                    //    this.setState({des_normalform: false});
+                    if(this.state.name==''){
+                        this.setState({name_errform: true});
+                        this.setState({name_normalform: false});
+                    }if(this.state.description==''){
+                        this.setState({des_errform: true});
+                        this.setState({des_normalform: false});
+                    }if(this.state.labelType==''){ 
+                        this.setState({label_errform: true});
+                        this.setState({label_normalform: false});
+                    }
+                }
+        );
+    };
+    render() {
+        const title = 'New Project';
+        const clickEv = () => {
+            this.props.hide();
+        };
+        const closeButton = (
+                <Button onClick={clickEv}>
+                <Close />
+                </Button>
+                );
+        const labelTypeMenu = SUPPORT_LABEL_TYPES.map(function(labelType, index) {
+            return (
+                    <MenuItem key={labelType} value={labelType}>
+                    {labelType}
+                    </MenuItem>
+                   );
+        });
+        let name_err;
+        let des_err;
+        if(this.state.name_errform){
+            name_err = ( 
+                    <FormControl 
                     error
                     fullWidth>
                     <InputLabel htmlFor="component-error">Project Name</InputLabel>
                     <Input
-                        autoFocus
-                        id="component-error"
-                        margin="dense"
-                        type="name"
-                        onChange={this.handleTextFieldChange}
-                        fullWidth
-                        aria-describedby="component-error-text"
+                    autoFocus
+                    id="component-error"
+                    margin="dense"
+                    type="name"
+                    onChange={this.handleTextFieldChange}
+                    fullWidth
+                    aria-describedby="component-error-text"
                     />
                     <FormHelperText id="component-error-text">Please enter a valid project name.</FormHelperText>
-                );
-    }
-    if(this.state.des_errform){
-        des_err = ( 
-                <FormControl 
+                    </FormControl>
+                    );
+        }
+        if(this.state.des_errform){
+            des_err = ( 
+                    <FormControl 
                     error
                     fullWidth>
                     <InputLabel htmlFor="component-error">Description</InputLabel>
                     <Input
-                        autoFocus
-                        id="component-error"
-                        margin="dense"
-                        type="description"
-                        onChange={this.handleTextFieldChange}
-                        fullWidth
-                        aria-describedby="component-error-text"
+                    autoFocus
+                    id="component-error"
+                    margin="dense"
+                    type="description"
+                    onChange={this.handleTextFieldChange}
+                    fullWidth
+                    aria-describedby="component-error-text"
                     />
                     <FormHelperText id="component-error-text">Please enter a valid description.</FormHelperText>
-                </FormControl>
-
-                );
-    }
-    if(this.state.label_errform){
-        label_err = (
-                <FormControl className
+                    </FormControl>
+    
+                    );
+        }
+        if(this.state.label_errform){
+            label_err = (
+                    <FormControl
                     error
-                    fullWidth>
-                    <InputLabel htmlFor="labelType-error">Label Type</InputLabel>
+                    >
+                    <InputLabel htmlFor="name-error">Label Type</InputLabel>
                     <Select
-                        autoFocus
-                        value={this.state.labelType || false}
-                        onChange={this.handleChangeLabelType}
+                    autoFocus
+                    value={this.state.labelType || false}
+                    onChange={this.handleChangeLabelType}
+                    input={<Input id='name-error'/>}
                     >
                     {labelTypeMenu}
                     </Select>
                     <FormHelperText>Please choose a label.</FormHelperText>
-                </FormControl>
-                );
-    }
-    let name_normal;
-    let des_normal;
-    let label_normal;
-    if(this.state.name_normalform){
-	    name_normal = (
-			    <TextField
-			    autoFocus
-			    margin="dense"
-			    id="name"
-			    label="Project Name"
-			    type="name"
-			    onChange={this.handleTextFieldChange}
-			    fullWidth
-			    />
-		    );
-    }
-    if(this.state.des_normalform){
-        des_normal = (
-                <TextField
-                margin="dense"
-                id="description"
-                label="Description"
-                type="description"
-                type="description"
-                onChange={this.handleTextFieldChange}
-                fullWidth
-                />
-            );
-    }
-    if(this.state.label_normalform){
-        label_normal = (
+                    </FormControl>
+                    );
+        }
+        let name_normal;
+        let des_normal;
+        let label_normal;
+        if(this.state.name_normalform){
+            name_normal = (
+                    <TextField
+                    autoFocus
+                    margin="dense"
+                    id="name"
+                    label="Project Name"
+                    type="name"
+                    onChange={this.handleTextFieldChange}
+                    fullWidth
+                    />
+                    );
+        }
+        if(this.state.des_normalform){
+            des_normal = (
+                    <TextField
+                    margin="dense"
+                    id="description"
+                    label="Description"
+                    type="description"
+                    type="description"
+                    onChange={this.handleTextFieldChange}
+                    fullWidth
+                    />
+                    );
+        }
+        if(this.state.label_normalform){
+            <FormControl>
                 <InputLabel htmlFor="labelType">Label Type</InputLabel>
                 <Select
-                    autoFocus
-                    value={this.state.labelType || false}
-                    onChange={this.handleChangeLabelType}
+                autoFocus
+                value={this.state.labelType || false}
+                onChange={this.handleChangeLabelType}
                 >
                     {labelTypeMenu}
                 </Select>
-                );
-    }
-    const title = 'New Project';
-    const clickEv = () => {
-      this.props.hide();
-    };
-    const closeButton = (
-      <Button onClick={clickEv}>
-        <Close />
-      </Button>
-    );
-    const labelTypeMenu = SUPPORT_LABEL_TYPES.map(function(labelType, index) {
-      return (
-        <MenuItem key={labelType} value={labelType}>
-          {labelType}
-        </MenuItem>
-      );
-    });
+            </FormControl>
+        }
+        //const title = 'New Project';
+        //const clickEv = () => {
+        //    this.props.hide();
+        //};
+        //const closeButton = (
+        //        <Button onClick={clickEv}>
+        //        <Close />
+        //        </Button>
+        //        );
+        //const labelTypeMenu = SUPPORT_LABEL_TYPES.map(function(labelType, index) {
+        //    return (
+        //            <MenuItem key={labelType} value={labelType}>
+        //            {labelType}
+        //            </MenuItem>
+        //           );
+        //});
 
-    return (
-            <Dialog
-            open={this.props.open}
-            onClose={this.props.hide}
-            aria-labelledby="form-dialog-title"
-            >
-            <CardHeader action={closeButton} title={title} />
-            <DialogContent>
+        return (
+                <Dialog
+                open={this.props.open}
+                onClose={this.props.hide}
+                aria-labelledby="form-dialog-title"
+                >
+                <CardHeader action={closeButton} title={title} />
+                <DialogContent>
                 {name_normal}
                 {name_err}
                 {des_normal}
                 {des_err}
                 {label_normal}
                 {label_err}
-                <br />
-                <Fab color="primary" onClick={this.request}>
+                    <br />
+                    <Fab color="primary" onClick={this.request}>
                     <Send />
-                </Fab>
-            </DialogContent>
-        </Dialog>
-    );
-  }
+                    </Fab>
+                    </DialogContent>
+                    </Dialog>
+                    );
+    }
 }
