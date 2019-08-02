@@ -29,12 +29,13 @@ export default class Popup extends React.Component {
             labelType: null,
             name_errform: false,
             des_errform: false,
-            label_errform: true,
+            label_errform: false,
             name_normalform: true,
             des_normalform: true,
-            label_normalform: false
+            label_normalform: true
         };
     }
+
     handleTextFieldChange = e => {
         this.setState({ [e.target.id]: e.target.value });
     };
@@ -57,18 +58,13 @@ export default class Popup extends React.Component {
                 },
                 res => {
                     this.setState({ result: 'Failed' });
-                    //if((this.state.name=='') && (this.state.description=='')){
-                    //    this.setState({name_errform: true});
-                    //    this.setState({name_normalform: false});
-                    //    this.setState({des_errform: true});
-                    //    this.setState({des_normalform: false});
                     if(this.state.name==''){
                         this.setState({name_errform: true});
                         this.setState({name_normalform: false});
                     }if(this.state.description==''){
                         this.setState({des_errform: true});
                         this.setState({des_normalform: false});
-                    }if(this.state.labelType==''){ 
+                    }if(this.state.labelType==null){ 
                         this.setState({label_errform: true});
                         this.setState({label_normalform: false});
                     }
@@ -94,6 +90,7 @@ export default class Popup extends React.Component {
         });
         let name_err;
         let des_err;
+        let label_err;
         if(this.state.name_errform){
             name_err = ( 
                     <FormControl 
@@ -138,12 +135,15 @@ export default class Popup extends React.Component {
                     <FormControl
                     error
                     >
-                    <InputLabel htmlFor="name-error">Label Type</InputLabel>
+                    <InputLabel 
+                    htmlFor="name-error"
+                    margin="dense">Label Type</InputLabel>
                     <Select
                     autoFocus
+                    name="name"
                     value={this.state.labelType || false}
                     onChange={this.handleChangeLabelType}
-                    input={<Input id='name-error'/>}
+                    input={<Input id="name-error"/>}
                     >
                     {labelTypeMenu}
                     </Select>
@@ -174,23 +174,26 @@ export default class Popup extends React.Component {
                     id="description"
                     label="Description"
                     type="description"
-                    type="description"
                     onChange={this.handleTextFieldChange}
                     fullWidth
                     />
                     );
         }
         if(this.state.label_normalform){
-            <FormControl>
-                <InputLabel htmlFor="labelType">Label Type</InputLabel>
-                <Select
-                autoFocus
-                value={this.state.labelType || false}
-                onChange={this.handleChangeLabelType}
-                >
+            label_normal = (
+                    <FormControl >
+                    <InputLabel>
+                    LabelType
+                    </InputLabel>
+                    <Select
+                    autoWidth
+                    value={this.state.labelType || false}
+                    onChange={this.handleChangeLabelType}
+                    >
                     {labelTypeMenu}
-                </Select>
-            </FormControl>
+                    </Select>
+                    </FormControl>
+                    )
         }
         //const title = 'New Project';
         //const clickEv = () => {
@@ -221,7 +224,7 @@ export default class Popup extends React.Component {
                 {name_err}
                 {des_normal}
                 {des_err}
-                {label_normal}
+                {label_normal}  
                 {label_err}
                     <br />
                     <Fab color="primary" onClick={this.request}>
