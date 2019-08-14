@@ -1,21 +1,41 @@
 
-const toolStatus = {
-};
+import React from 'react';
+import ReactDOM from 'react-dom';
+
 
 // 3d eidt arrow
 const arrowColors = [0xff0000, 0x00ff00, 0x0000ff],
       hoverColors = [0xffaaaa, 0xaaffaa, 0xaaaaff],
       AXES = [new THREE.Vector3(1,0,0), new THREE.Vector3(0,1,0), new THREE.Vector3(0,0,1)];
 
-export default class PCDLabelTool{
+export default class PCDLabelTool_ extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+    };
+    this._labelTool = props.labelTool;
+    this._controls = props.controls;
+    this._element = React.createRef();
+  }
+  componentDidMount() {
+    console.log('pcd componentDidMount()');
+    this.init();
+  }
+  render() {
+    return (
+      <div ref={this._element} />
+    );
+  }
+
   // private
+  _canvasSize = { width: 2, height: 1 };
   _labelTool = null;
   _wrapper = null;
   _loaded = true;
   _scene = null;
   _renderer = null;
   _camera = null;
-  _controls = null;
+  _cameraControls = null;
   //cameraExMat = new THREE.Matrix4();
   // PCD objects
   _pcdLoader = null;
@@ -55,9 +75,6 @@ export default class PCDLabelTool{
   isTargetCandidate(id) {
     return this.candidateId == id;
   }
-  constructor(labelTool) {
-    this._labelTool = labelTool;
-  }
   init() {
     if ( !Detector.webgl ) {
       Detector.addGetWebGLMessage();
@@ -73,14 +90,14 @@ export default class PCDLabelTool{
 
     this._animate();
   }
-  load() {
+  load(frame) {
     this._loaded = false;
-    const frame = this._labelTool.getFrameNumber();
-    const url = this._labelTool.getURL('frame_blob', this.candidateId);
+    const url = this._labelTool.getURL('frame_blob', this.candidateId, frame);
     this._pointMeshes.forEach(mesh => { mesh.visible = false; });
     // use preloaded pcd mesh
     if (this._pointMeshes[frame] != null) {
       this._pointMeshes[frame].visible =true;
+      this._redrawFlag = true;
       this._loaded = true;
       return Promise.resolve();
     }
@@ -100,12 +117,21 @@ export default class PCDLabelTool{
     });
   }
   handles = {
-    resize: () => {
-      /*
-      camera.aspect = window.innerWidth / window.innerHeight;
+    resize: size => {
+      console.log('3D resize');
+      this._canvasSize = size;
+      const camera = this._camera;
+      if (camera instanceof THREE.OrthographicCamera) {
+        const y = camera.right * size.height / size.width;
+        camera.top = y;
+        camera.bottom = -y;
+        console.log(camera.right, camera.top);
+      } else {
+        camera.aspect = size.width / size.height;
+      }
       camera.updateProjectionMatrix();
-      renderer.setSize( window.innerWidth, window.innerHeight );
-      */
+      this._renderer.setSize(size.width, size.height);
+      this._redrawFlag = true;
     },
     keydown: (e) => {
       if (e.keyCode === 16) { // shift
@@ -141,6 +167,7 @@ export default class PCDLabelTool{
   setActive(isActive) {
     if ( isActive ) {
       this._wrapper.show();
+      this._redrawFlag = true;
     } else {
       this._wrapper.hide();
     }
@@ -192,9 +219,20 @@ export default class PCDLabelTool{
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setClearColor(0x000000);
     renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(this._canvasSize.width, this._canvasSize.height);
     this._renderer = renderer;
     this._scene = scene;
+
+    const GRID_SIZE = 100;
+    const gridPlane = new THREE.GridHelper(GRID_SIZE, GRID_SIZE/5);
+    gridPlane.rotation.x = Math.PI/2;
+    gridPlane.position.x = 0;
+    gridPlane.position.y = 0;
+    gridPlane.position.z = -1;
+    this._gridPlane = gridPlane;
+    this._scene.add(gridPlane);
+
+    
 
     const pcdLoader = new THREE.PCDLoader();
     this._pcdLoader = pcdLoader;
@@ -202,15 +240,19 @@ export default class PCDLabelTool{
   _initCamera() {
     // TODO: read YAML and set camera?
     let camera;
+    const NEAR = 1, FAR = 2000;
+    const aspect = this._canvasSize.width / this._canvasSize.height;
     if(this._isBirdView){
-      camera = new THREE.OrthographicCamera (-40,40,20,-20, 10, 2000);
+      const x = 40, y = x / aspect;
+      camera = new THREE.OrthographicCamera(-x, x, y, -y, NEAR, FAR);
       camera.position.set (0,0,450);
       camera.lookAt (new THREE.Vector3(0,0,0));
     }else{
-      camera = new THREE.PerspectiveCamera( 90, window.innerWidth / window.innerHeight, 0.01, 10000 );
+      camera = new THREE.PerspectiveCamera( 90, aspect, NEAR, FAR);
       camera.position.set(0,0,0.5);
     }
-    camera.up.set (0,0,1);
+    camera.up.set(0,0,1);
+    window.camera = camera;
     this._scene.add( camera );
 
     const controls = new THREE.OrbitControls(camera, this._renderer.domElement);
@@ -230,10 +272,11 @@ export default class PCDLabelTool{
     controls.update();
 
     this._camera = camera;
-    this._controls = controls;
+    this._cameraControls = controls;
   }
   _initDom() {
-    const wrapper = $('#canvas3d'); // change dom id
+    //const wrapper = $('#canvas3d'); // change dom id
+    const wrapper = $(this._element.current); // change dom id
     wrapper.append(this._renderer.domElement);
     this._wrapper = wrapper;
     wrapper.hide();
@@ -456,13 +499,13 @@ class PCDBBox {
       throw "Label already set";
     }
     this.label = label;
-    this.labelItem = label.addBBox('PCD');
+    //this.labelItem = label.addBBox('PCD');
   }
   updateKlass() {
   }
   remove() {
     // TODO: remove meshes
-    this.labelItem.remove();
+    //this.labelItem.remove();
     const mesh = this.cube.mesh;
     this.pcdTool._scene.remove(mesh);
     this.pcdTool._redrawFlag = true;
@@ -528,9 +571,9 @@ function createModeMethods(pcdTool) {
           this.mouse = pcdTool.getMousePos(e);
           pcdTool._modeStatus.busy = true;
         } else if (this.prevHover != null) {
-          pcdTool._labelTool.selectLabel(this.prevHover.label);
+          pcdTool._controls.selectLabel(this.prevHover.label);
         } else {
-          pcdTool._labelTool.selectLabel(null);
+          pcdTool._controls.selectLabel(null);
         }
       },
       resetHover: function() {
@@ -580,7 +623,7 @@ function createModeMethods(pcdTool) {
       },
       mouseMove: function(e) {
         const ray = pcdTool.getRay(e);
-        const label = pcdTool._labelTool.getTargetLabel();
+        const label = pcdTool._controls.getTargetLabel();
         if (this.selectFace != null) {
           if (label == null) { return; } // TODO: this is error
           // TODO: 3d controlable
@@ -653,7 +696,7 @@ function createModeMethods(pcdTool) {
       animate: function() {
       },
       mouseDown: function(e) {
-        const label = pcdTool._labelTool.getTargetLabel();
+        const label = pcdTool._controls.getTargetLabel();
         if (label != null) {
           this.mouse = pcdTool.getMousePos(e);
           pcdTool._modeStatus.busy = true;
@@ -661,7 +704,7 @@ function createModeMethods(pcdTool) {
       },
       mouseMove: function(e) {
         if (this.mouse != null) {
-          const label = pcdTool._labelTool.getTargetLabel();
+          const label = pcdTool._controls.getTargetLabel();
           if (label == null) { return; } // TODO: this is error
           // TODO: 3d controlable
           const mouse = pcdTool.getMousePos(e);
@@ -702,9 +745,9 @@ function createModeMethods(pcdTool) {
           };
           pcdTool._modeStatus.busy = true;
         } else if (this.prevHover != null) {
-          pcdTool._labelTool.selectLabel(this.prevHover.label);
+          pcdTool._controls.selectLabel(this.prevHover.label);
         } else {
-          pcdTool._labelTool.selectLabel(null);
+          pcdTool._controls.selectLabel(null);
         }
       },
       resetHover: function() {
@@ -720,7 +763,7 @@ function createModeMethods(pcdTool) {
       },
       mouseMove: function(e) {
         if (this.arrowMoving != null) {
-          const label = pcdTool._labelTool.getTargetLabel();
+          const label = pcdTool._controls.getTargetLabel();
           if (label == null) { return; } // TODO: this is error
           // TODO: support Z axis
           const pos = pcdTool.getMousePos(e); // TODO: need 3d mouse pos
@@ -733,7 +776,7 @@ function createModeMethods(pcdTool) {
           pcdTool._redrawFlag = true;
           /*
           const move = pos.clone().sub(this.arrowMoving.mouse).multiply(AXES[this.arrowMoving.arrow]);
-          const label = pcdTool._labelTool.getTargetLabel();
+          const label = pcdTool._controls.getTargetLabel();
           if (label == null) { return; } // TODO: this is error
           const bbox = label.bbox[pcdTool.candidateId];
           bbox.box.pos.add(move);
@@ -859,8 +902,8 @@ function createModeMethods(pcdTool) {
               'rotation_y': bbox.box.rotation.z,
             });
         // TODO: add branch use selecting label 
-        const label = pcdTool._labelTool.createLabel(
-          pcdTool._labelTool.getTargetKlass(),
+        const label = pcdTool._controls.createLabel(
+          pcdTool._controls.getTargetKlass(),
           {[pcdTool.candidateId]: pcdBBox}
         );
         pcdTool._scene.remove(bbox.box);
@@ -878,7 +921,7 @@ function createModeMethods(pcdTool) {
     'view': {
       animate: function() {
         pcdTool._redrawFlag = true;
-        pcdTool._controls.update();
+        pcdTool._cameraControls.update();
       },
       mouseDown: function(e) {
         pcdTool._modeStatus.busy = true;
@@ -888,10 +931,10 @@ function createModeMethods(pcdTool) {
       mouseUp: function(e) {
       },
       changeFrom: function() {
-        pcdTool._controls.enabled = false;
+        pcdTool._cameraControls.enabled = false;
       },
       changeTo: function() {
-        pcdTool._controls.enabled = true;
+        pcdTool._cameraControls.enabled = true;
         pcdTool._wrapper.css('cursor', 'all-scroll');
       },
     },

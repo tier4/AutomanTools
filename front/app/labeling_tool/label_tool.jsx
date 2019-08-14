@@ -1,15 +1,61 @@
 
+import React from 'react';
+import ReactDOM from 'react-dom';
 
-/*
-import RequestClient from 'automan/services/request-client'
-
-import Annotation from 'automan/labeling_tool/annotation'
-import ImageLabelTool from 'automan/labeling_tool/image_label_tool'
-import PCDLabelTool from 'automan/labeling_tool/pcd_label_tool'
-import Controls from 'automan/labeling_tool/controls'
-import KlassSet from 'automan/labeling_tool/klass_set'
-*/
 import LabelTool from 'automan/labeling_tool/base_label_tool'
 
+ReactDOM.render(
+  <div style={{background:'#fff'}}>
+    <LabelTool />
+  </div>,
+  document.getElementById('wrapper')
+);
 
 
+/*
+class TestParent extends React.Component {
+  constructor(props) {
+    super(props);
+    this.elem = <TestChild/>;
+  }
+  componentDidMount() {
+    console.log('parent.componentDidMount()');
+  }
+  render() {
+    return (
+      <div>
+        {this.elem}
+      </div>
+    );
+  }
+}
+class TestChild extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      a: false
+    };
+    this.test = React.createRef();
+  }
+  componentDidMount() {
+    console.log('child.componentDidMount()');
+    $(this.test.current).append($('<div>aaa</div>'));
+  }
+  handle = () => {
+    this.setState({a: !this.state.a});
+    console.log('handle');
+  }
+  render() {
+    return (
+      <div ref={this.test} onClick={this.handle}>
+        test {this.state.a.toString()}
+      </div>
+    );
+  }
+}
+
+ReactDOM.render(
+  <TestParent />,
+  document.getElementById('wrapper')
+);
+*/
