@@ -15,3 +15,4 @@ class Job(models.Model):
     status = models.CharField(max_length=45, default=STATUS_MAP['submitted'])
     started_at = models.DateTimeField(null=True)
     completed_at = models.DateTimeField(null=True)
+    unknown_started_at = models.DateTimeField(null=True)
