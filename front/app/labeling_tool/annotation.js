@@ -42,6 +42,7 @@ export default class Annotation {
               const id = tool.candidateId;
               if (obj.content[id] != null) {
                 bboxes[id] = tool.createBBox(obj.content[id]);
+                tool._redrawFlag = true;
               }
             });
             let label = new Label(this, obj.object_id, klass, bboxes);
