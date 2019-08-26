@@ -61,12 +61,23 @@ export default class Popup extends React.Component {
                     if(this.state.name==''){
                         this.setState({name_errform: true});
                         this.setState({name_normalform: false});
-                    }if(this.state.description==''){
+                    }else{
+                        this.setState({name_errform: false});
+                        this.setState({name_normalform: true});
+                    }
+                    if(this.state.description==''){
                         this.setState({des_errform: true});
                         this.setState({des_normalform: false});
-                    }if(this.state.labelType==null){ 
+                    }else{
+                        this.setState({des_errform: false});
+                        this.setState({des_normalform: true});
+                    }
+                    if(this.state.labelType==null){ 
                         this.setState({label_errform: true});
                         this.setState({label_normalform: false});
+                    }else{
+                        this.setState({label_errform: false});
+                        this.setState({label_normalform: true});
                     }
                 }
         );
@@ -99,7 +110,7 @@ export default class Popup extends React.Component {
                     <InputLabel htmlFor="component-error">Project Name</InputLabel>
                     <Input
                     autoFocus
-                    id="component-error"
+                    id="name"
                     margin="dense"
                     type="name"
                     onChange={this.handleTextFieldChange}
@@ -118,7 +129,7 @@ export default class Popup extends React.Component {
                     <InputLabel htmlFor="component-error">Description</InputLabel>
                     <Input
                     autoFocus
-                    id="component-error"
+                    id="description"
                     margin="dense"
                     type="description"
                     onChange={this.handleTextFieldChange}
