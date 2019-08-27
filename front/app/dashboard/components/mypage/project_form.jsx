@@ -30,9 +30,6 @@ export default class Popup extends React.Component {
             name_errform: false,
             des_errform: false,
             label_errform: false,
-            name_normalform: true,
-            des_normalform: true,
-            label_normalform: true
         };
     }
 
@@ -49,7 +46,23 @@ export default class Popup extends React.Component {
             description: this.state.description,
             label_type: this.state.labelType
         };
-        RequestClient.post(
+        if(this.state.name === ''){
+            this.setState({ name_errform: true});
+        }else{
+            this.setState({ name_errform: false});
+        }
+        if(this.state.description === ''){
+            this.setState({ des_errform: true});
+        }else{
+            this.setState({ des_errform: false});
+        }
+        if(this.state.description === null){
+            this.setState({ label_errform: true});
+        }else{
+            this.setState({ label_errform: false})
+        }
+        if(!this.state.name_errform && !this.state.des_errform && !this.state.label_errform){
+            RequestClient.post(
                 '/projects/',
                 data,
                 res => {
@@ -58,29 +71,9 @@ export default class Popup extends React.Component {
                 },
                 res => {
                     this.setState({ result: 'Failed' });
-                    if(this.state.name==''){
-                        this.setState({name_errform: true});
-                        this.setState({name_normalform: false});
-                    }else{
-                        this.setState({name_errform: false});
-                        this.setState({name_normalform: true});
-                    }
-                    if(this.state.description==''){
-                        this.setState({des_errform: true});
-                        this.setState({des_normalform: false});
-                    }else{
-                        this.setState({des_errform: false});
-                        this.setState({des_normalform: true});
-                    }
-                    if(this.state.labelType==null){ 
-                        this.setState({label_errform: true});
-                        this.setState({label_normalform: false});
-                    }else{
-                        this.setState({label_errform: false});
-                        this.setState({label_normalform: true});
-                    }
                 }
-        );
+            );
+        }
     };
     render() {
         const title = 'New Project';
@@ -99,11 +92,11 @@ export default class Popup extends React.Component {
                     </MenuItem>
                    );
         });
-        let name_err;
-        let des_err;
-        let label_err;
-        if(this.state.name_errform){
-            name_err = ( 
+        let name_form;
+        let des_form;
+        let label_form;
+        if (this.state.name_errform){
+            form_name = ( 
                     <FormControl 
                     error
                     fullWidth>
@@ -120,9 +113,21 @@ export default class Popup extends React.Component {
                     <FormHelperText id="component-error-text">Please enter a valid project name.</FormHelperText>
                     </FormControl>
                     );
+        }else{
+            form_name = (
+                    <TextField
+                    autoFocus
+                    margin="dense"
+                    id="name"
+                    label="Project Name"
+                    type="name"
+                    onChange={this.handleTextFieldChange}
+                    fullWidth
+                    />
+                    );
         }
         if(this.state.des_errform){
-            des_err = ( 
+            des_form = ( 
                     <FormControl 
                     error
                     fullWidth>
@@ -140,9 +145,20 @@ export default class Popup extends React.Component {
                     </FormControl>
     
                     );
+        }else{
+            des_form = (
+                    <TextField
+                    margin="dense"
+                    id="description"
+                    label="Description"
+                    type="description"
+                    onChange={this.handleTextFieldChange}
+                    fullWidth
+                    />
+                    );
         }
         if(this.state.label_errform){
-            label_err = (
+            label_form = (
                     <FormControl
                     error
                     >
@@ -161,37 +177,8 @@ export default class Popup extends React.Component {
                     <FormHelperText>Please choose a label.</FormHelperText>
                     </FormControl>
                     );
-        }
-        let name_normal;
-        let des_normal;
-        let label_normal;
-        if(this.state.name_normalform){
-            name_normal = (
-                    <TextField
-                    autoFocus
-                    margin="dense"
-                    id="name"
-                    label="Project Name"
-                    type="name"
-                    onChange={this.handleTextFieldChange}
-                    fullWidth
-                    />
-                    );
-        }
-        if(this.state.des_normalform){
-            des_normal = (
-                    <TextField
-                    margin="dense"
-                    id="description"
-                    label="Description"
-                    type="description"
-                    onChange={this.handleTextFieldChange}
-                    fullWidth
-                    />
-                    );
-        }
-        if(this.state.label_normalform){
-            label_normal = (
+        }else{
+            label_form = (
                     <FormControl >
                     <InputLabel>
                     LabelType
@@ -204,25 +191,8 @@ export default class Popup extends React.Component {
                     {labelTypeMenu}
                     </Select>
                     </FormControl>
-                    )
+                    );
         }
-        //const title = 'New Project';
-        //const clickEv = () => {
-        //    this.props.hide();
-        //};
-        //const closeButton = (
-        //        <Button onClick={clickEv}>
-        //        <Close />
-        //        </Button>
-        //        );
-        //const labelTypeMenu = SUPPORT_LABEL_TYPES.map(function(labelType, index) {
-        //    return (
-        //            <MenuItem key={labelType} value={labelType}>
-        //            {labelType}
-        //            </MenuItem>
-        //           );
-        //});
-
         return (
                 <Dialog
                 open={this.props.open}
@@ -231,18 +201,15 @@ export default class Popup extends React.Component {
                 >
                 <CardHeader action={closeButton} title={title} />
                 <DialogContent>
-                {name_normal}
-                {name_err}
-                {des_normal}
-                {des_err}
-                {label_normal}  
-                {label_err}
-                    <br />
-                    <Fab color="primary" onClick={this.request}>
-                    <Send />
-                    </Fab>
-                    </DialogContent>
-                    </Dialog>
-                    );
+                {name_form}
+                {des_form}
+                {label_form}  
+                <br />
+                <Fab color="primary" onClick={this.request}>
+                <Send />
+                </Fab>
+                </DialogContent>
+                </Dialog>
+                );
     }
 }
