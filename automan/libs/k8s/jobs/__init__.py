@@ -2,6 +2,7 @@ import os
 import json
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
+from utility.service_log import ServiceLog
 
 
 class BaseJob(object):
@@ -13,6 +14,7 @@ class BaseJob(object):
         except Exception:
             config.load_incluster_config()  # in kubernetes
         self.batch_client = client.BatchV1Api()
+        self.core_client = client.CoreV1Api()
 
     def create(self):
         raise NotImplementedError
@@ -38,6 +40,21 @@ class BaseJob(object):
                 namespace, pretty=pretty, limit=limit, timeout_seconds=timeout_seconds)
         except ApiException as e:
             print("Exception when calling BatchV1Api->list_namespaced_job: %s\n" % e)
+
+    def logs(self, name, namespace):
+        label_selector = 'job-name=' + name
+
+        try:
+            pods = self.core_client.list_namespaced_pod(namespace, label_selector=label_selector)
+        except ApiException as e:
+            print("Exception when calling CoreV1Api->list_namespaced_pod: %s\n" % e)
+            return
+        try:
+            for pod in pods.items:
+                job_log = self.core_client.read_namespaced_pod_log(pod.metadata.name, namespace)
+                ServiceLog.error('pod name=' + pod.metadata.name, detail_msg=job_log)
+        except ApiException as e:
+            print("Exception when calling CoreV1Api->read_namespaced_pod_log: %s\n" % e)
 
     def fetch(self, name, namespace):
         pretty = 'pretty_example'

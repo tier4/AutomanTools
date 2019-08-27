@@ -6,6 +6,12 @@ rules:
 - apiGroups: ["batch"]
   resources: ["jobs"]
   verbs: ["*"]
+- apiGroups: [""]
+  resources: ["pods/log"]
+  verbs: ["*"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["*"]
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
