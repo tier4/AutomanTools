@@ -54,12 +54,11 @@ class JobSerializer(serializers.ModelSerializer):
             record['job_type'] = job.job_type
             if job.status not in [STATUS_MAP['succeeded'], STATUS_MAP['failed']]:
                 status, start_time, completion_time = cls.__get_job_status(job.id, job.job_type)
-                if job.status != 'unknown' and status == 'unknown':
+                if job.status != STATUS_MAP['unknown'] and status == STATUS_MAP['unknown']:
                     job.unknown_started_at = datetime.now()
                 job.status = status
                 job.started_at = start_time
                 job.completed_at = completion_time
-                job.status = STATUS_MAP['unknown']
                 if job.status is STATUS_MAP['unknown'] and cls.__is_unknown_time_limit(job.unknown_started_at):
                     job.status = STATUS_MAP['failed']
                 job.save()
