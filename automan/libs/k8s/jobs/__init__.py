@@ -51,10 +51,12 @@ class BaseJob(object):
             return
         try:
             for pod in pods.items:
-                job_log = self.core_client.read_namespaced_pod_log(pod.metadata.name, namespace)
-                ServiceLog.error('pod-name=' + pod.metadata.name, detail_msg=job_log)
+                pod_log = self.core_client.read_namespaced_pod_log(pod.metadata.name, namespace)
+                ServiceLog.error('pod-name=' + pod.metadata.name, detail_msg=pod_log)
             if pods.items == []:
+                pod_log = 'no logs'
                 ServiceLog.error(label_selector, detail_msg='no logs')
+            return pod_log
         except ApiException as e:
             print("Exception when calling CoreV1Api->read_namespaced_pod_log: %s\n" % e)
 

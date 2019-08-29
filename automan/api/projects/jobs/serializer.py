@@ -60,15 +60,17 @@ class JobSerializer(serializers.ModelSerializer):
                 job.completed_at = completion_time
                 if job.status == STATUS_MAP['unknown'] and cls.__is_unknown_time_limit(job.unknown_started_at):
                     job.status = STATUS_MAP['failed']
-                job.save()
                 if job.status == STATUS_MAP['failed']:
                     namespace = cls.__generate_job_namespace()
-                    BaseJob().logs(cls.__generate_job_name(job.id, job.job_type), namespace)
+                    pod_log = BaseJob().logs(cls.__generate_job_name(job.id, job.job_type), namespace)
+                    job.pod_log = pod_log
+                job.save()
             record['status'] = job.status
             record['started_at'] = str(job.started_at) if job.started_at else ''
             record['completed_at'] = str(job.completed_at) if job.completed_at else ''
             record['registered_at'] = str(job.registered_at)
             record['job_config'] = job.job_config
+            record['pod_log'] = job.pod_log
             record['user_id'] = job.user_id
             records.append(record)
         contents = {}
