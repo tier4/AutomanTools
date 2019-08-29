@@ -89,7 +89,7 @@ def original_info(request, project_id, original_id):
         if status == 'analyzed':
             dataset_candidates = request.data.get('dataset_candidates')
             original_manager.update_status(original_id, status, dataset_candidates)
-        elif status == 'uploaded':
+        else:
             original_manager.update_status(original_id, status)
         return HttpResponse(status=204)
     else:
