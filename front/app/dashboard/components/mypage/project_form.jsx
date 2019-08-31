@@ -27,14 +27,19 @@ export default class Popup extends React.Component {
             name: '',
             description: '',
             labelType: null,
-            name_errform: false,
-            des_errform: false,
-            label_errform: false,
+            name_null_err: false,
+            des_null_err: false,
+            label_null_err: false,
+            name_len_err: false,
+            des_len_err: false,
         };
     }
+    handleNameFieldChange = e => {
+        this.setState({name: e.target.value });
+    };
 
-    handleTextFieldChange = e => {
-        this.setState({ [e.target.id]: e.target.value });
+    handleDescriptionFieldChange = e => {
+        this.setState({ description: e.target.value });
     };
     handleChangeLabelType = e => {
         this.setState({ labelType: e.target.value });
@@ -46,22 +51,20 @@ export default class Popup extends React.Component {
             description: this.state.description,
             label_type: this.state.labelType
         };
-        if(this.state.name === ''){
-            this.setState({ name_errform: true});
-        }else{
-            this.setState({ name_errform: false});
-        }
-        if(this.state.description === ''){
-            this.setState({ des_errform: true});
-        }else{
-            this.setState({ des_errform: false});
-        }
-        if(this.state.description === null){
-            this.setState({ label_errform: true});
-        }else{
-            this.setState({ label_errform: false})
-        }
-        if(!this.state.name_errform && !this.state.des_errform && !this.state.label_errform){
+        name_null_err = {this.state.name === ''};
+        name_len_err = {this.state.name.length > 127};
+        this.setState({ name_null_err: name_null_err,
+                        name_len_err: name_len_err});
+        
+        des_null_err = {this.state.description ===''};
+        des_len_err = {this.state.description.length > 127};
+        this.setState({des_null_err: des_null_err, 
+                       des_len_err: des_len_err});
+        
+        label_null_err = {this.state.labelType === null};
+        this.setState({label_null_err: label_null_err});
+        
+        if(!this.state.name_null_err && !this.state.name_len_err && !this.state.des_null_err && !this.state.des_len_err && !this.state.label_null_err){
             RequestClient.post(
                 '/projects/',
                 data,
@@ -95,38 +98,59 @@ export default class Popup extends React.Component {
         let name_form;
         let des_form;
         let label_form;
-        if (this.state.name_errform){
-            form_name = ( 
+        if (this.state.name_null_err){
+            name_form = ( 
                     <FormControl 
                     error
                     fullWidth>
                     <InputLabel htmlFor="component-error">Project Name</InputLabel>
                     <Input
                     autoFocus
+                    value={this.state.name}
                     id="name"
                     margin="dense"
                     type="name"
-                    onChange={this.handleTextFieldChange}
+                    onChange={this.handleNameFieldChange}
                     fullWidth
                     aria-describedby="component-error-text"
                     />
                     <FormHelperText id="component-error-text">Please enter a valid project name.</FormHelperText>
                     </FormControl>
-                    );
+                   );
+        }else if(this.state.name_len_err){
+            name_form = ( 
+                    <FormControl 
+                    error
+                    fullWidth>
+                    <InputLabel htmlFor="component-error">Project Name</InputLabel>
+                    <Input
+                    autoFocus
+                    value={this.state.name}
+                    id="name"
+                    margin="dense"
+                    type="name"
+                    onChange={this.handleNameFieldChange}
+                    fullWidth
+                    aria-describedby="component-error-text"
+                    />
+                    <FormHelperText id="component-error-text">Please only use 127 characters.</FormHelperText>
+                    </FormControl>
+                   );
         }else{
-            form_name = (
+            name_form = (
                     <TextField
                     autoFocus
+                    value={this.state.name}
                     margin="dense"
                     id="name"
                     label="Project Name"
                     type="name"
-                    onChange={this.handleTextFieldChange}
+                    onChange={this.handleNameFieldChange}
                     fullWidth
                     />
                     );
         }
-        if(this.state.des_errform){
+        if(this.state.des_null_err){
             des_form = ( 
                     <FormControl 
                     error
@@ -134,30 +158,50 @@ export default class Popup extends React.Component {
                     <InputLabel htmlFor="component-error">Description</InputLabel>
                     <Input
                     autoFocus
+                    value={this.state.description}
                     id="description"
                     margin="dense"
                     type="description"
-                    onChange={this.handleTextFieldChange}
+                    onChange={this.handleDescriptionFieldChange}
                     fullWidth
                     aria-describedby="component-error-text"
                     />
                     <FormHelperText id="component-error-text">Please enter a valid description.</FormHelperText>
                     </FormControl>
-    
+                    );
+        }else if(this.state.des_len_err){
+            des_form = ( 
+                    <FormControl 
+                    error
+                    fullWidth>
+                    <InputLabel htmlFor="component-error">Description</InputLabel>
+                    <Input
+                    autoFocus
+                    value={this.state.description}
+                    id="description"
+                    margin="dense"
+                    type="description"
+                    onChange={this.handleDescriptionFieldChange}
+                    fullWidth
+                    aria-describedby="component-error-text"
+                    />
+                    <FormHelperText id="component-error-text">Please only use 127 characters.</FormHelperText>
+                    </FormControl>
                     );
         }else{
             des_form = (
                     <TextField
                     margin="dense"
+                    value={this.state.description}
                     id="description"
                     label="Description"
                     type="description"
-                    onChange={this.handleTextFieldChange}
+                    onChange={this.handleDescriptionFieldChange}
                     fullWidth
                     />
                     );
         }
-        if(this.state.label_errform){
+        if(this.state.label_null_err){
             label_form = (
                     <FormControl
                     error
@@ -179,7 +223,7 @@ export default class Popup extends React.Component {
                     );
         }else{
             label_form = (
-                    <FormControl >
+                    <FormControl>
                     <InputLabel>
                     LabelType
                     </InputLabel>
