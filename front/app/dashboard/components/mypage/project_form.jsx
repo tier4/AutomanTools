@@ -51,18 +51,13 @@ export default class Popup extends React.Component {
             description: this.state.description,
             label_type: this.state.labelType
         };
-        name_null_err = {this.state.name === ''};
-        name_len_err = {this.state.name.length > 127};
-        this.setState({ name_null_err: name_null_err,
-                        name_len_err: name_len_err});
+        this.setState({name_null_err : (this.state.name === ''),
+                       name_len_err : (this.state.name.length > 127)});
         
-        des_null_err = {this.state.description ===''};
-        des_len_err = {this.state.description.length > 127};
-        this.setState({des_null_err: des_null_err, 
-                       des_len_err: des_len_err});
+        this.setState({des_null_err : (this.state.description === ''),
+                       des_len_err : (this.state.description.length > 127)});
         
-        label_null_err = {this.state.labelType === null};
-        this.setState({label_null_err: label_null_err});
+        this.setState({label_null_err : (this.state.labelType === null)});
         
         if(!this.state.name_null_err && !this.state.name_len_err && !this.state.des_null_err && !this.state.des_len_err && !this.state.label_null_err){
             RequestClient.post(
@@ -71,6 +66,7 @@ export default class Popup extends React.Component {
                 res => {
                     this.setState({ result: 'Success' });
                     this.props.handlePostSubmit();
+                    location.reload();
                 },
                 res => {
                     this.setState({ result: 'Failed' });
@@ -95,6 +91,7 @@ export default class Popup extends React.Component {
                     </MenuItem>
                    );
         });
+
         let name_form;
         let des_form;
         let label_form;
