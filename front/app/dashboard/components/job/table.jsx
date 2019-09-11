@@ -134,9 +134,9 @@ class JobTable extends React.Component {
         ){
           log = (
             <div className="text-center">
-                <Button className={classes.button}
+                <Button
                   classes={{
-                    root: classes.tableActionIcon,
+                    root: classes.tableActionButton,
                   }}
                   aria-owns={open ? 'mouse-over-popover' : undefined}
                   aria-haspopup="true"

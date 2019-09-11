@@ -82,9 +82,11 @@ export const mainStyle = theme => ({
     pointerEvents: 'none',
     padding: 3
   },
-  tableActionIcon: {
-    marginTop: -6,
-    marginBottom: -6,
+  tableActionButton: {
+    marginTop: -10,
+    marginBottom: -10,
+    minHeight: '30px',
+    padding: '0 0px'
   },
   fab: {
     margin: theme.spacing.unit
