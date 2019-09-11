@@ -75,6 +75,17 @@ export const mainStyle = theme => ({
   tableWrapper: {
     padding: theme.spacing.unit * 2
   },
+  popover: {
+    pointerEvents: 'none'
+  },
+  popoverText: {
+    pointerEvents: 'none',
+    padding: 3
+  },
+  tableActionIcon: {
+    marginTop: -6,
+    marginBottom: -6,
+  },
   fab: {
     margin: theme.spacing.unit
   },
