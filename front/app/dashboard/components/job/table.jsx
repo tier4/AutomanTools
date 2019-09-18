@@ -5,6 +5,9 @@ import { withStyles } from '@material-ui/core/styles';
 import { TableHeaderColumn } from 'react-bootstrap-table';
 //import Chip from '@material-ui/core/Chip';
 import Typography from '@material-ui/core/Typography';
+import Button from '@material-ui/core/Button';
+import Popover from '@material-ui/core/Popover';
+import AssignmentLate from '@material-ui/icons/AssignmentLate';
 
 import { mainStyle } from 'automan/assets/main-style';
 import ResizableTable from 'automan/dashboard/components/parts/resizable_table';
@@ -12,6 +15,10 @@ import { JOB_STATUS_MAP } from 'automan/services/const';
 
 function statusFormatter(cell, row) {
   return row.status;
+}
+
+function logFormatter(cell, row) {
+  return row.log;
 }
 
 class JobTable extends React.Component {
@@ -25,9 +32,13 @@ class JobTable extends React.Component {
       target: this.props.target,
       level: 0,
       click_disable: false,
-      query: RequestClient.createPageQuery()
+      query: RequestClient.createPageQuery(),
+      open: false,
+      anchorEl: null,
     };
     this.state.query.setSortRevFlag(true);
+    this.handlePopoverOpen = this.handlePopoverOpen.bind(this);
+    this.handlePopoverClose = this.handlePopoverClose.bind(this);
   }
   componentDidMount() {
     this.updateData();
@@ -94,15 +105,75 @@ class JobTable extends React.Component {
       }
     );
   }
+  handlePopoverOpen(event, jobId) {
+    this.setState({
+      popoverId: jobId,
+      anchorEl: event.currentTarget,
+    });
+  }
+  handlePopoverClose() {
+    this.setState({
+      popoverId: null,
+      anchorEl: null,
+    });
+  }
   render() {
     if (this.state.error) {
       return <div> {this.state.error} </div>;
     }
 
     const { classes } = this.props;
+    const { anchorEl, popoverId } = this.state;
     let rows;
     if (!this.state.is_loading) {
       rows = this.state.data.map((job, index) => {
+        let log = '';
+        if (
+          job.pod_log != null &&
+          job.pod_log.length > 0
+        ){
+          log = (
+            <div className="text-center">
+                <Button
+                  classes={{
+                    root: classes.tableActionButton,
+                  }}
+                  aria-owns={open ? 'mouse-over-popover' : undefined}
+                  aria-haspopup="true"
+                  onMouseEnter={(e) => this.handlePopoverOpen(e, job.id)}
+                  onMouseLeave={this.handlePopoverClose}>
+                    <AssignmentLate fontSize="small"/>
+                    <Popover
+                      id="mouse-over-popover"
+                      className={classes.popover}
+                      classes={{
+                        paper: classes.paper,
+                      }}
+                      open={popoverId===job.id}
+                      anchorEl={anchorEl}
+                      anchorOrigin={{
+                        vertical: 'bottom',
+                        horizontal: 'center',
+                      }}
+                      transformOrigin={{
+                        vertical: 'top',
+                        horizontal: 'right',
+                      }}
+                      onClose={this.handlePopoverClose}
+                      disableRestoreFocus
+                    >
+                      <Typography variant="body1"
+                        classes={{
+                          root: classes.popoverText,
+                        }}
+                      >
+                        {job.pod_log}
+                      </Typography>
+                    </Popover>
+                </Button>
+            </div>
+          );
+        }
         return {
           id: job.id,
           job_type: job.job_type,
@@ -112,7 +183,8 @@ class JobTable extends React.Component {
             </span>
           ),
           started_at: job.started_at,
-          completed_at: job.completed_at
+          completed_at: job.completed_at,
+          log: log
         };
       });
     }
@@ -162,7 +234,7 @@ class JobTable extends React.Component {
           <TableHeaderColumn width="5%" dataField="id" isKey dataSort={true}>
             #
           </TableHeaderColumn>
-          <TableHeaderColumn width="20%" dataField="job_type" dataSort={true}>
+          <TableHeaderColumn width="15%" dataField="job_type" dataSort={true}>
             Type
           </TableHeaderColumn>
           <TableHeaderColumn width="20%" dataField="status" dataFormat={statusFormatter} dataSort={true}>
@@ -173,6 +245,9 @@ class JobTable extends React.Component {
           </TableHeaderColumn>
           <TableHeaderColumn width="25%" dataField="completed_at" dataSort={true}>
             Completion Time
+          </TableHeaderColumn>
+          <TableHeaderColumn width="5%" dataField="log" dataFormat={logFormatter}>
+            Log
           </TableHeaderColumn>
         </ResizableTable>
       </div>

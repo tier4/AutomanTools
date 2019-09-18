@@ -9,9 +9,9 @@ from libs.k8s.jobs import BaseJob
 from libs.k8s.jobs.annotation_archiver import AnnotationArchiver
 from libs.k8s.jobs.rosbag_extractor import RosbagExtractor
 from libs.k8s.jobs.rosbag_analyzer import RosbagAnalyzer
-from datetime import datetime
+from datetime import datetime, timezone
 from projects.jobs.models import Job
-from projects.jobs.const import STATUS_MAP
+from projects.jobs.const import STATUS_MAP, UNKNOWN_LIMIT_TIME
 from projects.project_manager import ProjectManager
 from projects.originals.original_manager import OriginalManager
 from projects.datasets.dataset_manager import DatasetManager
@@ -53,15 +53,24 @@ class JobSerializer(serializers.ModelSerializer):
             record['job_type'] = job.job_type
             if job.status not in [STATUS_MAP['succeeded'], STATUS_MAP['failed']]:
                 status, start_time, completion_time = cls.__get_job_status(job.id, job.job_type)
+                if job.status != STATUS_MAP['unknown'] and status == STATUS_MAP['unknown']:
+                    job.unknown_started_at = datetime.now(timezone.utc)
                 job.status = status
                 job.started_at = start_time
                 job.completed_at = completion_time
+                if job.status == STATUS_MAP['unknown'] and cls.__is_unknown_time_limit(job.unknown_started_at):
+                    job.status = STATUS_MAP['failed']
+                if job.status == STATUS_MAP['failed']:
+                    namespace = cls.__generate_job_namespace()
+                    pod_log = BaseJob().logs(cls.__generate_job_name(job.id, job.job_type), namespace)
+                    job.pod_log = pod_log
                 job.save()
             record['status'] = job.status
             record['started_at'] = str(job.started_at) if job.started_at else ''
             record['completed_at'] = str(job.completed_at) if job.completed_at else ''
             record['registered_at'] = str(job.registered_at)
             record['job_config'] = job.job_config
+            record['pod_log'] = job.pod_log
             record['user_id'] = job.user_id
             records.append(record)
         contents = {}
@@ -215,6 +224,15 @@ class JobSerializer(serializers.ModelSerializer):
             'records': records,
         }
         return raw_data_config
+
+    @classmethod
+    def __is_unknown_time_limit(cls, unknown_started):
+        if not unknown_started:
+            return False
+        time = datetime.now(timezone.utc) - unknown_started
+        if time.seconds > UNKNOWN_LIMIT_TIME:
+            return True
+        return False
 
     @classmethod
     def __get_job_status(cls, id, job_type):

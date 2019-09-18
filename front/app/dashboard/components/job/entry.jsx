@@ -3,6 +3,7 @@ import { withStyles } from '@material-ui/core/styles';
 import Fab from '@material-ui/core/Fab';
 import Paper from '@material-ui/core/Paper';
 import Add from '@material-ui/icons/Add';
+import Grid from '@material-ui/core/Grid';
 
 import JobTable from 'automan/dashboard/components/job/table';
 import JobForm from 'automan/dashboard/components/job/form';
@@ -27,20 +28,22 @@ class JobPage extends React.Component {
   render() {
     const { classes } = this.props;
     return (
-      <div className="container">
-        <JobForm formOpen={this.state.formOpen} hide={this.hide} />
-        <Paper className={classes.root}>
-          <JobTable onClickJob={this.handleClickJob} target={-1} />
-        </Paper>
-        <Fab
-          color="primary"
-          aria-label="Add"
-          className={classes.fab}
-          onClick={this.show}
-        >
-          <Add />
-        </Fab>
-      </div>
+      <Grid container spacing={24}>
+        <Grid item xs={12}>
+          <JobForm formOpen={this.state.formOpen} hide={this.hide} />
+          <Paper className={classes.root}>
+            <JobTable onClickJob={this.handleClickJob} target={-1} />
+          </Paper>
+          <Fab
+            color="primary"
+            aria-label="Add"
+            className={classes.fab}
+            onClick={this.show}
+          >
+            <Add />
+          </Fab>
+        </Grid>
+      </Grid>
     );
   }
 }

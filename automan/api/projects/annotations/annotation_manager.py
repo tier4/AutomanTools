@@ -64,8 +64,6 @@ class AnnotationManager(object):
                 Q(project_id=project_id),
                 Q(delete_flag=False),
                 Q(name__contains=search_keyword))[begin:begin + per_page]
-        if len(annotations) == 0:
-            raise ObjectDoesNotExist()
 
         records = []
         for annotation in annotations:
