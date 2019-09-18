@@ -134,11 +134,11 @@ class AnnotationTable extends React.Component {
     );
   }
   render() {
-    // if ( this.state.error ) {
-    //     return (
-    //         <div> {this.state.error} </div>
-    //     );
-    // }
+    if ( this.state.error ) {
+      return (
+        <div> {this.state.error} </div>
+      );
+    }
 
     const { classes } = this.props;
     let rows = [];
