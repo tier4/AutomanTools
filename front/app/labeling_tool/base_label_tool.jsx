@@ -449,7 +449,6 @@ export default class LabelTool_ extends React.Component {
     //this.controls = React.createRef();
     
     this.initializeBase().then(() => {
-      console.log('initialized (mountHandle is setted)');
       return new Promise((resolve, reject) => {
         this.mountHandle = () => {
           resolve();
@@ -469,7 +468,6 @@ export default class LabelTool_ extends React.Component {
 
   // get project information
   initProject() {
-    console.log('initProject');
     return new Promise((resolve, reject) => {
       RequestClient.get(
         this.getURL('project'),
@@ -488,7 +486,6 @@ export default class LabelTool_ extends React.Component {
     })
   }
   initAnnotation() {
-    console.log('initAnnotation');
     return new Promise((resolve, reject) => {
       RequestClient.get(
         this.getURL('annotation'),
@@ -505,7 +502,6 @@ export default class LabelTool_ extends React.Component {
     });
   }
   initDataset() {
-    console.log('initDataset');
     return new Promise((resolve, reject) => {
       RequestClient.get(
         this.getURL('dataset'),
@@ -522,7 +518,6 @@ export default class LabelTool_ extends React.Component {
     });
   }
   initCandidateInfo() {
-    console.log('initCandidateInfo');
     return new Promise((resolve, reject) => {
       RequestClient.get(
         this.getURL('candidate_info'),
@@ -539,7 +534,6 @@ export default class LabelTool_ extends React.Component {
     });
   }
   initializeBase() {
-    console.log('inittializeBase');
     const pathItems = window.location.pathname.split('/');
     this.projectId = parseInt(pathItems[2]);
     this.annotationId = parseInt(pathItems[4]);

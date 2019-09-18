@@ -2,7 +2,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 
-export default class ImageLabelTool_ extends React.Component {
+export default class ImageLabelTool extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -13,13 +13,15 @@ export default class ImageLabelTool_ extends React.Component {
     this._element = React.createRef();
   }
   componentDidMount() {
-    console.log('image componentDidMount()');
     this.init();
+  }
+  getButtons() {
+    return null;
   }
   render() {
     const wrapperStyle = {
       transform: `scale(${this.state.scale})`,
-      transformOrigin: 'center top'
+      transformOrigin: 'left top'
     };
     return (
       <div
@@ -204,7 +206,8 @@ export default class ImageLabelTool_ extends React.Component {
       });
     }
   };
-  _imageDragStart = (x, y) => {
+  _imageDragStart = (x, y, e) => {
+    if (e.button !== 0) { return; } // not left click
     this._controls.selectLabel(null);
     const offset = this._container.offset();
     this._creatingBox = {
@@ -376,6 +379,8 @@ class ImageBBox {
   updateKlass() {
     this.rect.attr({ 'stroke': this.label.getColor() });
     this.deco.show(this);
+  }
+  updateParam() {
   }
   remove() {
     //this.labelItem.remove();

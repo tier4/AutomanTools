@@ -276,7 +276,6 @@ class Annotation extends React.Component {
     return list;
   }
   render() {
-    console.log('annotation render()');
     const classes = this.props.classes;
     return (
       <List
@@ -316,7 +315,6 @@ class LabelItem extends React.Component {
     this.setState({ isTarget: this.label.isTarget });
   }
   render() {
-    console.log('labelItem render()');
     const classes = this.props.classes;
     const label = this.label;
     return (

@@ -18,9 +18,6 @@ const KlassTab = withStyles(theme => ({
     '&:hover': {
       backgroundColor: 'rgba(0, 0, 0, 0.1)',
     },
-    '&$selected': {
-      backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    }
   }
 }))(props => <Tab {...props}/>);
 

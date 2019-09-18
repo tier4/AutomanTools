@@ -17,427 +17,11 @@ import Annotation from 'automan/labeling_tool/annotation';
 import ImageLabelTool from 'automan/labeling_tool/image_label_tool';
 import PCDLabelTool from 'automan/labeling_tool/pcd_label_tool';
 
+import {toolStyle, appBarHeight, drawerWidth} from 'automan/labeling_tool/tool-style';
+
 import RequestClient from 'automan/services/request-client'
 
 
-// toolbar status
-const appBarHeight = 54;
-// sidebar status
-const drawerWidth = 160;
-const toolHeight = 300;
-const listHead = 20;
-const controlsStyle = {
-  drawer: {
-    width: drawerWidth,
-    marginTop: appBarHeight,
-    overflow: 'auto'
-  },
-  list: {
-    overflow: 'auto',
-    height: '100%',
-    position: 'relative'
-  },
-  listHead: {
-    backgroundColor: '#eee',
-    color: '#000',
-    height: listHead,
-    lineHeight: listHead+'px'
-  },
-  listItem: {
-    height: listHead
-  },
-  selectedListItem: {
-  },
-  appBar: {
-    width: '100%',
-    height: appBarHeight
-  },
-  gridContainer: {
-    height: appBarHeight,
-  },
-  gridItem: {
-    textAlign: 'center',
-  },
-  frameNumberParts: {
-    color: '#000',
-    backgroundColor: '#fff',
-    borderRadius: 5,
-    width: 200
-  },
-  frameNumber: {
-    width: 100
-  },
-  toolControls: {
-    height: toolHeight,
-    textAlign: 'center'
-  },
-  activeTool: {
-    border: 'solid 1px #000'
-  },
-  labelList: {
-    height: `calc(40%)`
-  },
-  klassSetList: {
-    textAlign: 'center',
-    margin: 'auto',
-    //height: `calc(25%)`
-  },
-  colorPane: {
-    width: 18,
-    height: 18,
-    borderRadius: 2
-  },
-  content: {
-    marginLeft: drawerWidth,
-    width: `calc(100% - ${drawerWidth*2}px)`,
-    height: `calc(100% - ${appBarHeight}px)`,
-    overflow: 'hidden',
-    backgroundColor: '#000'
-  }
-};
-/*
-let ImageLabelTool, PCDLabelTool, LabelTool;
-
-
-// dat.GUI menu tool
-let gui = null;
-const getLabel = function() {
-  return LabelTool.getTargetLabel();
-};
-const guiRef = {
-  label: {
-    get klass() {
-      let label = getLabel();
-      if (label == null) { return null; }
-      return label.getKlassName();
-    },
-    set klass(name) {
-      let label = getLabel();
-      if (label == null) { return null; }
-      let klass = KlassSet.getByName(name);
-      if (klass == null) { return null; }
-      Annotation.changeKlass(label, klass);
-    },
-  },
-  image: {
-    getBBox() {
-      let label = getLabel();
-      if (label == null) { return null; }
-      return label.bbox[ImageLabelTool.candidateId];
-    },
-    // getters 
-    get posX() {
-      let bbox = guiRef.image.getBBox();
-      if (bbox == null) { return 0; }
-      return bbox.box.min.x;
-    },
-    get posY() {
-      let bbox = guiRef.image.getBBox();
-      if (bbox == null) { return 0; }
-      return bbox.box.min.y;
-    },
-    get sizeX() {
-      let bbox = guiRef.image.getBBox();
-      if (bbox == null) { return 0; }
-      return bbox.box.getSize().x;
-    },
-    get sizeY() {
-      let bbox = guiRef.image.getBBox();
-      if (bbox == null) { return 0; }
-      return bbox.box.getSize().y;
-    },
-    // setters
-    set posX(v) {
-      let bbox = guiRef.image.getBBox();
-      if (bbox == null) { return; }
-      bbox.dragStart();
-      console.log(JSON.stringify({x: v, prev: bbox.box.min.x}));
-      bbox.dragMove(v - bbox.box.min.x, 0);
-      bbox.dragEnd();
-    },
-    set posY(v) {
-      let bbox = guiRef.image.getBBox();
-      if (bbox == null) { return; }
-      bbox.dragStart();
-      bbox.dragMove(0, v - bbox.box.min.y);
-      bbox.dragEnd();
-    },
-    set sizeX(v) {
-      let bbox = guiRef.image.getBBox();
-      if (bbox == null) { return; }
-      let sx = bbox.box.getSize().x;
-      bbox.dragStart();
-      bbox.setMaxX(v - sx);
-      bbox.dragEnd();
-    },
-    set sizeY(v) {
-      let bbox = guiRef.image.getBBox();
-      if (bbox == null) { return; }
-      let sy = bbox.box.getSize().y;
-      bbox.dragStart();
-      bbox.setMaxY(v - sy);
-      bbox.dragEnd();
-    },
-  },
-  pcd: {
-    getBBox() {
-      let label = getLabel();
-      if (label == null) { return null; }
-      return label.bbox[PCDLabelTool.candidateId];
-    },
-    // getters
-    get posX() {
-      let bbox = guiRef.pcd.getBBox();
-      if (bbox == null) { return 0; }
-      return bbox.box.pos.x;
-    },
-    get posY() {
-      let bbox = guiRef.pcd.getBBox();
-      if (bbox == null) { return 0; }
-      return bbox.box.pos.y;
-    },
-    get posZ() {
-      let bbox = guiRef.pcd.getBBox();
-      if (bbox == null) { return 0; }
-      return bbox.box.pos.z;
-    },
-    get sizeX() {
-      let bbox = guiRef.pcd.getBBox();
-      if (bbox == null) { return 0; }
-      return bbox.box.size.x;
-    },
-    get sizeY() {
-      let bbox = guiRef.pcd.getBBox();
-      if (bbox == null) { return 0; }
-      return bbox.box.size.y;
-    },
-    get sizeZ() {
-      let bbox = guiRef.pcd.getBBox();
-      if (bbox == null) { return 0; }
-      return bbox.box.size.z;
-    },
-    get yaw() {
-      let bbox = guiRef.pcd.getBBox();
-      if (bbox == null) { return 0; }
-      let v = (bbox.box.yaw/Math.PI*180) % 360;
-      if (v < -180) { v += 360; }
-      else if (v > 180) { v -= 360; }
-      return v;
-    },
-    // setters
-    set posX(v) {
-      let bbox = guiRef.pcd.getBBox();
-      if (bbox == null) { return 0; }
-      bbox.box.pos.x = v;
-      bbox.updateCube();
-      PCDLabelTool.redrawRequest();
-    },
-    set posY(v) {
-      let bbox = guiRef.pcd.getBBox();
-      if (bbox == null) { return 0; }
-      bbox.box.pos.y = v;
-      bbox.updateCube();
-      PCDLabelTool.redrawRequest();
-    },
-    set posZ(v) {
-      let bbox = guiRef.pcd.getBBox();
-      if (bbox == null) { return 0; }
-      bbox.box.pos.z = v;
-      bbox.updateCube();
-      PCDLabelTool.redrawRequest();
-    },
-    set sizeX(v) {
-      let bbox = guiRef.pcd.getBBox();
-      if (bbox == null) { return 0; }
-      bbox.box.size.x = v;
-      bbox.updateCube();
-      PCDLabelTool.redrawRequest();
-    },
-    set sizeY(v) {
-      let bbox = guiRef.pcd.getBBox();
-      if (bbox == null) { return 0; }
-      bbox.box.size.y = v;
-      bbox.updateCube();
-      PCDLabelTool.redrawRequest();
-    },
-    set sizeZ(v) {
-      let bbox = guiRef.pcd.getBBox();
-      if (bbox == null) { return 0; }
-      bbox.box.size.z = v;
-      bbox.updateCube();
-      PCDLabelTool.redrawRequest();
-    },
-    set yaw(v) {
-      let bbox = guiRef.pcd.getBBox();
-      if (bbox == null) { return 0; }
-      bbox.box.yaw = v*Math.PI/180;
-      bbox.updateCube();
-      PCDLabelTool.redrawRequest();
-    },
-  },
-};
-// Add image controller
-let imageFolder = null;
-const initGUIImage = function(gui, targetLabel) {
-  if (imageFolder != null) {
-    gui.removeFolder(imageFolder);
-    imageFolder = null;
-  }
-  if (targetLabel==null || !targetLabel.has(ImageLabelTool.candidateId) ) {
-    return;
-  }
-  const folder = gui.addFolder('Image');
-  imageFolder = folder;
-  folder.open();
-  const fpos = folder.addFolder('Position');
-  fpos.open();
-  fpos.add(guiRef.image, 'posX').name('x').min(0).max(1000).step(1).listen(); // TODO: get max pos
-  fpos.add(guiRef.image, 'posY').name('y').min(0).max(1000).step(1).listen();
-  const fsize = folder.addFolder('Size');
-  fsize.open();
-  fsize.add(guiRef.image, 'sizeX').name('x').max(1000).min(10).step(1).listen(); // TODO: use minSize
-  fsize.add(guiRef.image, 'sizeY').name('y').max(1000).min(10).step(1).listen();
-};
-// Add pcd controller
-let pcdFolder = null;
-const initGUIPCD = function(gui, targetLabel) {
-  if (pcdFolder != null) {
-    gui.removeFolder(pcdFolder);
-    pcdFolder = null;
-  }
-  if (targetLabel==null || !targetLabel.has(PCDLabelTool.candidateId) ) {
-    return;
-  }
-  const folder = gui.addFolder('PCD');
-  pcdFolder = folder;
-  folder.open();
-  const fpos = folder.addFolder('Position');
-  fpos.open();
-  fpos.add(guiRef.pcd, 'posX').name('x').max(30).min(-30).step(0.01).listen();
-  fpos.add(guiRef.pcd, 'posY').name('y').max(30).min(-30).step(0.01).listen();
-  fpos.add(guiRef.pcd, 'posZ').name('z').max(30).min(-30).step(0.01).listen();
-  const fsize = folder.addFolder('Size');
-  fsize.open();
-  fsize.add(guiRef.pcd, 'sizeX').name('x').max(10).min(0.5).step(0.1).listen();
-  fsize.add(guiRef.pcd, 'sizeY').name('y').max(10).min(0.5).step(0.1).listen();
-  fsize.add(guiRef.pcd, 'sizeZ').name('z').max(10).min(0.5).step(0.1).listen();
-  const frotate = folder.addFolder('Rotation');
-  frotate.open();
-  frotate.add(guiRef.pcd, 'yaw').name('yaw').max(180).min(-180).step(1).listen();
-};
-// Add tool 
-let toolFolder = null;
-const toolRef = {
-  toggleType: () => {
-    LabelTool.toggleDataType();
-    const tool = LabelTool.getTool();
-    toolRef.toggleTypeItem.name('Tool[' + tool.name + ']');
-  },
-  toggleTypeItem: null,
-  save: () => {
-    LabelTool.saveFrame().then(()=>{
-      console.log('saved');
-    }, (err)=>{
-      console.log('save error', err);
-    });
-  },
-  pcdMode: null,
-  changeMode: () => {
-    let name = PCDLabelTool.changeMode();
-    toolRef.pcdMode.name('Mode['+name+']');
-  },
-  load: () => {
-    LabelTool.reloadFrame().then(()=>{
-      console.log('reloaded');
-    }, (err)=>{
-      console.log('reload error', err);
-    });
-  },
-  deleteLabel: () => {
-    const targetLabel = LabelTool.getTargetLabel();
-    if (targetLabel != null) {
-      LabelTool.removeLabel(targetLabel);
-    }
-  }
-};
-const initGUITool = function(gui, targetLabel) {
-  if (toolFolder != null) {
-    gui.removeFolder(toolFolder);
-    toolFolder = null;
-  }
-  const folder = gui.addFolder('Tool');
-  toolFolder = folder;
-  folder.open();
-  const tool = LabelTool.getTool();
-  toolRef.toggleTypeItem = folder.add(toolRef, 'toggleType').name('Tool[' + tool.name + ']');
-  folder.add(toolRef, 'save').name('Save');
-  folder.add(toolRef, 'load').name('Load');
-  if (LabelTool.getTool() == PCDLabelTool) {
-    const mode = PCDLabelTool.getMode();
-    toolRef.pcdMode = folder.add(toolRef, 'changeMode').name('Mode[' + mode + ']');
-  }
-  // delete
-  if (targetLabel != null) {
-    folder.add(toolRef, 'deleteLabel').name('Delete');
-  }
-};
-const initGUI = function() {
-  gui = new dat.GUI({autoPlace: false});
-  //Controls.update();
-  //$('').append(gui.domElement);
-};
-
-
-const initToolBar = function() {
-};
-const initSideBar = function() {
-};
-
-// export object
-class Controls {
-  constructor(labelTool, imageLabelTool, pcdLabelTool) {
-    this.labelTool = labelTool;
-    this.imageLabelTool = imageLabelTool;
-    this.pcdLabelTool = pcdLabelTool;
-    LabelTool = labelTool;
-    ImageLabelTool = imageLabelTool;
-    PCDLabelTool = pcdLabelTool;
-  }
-  init() {
-    initGUI();
-    initToolBar();
-    initSideBar();
-    return Promise.resolve();
-  }
-  update() {
-    this.GUI.update();
-    this.SideBar.update();
-  }
-  error(e) {
-    if (e instanceof Error) {
-      console.error(e);
-    } else {
-      console.error(arguments);
-    }
-  }
-  GUI = {
-    update() {
-      const targetLabel = LabelTool.getTargetLabel();
-      initGUITool(gui, targetLabel);
-      initGUIImage(gui, targetLabel);
-      initGUIPCD(gui, targetLabel);
-    }
-  }
-  ToolBar = {
-    update() {
-    }
-  }
-  SideBar = {
-    update() {
-    }
-  }
-};
-*/
 class Controls extends React.Component {
   labelTool = null;
   annotation = null;
@@ -446,12 +30,6 @@ class Controls extends React.Component {
   getKlassSet = (tgt) => { this.klassSet= tgt; }
   // progress
   frameLength = 0;
-  // navigation
-  //pageBox = null;
-  //nextFrameButton = null;
-  //prevFrameButton = null;
-  //frameSkipText = null;
-  content = null;
   // tool status
   tools = [];
   toolNames = [];
@@ -467,14 +45,15 @@ class Controls extends React.Component {
     this.labelTool = props.labelTool;
 
     this.frameLength = this.labelTool.frameLength;
+    this.mainContent = React.createRef();
     this.initTools();
   }
   initTools() {
     // load labeling tools
     const LABEL_TYPES = {
       BB2D: {
-        tools: [ImageLabelTool, PCDLabelTool],
-        names: ['2D', '3D']
+        tools: [ImageLabelTool],
+        names: ['2D']
       },
       BB2D3D: {
         tools: [ImageLabelTool, PCDLabelTool],
@@ -502,7 +81,6 @@ class Controls extends React.Component {
       this.toolComponents.push(component);
       return ref;
     });
-    console.log(this.tools, this.toolComponents);
   }
   init() {
     return Promise.all([
@@ -517,6 +95,10 @@ class Controls extends React.Component {
       width: w.width() - drawerWidth * 2,
       height: w.height() - appBarHeight
     };
+
+    if (this.mainContent.current != null) {
+      this.mainContent.current.style.height = size.height + 'px';
+    }
     this.tools.forEach((tool) => {
       tool.current.handles.resize(size);
     });
@@ -524,7 +106,6 @@ class Controls extends React.Component {
   initEvent() {
     $(window)
       .keydown(e => {
-        console.log(`window keydown(code = ${e.keyCode})`);
         if (e.keyCode == 8 || e.keyCode == 46) {
           // Backspace or Delete
           const label = this.getTargetLabel();
@@ -546,41 +127,6 @@ class Controls extends React.Component {
     window.addEventListener('resize', () => {
       this.resize();
     });
-
-    // header setup
-    /*
-    toolStatus.nextFrameButton.keyup(function(e) {
-      if (e.which === 32) {
-        return false;
-      }
-    });
-    toolStatus.nextFrameButton.click(() => {
-      LabelTool.nextFrame();
-    });
-    toolStatus.prevFrameButton.click(() => {
-      LabelTool.previousFrame();
-    });
-    toolStatus.frameSkipText.change(function() {
-      let value = $(this).val();
-      if (value == '') {
-        value = 1;
-      } else {
-        value = parseInt(value);
-      }
-      value = Math.max(value, 1);
-      toolStatus.skipFrameCount = value;
-      $(this).val(value);
-    });
-    toolStatus.pageBox.keyup(e => {
-      if (e.keyCode === 13) {
-        LabelTool.setFrame(toolStatus.pageBox.val() - 1);
-        toolStatus.pageBox.blur();
-      }
-    });
-    */
-  }
-  isLoaded() {
-    // *********
   }
 
   selectKlass(kls) {
@@ -610,12 +156,14 @@ class Controls extends React.Component {
     if (!this.labelTool.isLoaded()) {
       return false;
     }
+    const oldLabel = this.annotation.getTarget()
     let newLabel;
     newLabel = this.annotation.setTarget(label);
     if (newLabel !== null) {
       this.klassSet.setTarget(newLabel.klass);
     }
     //update
+    this.getTool().updateTarget(oldLabel, newLabel);
     return true;
     // *********
   }
@@ -688,13 +236,13 @@ class Controls extends React.Component {
 
   nextFrame(count) {
     if (count == undefined) {
-      count = this.state.skipFrameCount;
+      count = Math.max(1, this.state.skipFrameCount);
     }
     this.moveFrame(count);
   }
   previousFrame(count) {
     if (count == undefined) {
-      count = this.state.skipFrameCount;
+      count = Math.max(1, this.state.skipFrameCount);
     }
     this.moveFrame(-count);
   }
@@ -707,7 +255,6 @@ class Controls extends React.Component {
       return this.setFrameNumber(newFrame);
     }
     return false;
-    // *********
   }
   isLoading = false;
   setFrameNumber(num) {
@@ -719,17 +266,38 @@ class Controls extends React.Component {
       return true;
     }
 
-    this.loadFrame(num).then(
-      () => {
-      },
-      () => {
+    let savePromise;
+    if (this.annotation.isChanged()) {
+      const TEXT_SAVE = 'Do you want to save?';
+      const TEXT_MOVE = 'Do you want to move frame WITHOUT saving?';
+      if ( window.confirm(TEXT_SAVE) ) {
+        savePromise = this.annotation.save();
+      } else if ( window.confirm(TEXT_MOVE) ) {
+        savePromise = Promise.resolve();
+      } else {
+        return true;
       }
-    );
+    } else {
+      savePromise = Promise.resolve();
+    }
+
+    savePromise
+      .then(() => this.loadFrame(num))
+      .then(
+        () => {
+        },
+        () => {
+        }
+      );
     return true;
   }
   
   saveFrame() {
-    return this.annotation.save();
+    return this.annotation.save()
+      .then(() => this.reloadFrame());
+  }
+  reloadFrame() {
+    return this.loadFrame(this.getFrameNumber());
   }
   loadFrame(num) {
     if (this.isLoading) {
@@ -737,20 +305,16 @@ class Controls extends React.Component {
     }
     this.selectLabel(null);
 
-    this.isLoading = true;
     if (num == null) {
       num = this.state.frameNumber;
     }
 
     this.isLoading = true;
-    console.log('start loadFrame('+num+')');
     return this.labelTool.loadBlobURL(num)
       .then(() => {
-        console.log('  start annotation load');
         return this.annotation.load(num);
       })
       .then(() => {
-        console.log('  start tool load');
         return Promise.all(
           this.getTools().map(
             tool => tool.load(num)
@@ -758,14 +322,12 @@ class Controls extends React.Component {
         );
       })
       .then(() => {
-        console.log('load end');
         this.isLoading = false;
         this.setState({frameNumber: num});
       });
   }
   getFrameNumber() {
     return this.state.frameNumber;
-    // *********
   }
   
 
@@ -805,11 +367,21 @@ class Controls extends React.Component {
     // only when enter
     if (e.charCode == 13) {
       let value = +(e.target.value);
-      this.moveFrame(value);
+      this.setFrameNumber(value - 1);
       e.target.value = '';
       e.preventDefault();
       return;
     }
+  };
+  onSkipChange = (e) => {
+    let value = +(e.target.value) | 0;
+    if (e.target.value === '') {
+      value = 0;
+    }
+    if (isNaN(value) || value < 0) {
+      return;
+    }
+    this.setState({ skipFrameCount: value });
   };
 
   renderKlassSet(classes) {
@@ -847,6 +419,8 @@ class Controls extends React.Component {
       );
       toolButtons.push(button);
     });
+    const tool = this.getTool();
+    const buttons  = tool == null ? null : tool.getButtons();
     return (
       <Drawer
         anchor="left"
@@ -856,38 +430,44 @@ class Controls extends React.Component {
           paper: classes.drawer
         }}
       >
-        <div className={classes.toolControls}>
-          Tools
+        <div className={classes.toolControlsWrapper}>
+          <div className={classes.toolControls}>
+            Tools
+            <Divider />
+            <Grid container alignItems="center">
+              <Grid item xs={12}>
+                {toolButtons}
+                <Divider />
+              </Grid>
+              <Grid item xs={12}>
+                <Button onClick={() => this.saveFrame()}>Save</Button>
+                <Button onClick={() => this.reloadFrame()}>Reload</Button>
+              </Grid>
+              <Grid item xs={12}>
+                <Button disabled>Copy</Button>
+                <Button disabled>Paste</Button>
+              </Grid>
+              <Grid item xs={12}>
+                <Button disabled>Undo</Button>
+                <Button disabled>Redo</Button>
+              </Grid>
+              <Grid item xs={12}>
+                <Divider />
+                {buttons}
+              </Grid>
+            </Grid>
+          </div>
           <Divider />
-          <Grid container alignItems="center">
-            <Grid item xs={12}>
-              {toolButtons}
-              <Divider />
-            </Grid>
-            <Grid item xs={12}>
-              <Button>Save</Button>
-              <Button>Reload</Button>
-            </Grid>
-            <Grid item xs={12}>
-              <Button>Copy</Button>
-              <Button>Paste</Button>
-            </Grid>
-            <Grid item xs={12}>
-              <Button>Undo</Button>
-              <Button>Redo</Button>
-            </Grid>
-          </Grid>
-        </div>
-        <Divider />
-        <div className={classes.labelList}>
-          {this.renderLabels(classes)}
+          <div className={classes.labelList}>
+            {this.renderLabels(classes)}
+          </div>
         </div>
       </Drawer>
     );
   }
   render() {
-    console.log('rerender');
     const classes = this.props.classes;
+    let skip = this.state.skipFrameCount;
     let frameNumberForm = (
       <div className={classes.frameNumberParts}>
         <IconButton
@@ -897,7 +477,6 @@ class Controls extends React.Component {
           <NavigateBefore />
         </IconButton>
         <TextField
-          name="Frame"
           type="text"
           placeholder={(this.state.frameNumber+1)+'/'+this.frameLength}
           onBlur={this.onFrameBlurOrFocus}
@@ -912,6 +491,15 @@ class Controls extends React.Component {
         >
           <NavigateNext />
         </IconButton>
+        <TextField
+          label="skip step"
+          type="text"
+          placeholder="skip step"
+          onChange={this.onSkipChange}
+          className={classes.frameSkip}
+          value={skip === 0 ? '' : skip}
+          margin="dense"
+        />
       </div>
     );
     let appBar = (
@@ -934,6 +522,7 @@ class Controls extends React.Component {
       </AppBar>
     );
     
+    // TODO: show bbox variable & edit it
     let editBar = (
       <Drawer
         anchor="right"
@@ -943,15 +532,15 @@ class Controls extends React.Component {
           paper: classes.drawer
         }}
       >
-        test
       </Drawer>
     );
     return (
-      <div>
+      <div >
         {appBar}
         {this.renderLeftBar(classes)}
         <main
           className={classes.content}
+          ref={this.mainContent}
         >
           {this.toolComponents}
         </main>
@@ -960,5 +549,5 @@ class Controls extends React.Component {
     );
   }
 }
-export default withStyles(controlsStyle)(Controls);
+export default withStyles(toolStyle)(Controls);
 
