@@ -85,6 +85,8 @@ export const mainStyle = theme => ({
   tableActionButton: {
     marginTop: -10,
     marginBottom: -10,
+    marginLeft: 1,
+    marginRight:1,
     minHeight: '30px',
     padding: '0 0px'
   },

@@ -7,6 +7,10 @@ import Typography from '@material-ui/core/Typography';
 
 import ResizableTable from 'automan/dashboard/components/parts/resizable_table';
 import { mainStyle } from 'automan/assets/main-style';
+import Button from '@material-ui/core/Button';
+import Tooltip from '@material-ui/core/Tooltip';
+import Archive from '@material-ui/icons/Archive';
+import CloudDownload from '@material-ui/icons/CloudDownload';
 
 function actionFormatter(cell, row) {
   return row.actions;
@@ -149,23 +153,29 @@ class AnnotationTable extends React.Component {
             actions = (
               <div className="text-center">
                 <span>
-                  <a
-                    className="button glyphicon glyphicon-folder-close"
-                    onClick={e => this.handleArchive(row)}
-                    title="Archive"
-                  />
-                  <a
-                    className="button glyphicon glyphicon-download-alt"
-                    onClick={()=>{
-                      RequestClient.getBinaryAsURL(row.archive_url, (url) => {
-                        let a = document.createElement('a');
-                        a.download = row.file_name;
-                        a.href = url;
-                        a.click();
-                      }, () => {});
-                    }}
-                    title="Download"
-                  />
+                  <Tooltip title="Archive">
+                    <Button
+                      classes={{root: classes.tableActionButton}}
+                      onClick={e => this.handleArchive(row)}
+                      className={classes.button}>
+                      <Archive fontSize="small"/>
+                    </Button>
+                  </Tooltip>
+                  <Tooltip title="Download">
+                    <Button
+                      classes={{root: classes.tableActionButton}}
+                      onClick={()=>{
+                        RequestClient.getBinaryAsURL(row.archive_url, (url) => {
+                          let a = document.createElement('a');
+                          a.download = row.file_name;
+                          a.href = url;
+                          a.click();
+                        }, () => {});
+                      }}
+                      className={classes.button}>
+                      <CloudDownload fontSize="small"/>
+                    </Button>
+                  </Tooltip>
                 </span>
               </div>
             );
@@ -173,11 +183,20 @@ class AnnotationTable extends React.Component {
             actions = (
               <div className="text-center">
                 <span>
-                  <a
-                    className="button glyphicon glyphicon-folder-close"
-                    onClick={e => this.handleArchive(row)}
-                    title="Archive"
-                  />
+                  <Tooltip title="Archive">
+                    <Button
+                      classes={{root: classes.tableActionButton}}
+                      onClick={e => this.handleArchive(row)}
+                      className={classes.button}>
+                      <Archive fontSize="small"/>
+                    </Button>
+                  </Tooltip>
+                  <Button
+                    disabled
+                    classes={{root: classes.tableActionButton}}
+                    className={classes.button}>
+                    <CloudDownload fontSize="small"/>
+                  </Button>
                 </span>
               </div>
             );
@@ -248,7 +267,7 @@ class AnnotationTable extends React.Component {
           <TableHeaderColumn width="10%" dataField="dataset_id">
             Dataset ID
           </TableHeaderColumn>
-          <TableHeaderColumn width="10%" dataField="actions" dataFormat={actionFormatter}>
+          <TableHeaderColumn width="15%" dataField="actions" dataFormat={actionFormatter}>
             Actions
           </TableHeaderColumn>
         </ResizableTable>
