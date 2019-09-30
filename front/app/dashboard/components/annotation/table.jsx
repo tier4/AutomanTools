@@ -152,31 +152,29 @@ class AnnotationTable extends React.Component {
           ) {
             actions = (
               <div className="text-center">
-                <span>
-                  <Tooltip title="Archive">
-                    <Button
-                      classes={{root: classes.tableActionButton}}
-                      onClick={e => this.handleArchive(row)}
-                      className={classes.button}>
-                      <Archive fontSize="small"/>
-                    </Button>
-                  </Tooltip>
-                  <Tooltip title="Download">
-                    <Button
-                      classes={{root: classes.tableActionButton}}
-                      onClick={()=>{
-                        RequestClient.getBinaryAsURL(row.archive_url, (url) => {
-                          let a = document.createElement('a');
-                          a.download = row.file_name;
-                          a.href = url;
-                          a.click();
-                        }, () => {});
-                      }}
-                      className={classes.button}>
-                      <CloudDownload fontSize="small"/>
-                    </Button>
-                  </Tooltip>
-                </span>
+                <Tooltip title="Archive">
+                  <Button
+                    classes={{root: classes.tableActionButton}}
+                    onClick={e => this.handleArchive(row)}
+                    className={classes.button}>
+                    <Archive fontSize="small"/>
+                  </Button>
+                </Tooltip>
+                <Tooltip title="Download">
+                  <Button
+                    classes={{root: classes.tableActionButton}}
+                    onClick={()=>{
+                      RequestClient.getBinaryAsURL(row.archive_url, (url) => {
+                        let a = document.createElement('a');
+                        a.download = row.file_name;
+                        a.href = url;
+                        a.click();
+                      }, () => {});
+                    }}
+                    className={classes.button}>
+                    <CloudDownload fontSize="small"/>
+                  </Button>
+                </Tooltip>
               </div>
             );
           } else {
