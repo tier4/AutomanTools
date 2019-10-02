@@ -13,6 +13,7 @@ import {NavigateNext, NavigateBefore} from '@material-ui/icons';
 
 import KlassSet from 'automan/labeling_tool/klass_set';
 import Annotation from 'automan/labeling_tool/annotation';
+import History from 'automan/labeling_tool/history';
 
 import ImageLabelTool from 'automan/labeling_tool/image_label_tool';
 import PCDLabelTool from 'automan/labeling_tool/pcd_label_tool';
@@ -27,7 +28,9 @@ class Controls extends React.Component {
   annotation = null;
   getAnnotation = (tgt) => { this.annotation = tgt; }
   klassSet = null;
-  getKlassSet = (tgt) => { this.klassSet= tgt; }
+  getKlassSet = (tgt) => { this.klassSet = tgt; }
+  history = null;
+  getHistory = (tgt) => { this.history = tgt; }
   // progress
   frameLength = 0;
   // tool status
@@ -84,8 +87,9 @@ class Controls extends React.Component {
   }
   init() {
     return Promise.all([
-      this.annotation.init(this.klassSet),
-      this.klassSet.init()
+      this.annotation.init(this.klassSet, this.history),
+      this.klassSet.init(),
+      this.history.init(this.annotation)
     ]);
   }
   resize() {
@@ -116,6 +120,15 @@ class Controls extends React.Component {
           this.nextFrame();
         } else if (e.keyCode == 37) {
           this.previousFrame();
+        } else if (e.keyCode == 90) {
+          // Z key
+          if (e.ctrlKey) {
+            if (e.shiftKey) {
+              this.history.redo();
+            } else {
+              this.history.undo();
+            }
+          }
         } else {
           this.getTool().handles.keydown(e);
         }
@@ -448,8 +461,11 @@ class Controls extends React.Component {
                 <Button disabled>Paste</Button>
               </Grid>
               <Grid item xs={12}>
-                <Button disabled>Undo</Button>
-                <Button disabled>Redo</Button>
+                <History
+                  controls={this}
+                  classes={classes}
+                  getRef={this.getHistory}
+                />
               </Grid>
               <Grid item xs={12}>
                 <Divider />
