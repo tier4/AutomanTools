@@ -102,6 +102,7 @@ class ExtractorForm extends React.Component {
         } else if (this.props.currentProject.label_type === 'BB2D3D') {
           return (
             <CandidateSelect2D3D
+              original_id={this.props.original_id}
               handleSetJobConfig={this.handleSetJobConfig}
               handleGetJobConfig={this.handleGetJobConfig}
             />
