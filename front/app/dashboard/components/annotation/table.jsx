@@ -11,6 +11,9 @@ import Button from '@material-ui/core/Button';
 import Tooltip from '@material-ui/core/Tooltip';
 import Archive from '@material-ui/icons/Archive';
 import CloudDownload from '@material-ui/icons/CloudDownload';
+import Snackbar from '@material-ui/core/Snackbar';
+import IconButton from '@material-ui/core/IconButton';
+import CloseIcon from '@material-ui/icons/Close';
 
 function actionFormatter(cell, row) {
   return row.actions;
@@ -24,9 +27,16 @@ class AnnotationTable extends React.Component {
       data: [],
       is_loading: true,
       error: null,
-      query: RequestClient.createPageQuery()
+      query: RequestClient.createPageQuery(),
+      snackbar: false,
     };
   }
+  show = () => {
+    this.setState({ snackbar: true });
+  };
+  hide = () => {
+    this.setState({ snackbar: false });
+  };
   componentDidMount() {
     this.updatePage();
   }
@@ -118,7 +128,9 @@ class AnnotationTable extends React.Component {
         RequestClient.post(
           url,
           data,
-          res => {},
+          res => {
+            this.show();
+          },
           mes => {
             this.setState({
               error: mes.message
@@ -269,6 +281,30 @@ class AnnotationTable extends React.Component {
             Actions
           </TableHeaderColumn>
         </ResizableTable>
+        <Snackbar
+          anchorOrigin={{
+            vertical: 'bottom',
+            horizontal: 'left',
+          }}
+          open={this.state.snackbar}
+          autoHideDuration={5000}
+          onClose={this.hide}
+          ContentProps={{
+            'aria-describedby': 'message-id',
+          }}
+          message={<span id="message-id">Archiver job is submitted.</span>}
+          action={[
+            <IconButton
+              key="close"
+              aria-label="close"
+              color="inherit"
+              className={classes.close}
+              onClick={this.hide}
+            >
+              <CloseIcon />
+            </IconButton>
+          ]}
+        />
       </div>
     );
   }
