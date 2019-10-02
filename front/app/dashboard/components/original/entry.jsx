@@ -7,6 +7,7 @@ import Fab from '@material-ui/core/Fab';
 import Grid from '@material-ui/core/Grid';
 import Paper from '@material-ui/core/Paper';
 import CloudUpload from '@material-ui/icons/CloudUpload';
+import Tooltip from '@material-ui/core/Tooltip';
 
 import OriginalTable from 'automan/dashboard/components/original/table.jsx';
 import OriginalDataForm from 'automan/dashboard/components/original/form.jsx';
@@ -77,16 +78,18 @@ class OriginalPage extends React.Component {
               hide={this.hide}
             />
           </Paper>
-          <Fab
-            color="primary"
-            aria-label="Upload"
-            className={classes.fab}
-            onClick={() => {
-              this.show();
-            }}
-          >
-            <CloudUpload />
-          </Fab>
+          <Tooltip title="Upload">
+            <Fab
+              color="primary"
+              aria-label="Upload"
+              className={classes.fab}
+              onClick={() => {
+                this.show();
+              }}
+            >
+              <CloudUpload />
+            </Fab>
+          </Tooltip>
           <OriginalDataForm formOpen={this.state.formOpen} hide={this.hide} />
           <ExtractorForm
             formOpen={this.state.extractorFormOpen}
