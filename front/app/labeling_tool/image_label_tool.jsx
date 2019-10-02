@@ -352,14 +352,7 @@ class ImageBBox {
     this.prev = null;
     if (content != null) {
       // TODO: is there no annotation?
-      this.box.set(new THREE.Vector2(
-          +content['min_x_2d'],
-          +content['min_y_2d']
-        ), new THREE.Vector2(
-          +content['max_x_2d'],
-          +content['max_y_2d']
-        )
-      );
+      this.fromContent(content);
     }
     this.initRect();
     this.initResizer();
@@ -381,6 +374,8 @@ class ImageBBox {
     this.deco.show(this);
   }
   updateParam() {
+    // TODO: change content
+    this.setElementPos();
   }
   remove() {
     //this.labelItem.remove();
@@ -393,6 +388,16 @@ class ImageBBox {
     obj['min_y_2d'] = this.box.min.y;
     obj['max_x_2d'] = this.box.max.x;
     obj['max_y_2d'] = this.box.max.y;
+  }
+  fromContent(content) {
+    this.box.set(new THREE.Vector2(
+        +content['min_x_2d'],
+        +content['min_y_2d']
+      ), new THREE.Vector2(
+        +content['max_x_2d'],
+        +content['max_y_2d']
+      )
+    );
   }
   initRect() {
     const size = this.box.getSize();
@@ -493,8 +498,12 @@ class ImageBBox {
     this.prev = {
       box: this.box.clone()
     };
+    this.label.createHistory();
   }
   dragEnd() {
+    if (!this.box.equals(this.prev.box)) {
+      this.label.addHistory();
+    }
     this.setElementPos();
   }
   setVisiblePos() {

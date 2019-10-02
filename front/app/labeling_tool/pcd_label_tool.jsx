@@ -486,13 +486,7 @@ class PCDBBox {
     };
     if (content != null) {
       // init parameters
-      this.box.pos.x  = +content['x_3d'];
-      this.box.pos.y  = +content['y_3d'];
-      this.box.pos.z  = +content['z_3d'];
-      this.box.size.x = +content['width_3d'];
-      this.box.size.y = +content['height_3d'];
-      this.box.size.z = +content['length_3d'];
-      this.box.yaw    = +content['rotation_y'];
+      this.fromContent(content);
     }
     this.initCube();
     this.pcdTool.pcdBBoxes.add(this);
@@ -554,6 +548,15 @@ class PCDBBox {
     obj['height_3d'] = this.box.size.y;
     obj['length_3d'] = this.box.size.z;
     obj['rotation_y'] = this.box.yaw;
+  }
+  fromContent(content) {
+    this.box.pos.x  = +content['x_3d'];
+    this.box.pos.y  = +content['y_3d'];
+    this.box.pos.z  = +content['z_3d'];
+    this.box.size.x = +content['width_3d'];
+    this.box.size.y = +content['height_3d'];
+    this.box.size.z = +content['length_3d'];
+    this.box.yaw    = +content['rotation_y'];
   }
   initCube() {
     const mesh = new THREE.Mesh(
@@ -686,6 +689,7 @@ function createModeMethods(pcdTool) {
           this.startParam = startParam;
           pcdTool._modeStatus.busy = true;
           pcdTool._controls.selectLabel(this.prevHover.bbox.label);
+          this.prevHover.bbox.label.createHistory();
           return;
         }
 
@@ -969,6 +973,14 @@ function createModeMethods(pcdTool) {
         const mode = this.mode;
         this.mode = null;
 
+        if (mode === 'move') {
+          const box = this.prevHover.bbox.box;
+          if (!this.startParam.size.equals(box.size) ||
+              !this.startParam.pos.equals(box.pos) ||
+              this.startParam.yaw !== box.yaw) {
+            this.prevHover.bbox.label.addHistory();
+          }
+        }
         if (mode === 'create') {
           const bbox = pcdTool._creatingBBox;
           if (bbox.box == null) {

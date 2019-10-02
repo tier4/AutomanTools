@@ -31,8 +31,9 @@ class Annotation extends React.Component {
     };
     props.getRef(this);
   }
-  init(klassSet) {
+  init(klassSet, history) {
     this._klassSet = klassSet;
+    this._history = history;
     return new Promise((resolve, reject) => {
       resolve();
     });
@@ -43,6 +44,7 @@ class Annotation extends React.Component {
   load(frameNumber) {
     this._removeAll();
     this._nextId = -1;
+    this._history.resetHistory();
     return new Promise((resolve, reject) => {
       this._deleted = [];
 
@@ -124,7 +126,7 @@ class Annotation extends React.Component {
     return this._targetLabel;
   }
   setTarget(tgt) {
-    let next = this._getLabel(tgt),
+    let next = this.getLabel(tgt),
       prev = this._targetLabel;
     if (prev != null && next != null && next.id === prev.id) {
       return prev;
@@ -151,11 +153,12 @@ class Annotation extends React.Component {
     const label = new Label(this, this._nextId--, klass, bbox);
     const labels = new Map(this.state.labels);
     labels.set(label.id, label);
+    this._history.addHistory(label, 'create');
     this.setState({ labels });
     return label;
   }
   changeKlass(id, klass) {
-    let label = this._getLabel(id);
+    let label = this.getLabel(id);
     if (label == null) {
       let txt = 'Label change Class error: Error selector "' + id + '"';
       this._controls.error(txt);
@@ -172,7 +175,7 @@ class Annotation extends React.Component {
     });
   }
   attachBBox(id, candidateId, bbox) {
-    let label = this._getLabel(id);
+    let label = this.getLabel(id);
     if (label == null) {
       let txt = 'Label add BBox error: Error selector "' + id + '"';
       this._controls.error(txt);
@@ -187,7 +190,7 @@ class Annotation extends React.Component {
     //label.tableItem.addClass('has-image-bbox');
   }
   removeBBox(id, candidateId) {
-    let label = this._getLabel(id);
+    let label = this.getLabel(id);
     if (label == null) {
       let txt = 'Label remove BBox error: Error selector "' + id + '"';
       this._controls.error(txt);
@@ -200,12 +203,16 @@ class Annotation extends React.Component {
       //label.tableItem.addClass('has-image-bbox');
     }
   }
-  remove(id) {
-    let label = this._getLabel(id);
+  remove(id, setHistory=true) {
+    let label = this.getLabel(id);
     if (label == null) {
       let txt = 'Label remove error: Error selector "' + id + '"';
       this._controls.error(txt);
       return;
+    }
+
+    if (setHistory) {
+      this._history.addHistory(label, 'delete');
     }
     this._controls.getTools().forEach(tool => {
       if (label.bbox[tool.candidateId] != null) {
@@ -229,9 +236,7 @@ class Annotation extends React.Component {
     this.setState({ labels });
     label.dispose();
   }
-
-  // private
-  _getLabel(label) {
+  getLabel(label) {
     if (label instanceof Label) {
       return label;
     } else if (typeof label === 'number') {
@@ -239,6 +244,31 @@ class Annotation extends React.Component {
     }
     return null;
   }
+  createHistory(label) {
+    this._history.createHistory(label, 'change');
+  }
+  addHistory() {
+    this._history.addHistory(null);
+  }
+  createFromHistory(id, obj) {
+    let bboxes = {};
+    this._controls.getTools().forEach(tool => {
+      const id = tool.candidateId;
+      if (obj.content[id] != null) {
+        bboxes[id] = tool.createBBox(obj.content[id]);
+      }
+    });
+    let label = new Label(this, id, obj.klass, bboxes);
+    const labels = new Map(this.state.labels);
+    labels.set(label.id, label);
+    this.setState({ labels });
+    return label;
+  }
+  removeFromHistory(id) {
+    this.remove(id, false);
+  }
+
+  // private
   _removeAll() {
     this._controls.selectLabel(null);
     if (this.state.labels == null) {
@@ -370,6 +400,13 @@ class Label {
   setLabelItem(labelItem) {
     this.labelItem = labelItem;
   }
+  createHistory() {
+    this._annotationTool.createHistory(this);
+  }
+  addHistory() {
+    this._annotationTool.addHistory();
+  }
+
   setKlass(klass) {
     this.klass = klass;
     this.isChanged = true;
@@ -431,5 +468,36 @@ class Label {
     });
     return ret;
   }
-
+  toHistory() {
+    const ret = {
+      id: this.id,
+      klass: this.klass,
+      content: {}
+    };
+    this._annotationTool._controls.getTools().forEach(tool => {
+      const id = tool.candidateId;
+      if (!this.has(id)) {
+        return;
+      }
+      const content = {};
+      this.bbox[id].toContent(content);
+      ret.content[id] = content;
+    });
+    return ret;
+  }
+  fromHistory(obj) {
+    if (this.id !== obj.id) {
+      throw new Error('history id error');
+    }
+    this.klass = obj.klass;
+    this._annotationTool._controls.getTools().forEach(tool => {
+      const id = tool.candidateId;
+      const content = obj.content[id];
+      if (content == null) {
+        return;
+      }
+      this.bbox[id].fromContent(content);
+      this.bbox[id].updateParam();
+    });
+  }
 }
