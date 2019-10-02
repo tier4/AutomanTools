@@ -10,8 +10,8 @@ import DialogContent from '@material-ui/core/DialogContent';
 import Close from '@material-ui/icons/Close';
 import Send from '@material-ui/icons/Send';
 import { mainStyle } from 'automan/assets/main-style';
-import CandidateSelect2D from 'automan/dashboard/components/dataset/candidateSelect2D';
-import CandidateSelect2D3D from 'automan/dashboard/components/dataset/candidateSelect2D3D';
+import CandidateSelect2D from 'automan/dashboard/components/original/candidateSelect2D';
+import CandidateSelect2D3D from 'automan/dashboard/components/original/candidateSelect2D3D';
 
 function getSteps() {
   return ['Select candidates', 'Check'];
