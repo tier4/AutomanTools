@@ -278,7 +278,6 @@ class AnnotationTable extends React.Component {
             Dataset ID
           </TableHeaderColumn>
           <TableHeaderColumn width="15%" dataField="actions" dataFormat={actionFormatter}>
-            Actions
           </TableHeaderColumn>
         </ResizableTable>
         <Snackbar
