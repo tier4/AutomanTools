@@ -3,22 +3,20 @@ import { compose } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { withStyles } from '@material-ui/core/styles';
-import AppBar from '@material-ui/core/AppBar';
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import DialogContent from '@material-ui/core/DialogContent';
 import FormControl from '@material-ui/core/FormControl';
 import Grid from '@material-ui/core/Grid';
-import IconButton from '@material-ui/core/IconButton';
 import InputLabel from '@material-ui/core/InputLabel';
 import LinearProgress from '@material-ui/core/LinearProgress';
 import MenuItem from '@material-ui/core/MenuItem';
 import Select from '@material-ui/core/Select';
-import Toolbar from '@material-ui/core/Toolbar';
 import CameraAlt from '@material-ui/icons/CameraAlt';
 import Cancel from '@material-ui/icons/Cancel';
 import Close from '@material-ui/icons/Close';
 import CloudUpload from '@material-ui/icons/CloudUpload';
+import CardHeader from '@material-ui/core/CardHeader';
 
 import { mainStyle } from 'automan/assets/main-style';
 
@@ -205,25 +203,24 @@ class OriginalDataForm extends React.Component {
         </MenuItem>
       );
     });
+    const closeButton = (
+      <Button
+        onClick={() => {
+          this.props.hide();
+        }}
+      >
+        <Close />
+      </Button>
+    );
     return (
       <Dialog
-        fullScreen
         open={this.props.formOpen}
         onClose={this.props.hide}
         aria-labelledby="form-dialog-title"
+        maxWidth="sm"
+        fullWidth={true}
       >
-        <AppBar>
-          <Toolbar>
-            <IconButton
-              color="inherit"
-              onClick={this.props.hide}
-              aria-label="Close"
-            >
-              <Close />
-            </IconButton>
-          </Toolbar>
-        </AppBar>
-        <div className={classes.drawerHeader} />
+        <CardHeader action={closeButton} title="Upload form" />
         <DialogContent>
           <form>
             <FormControl>

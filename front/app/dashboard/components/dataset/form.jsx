@@ -3,29 +3,20 @@ import { compose } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { withStyles } from '@material-ui/core/styles';
-//import { TableHeaderColumn } from 'react-bootstrap-table';
 import Button from '@material-ui/core/Button';
 import CardHeader from '@material-ui/core/CardHeader';
 import Dialog from '@material-ui/core/Dialog';
 import DialogContent from '@material-ui/core/DialogContent';
-//import Fab from '@material-ui/core/Fab';
-//import FormControl from '@material-ui/core/FormControl';
-//import InputLabel from '@material-ui/core/InputLabel';
-//import MenuItem from '@material-ui/core/MenuItem';
-//import Select from '@material-ui/core/Select';
 import Stepper from '@material-ui/core/Stepper';
 import Step from '@material-ui/core/Step';
 import StepButton from '@material-ui/core/StepButton';
-//import TextField from '@material-ui/core/TextField';
 import Close from '@material-ui/icons/Close';
 import Send from '@material-ui/icons/Send';
 
 import { mainStyle } from 'automan/assets/main-style';
-//import { SUPPORT_JOB_TYPES } from 'automan/services/const';
 import OriginalSelect from 'automan/dashboard/components/dataset/originalSelect';
 import CandidateSelect2D from 'automan/dashboard/components/dataset/candidateSelect2D';
 import CandidateSelect2D3D from 'automan/dashboard/components/dataset/candidateSelect2D3D';
-//import ResizableTable from 'automan/dashboard/components/parts/resizable_table';
 
 function getSteps() {
   return ['Select rawdata', 'Select candidates', 'Check'];
