@@ -45,20 +45,19 @@ class OriginalTable extends React.Component {
     if (!this.props.currentProject) {
       return;
     }
-    let that = this;
     this.setState({ data: [], error: null });
     let url = '/projects/' + this.props.currentProject.id + '/originals/';
     RequestClient.get(
       url,
       this.state.query.getData(),
-      function (res) {
-        that.setState({
+      (res) => {
+        this.setState({
           total_count: res.count,
           data: res.records
         });
       },
-      function (mes) {
-        that.setState({ error: mes.message });
+      (mes) => {
+        this.setState({ error: mes.message });
       }
     );
   }
