@@ -69,7 +69,7 @@ class JobSerializer(serializers.ModelSerializer):
             record['started_at'] = str(job.started_at) if job.started_at else ''
             record['completed_at'] = str(job.completed_at) if job.completed_at else ''
             record['registered_at'] = str(job.registered_at)
-            record['job_config'] = job.job_config
+            record['description'] = cls.get_job_description(job.job_type, job.job_config)
             record['pod_log'] = job.pod_log
             record['user_id'] = job.user_id
             records.append(record)
@@ -77,6 +77,22 @@ class JobSerializer(serializers.ModelSerializer):
         contents['count'] = cls.job_total_count(project_id)
         contents['records'] = records
         return contents
+
+    @classmethod
+    def get_job_description(cls, job_type, job_config_json):
+        job_config = json.loads(job_config_json)
+        desc = {}
+        if job_type == 'analyzer':
+            automan_config = job_config['automan_config']
+            desc['path'] = automan_config['path']
+            desc['lanel_type'] = automan_config['label_type']
+        elif job_type == 'extractor':
+            for key in job_config['raw_data_config']:
+                desc[key] = job_config['raw_data_config'][key]
+        elif job_type == 'archiver':
+            for key in job_config['archive_config']:
+                desc[key] = job_config['archive_config'][key]
+        return json.dumps(desc)
 
     @classmethod
     def job_total_count(cls, project_id):
