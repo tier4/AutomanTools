@@ -130,9 +130,6 @@ class OriginalManager(object):
         dataset_candidates = DatasetCandidate.objects.filter(
             Q(original_id=original_id),
             Q(data_type__contains=data_type))
-        if not dataset_candidates:
-            raise ObjectDoesNotExist()
-
         records = []
         for dataset_candidate in dataset_candidates:
             record = {}

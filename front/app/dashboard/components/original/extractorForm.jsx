@@ -3,76 +3,74 @@ import { compose } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { withStyles } from '@material-ui/core/styles';
-//import { TableHeaderColumn } from 'react-bootstrap-table';
 import Button from '@material-ui/core/Button';
 import CardHeader from '@material-ui/core/CardHeader';
 import Dialog from '@material-ui/core/Dialog';
 import DialogContent from '@material-ui/core/DialogContent';
-//import Fab from '@material-ui/core/Fab';
-//import FormControl from '@material-ui/core/FormControl';
-//import InputLabel from '@material-ui/core/InputLabel';
-//import MenuItem from '@material-ui/core/MenuItem';
-//import Select from '@material-ui/core/Select';
-import Stepper from '@material-ui/core/Stepper';
-import Step from '@material-ui/core/Step';
-import StepButton from '@material-ui/core/StepButton';
-//import TextField from '@material-ui/core/TextField';
 import Close from '@material-ui/icons/Close';
 import Send from '@material-ui/icons/Send';
-
 import { mainStyle } from 'automan/assets/main-style';
-//import { SUPPORT_JOB_TYPES } from 'automan/services/const';
-import AnalyzerForm from 'automan/dashboard/components/job/analyzerForm';
-//import ResizableTable from 'automan/dashboard/components/parts/resizable_table';
+import CandidateSelect2D from 'automan/dashboard/components/original/candidateSelect2D';
+import CandidateSelect2D3D from 'automan/dashboard/components/original/candidateSelect2D3D';
 
 function getSteps() {
-  return ['Input job settings', 'Check'];
+  return ['Select candidates', 'Check'];
 }
 
-class JobForm extends React.Component {
+class ExtractorForm extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
       total_count: 0,
       users: [],
+      is_loading: true,
       error: null,
       query: RequestClient.createPageQuery(),
-      jobType: 'ANALYZER',
+      jobType: 'EXTRACTOR',
       jobConfig: {},
-      activeStep: 0,
-      message: null
+      activeStep: 0
     };
+  }
+  componentDidUpdate(prevProps) {
+    if ( prevProps.original_id !== this.props.original_id ) {
+      this.setState({
+        activeStep: 0,
+        jobConfig: {}
+      })
+    }
   }
   handleTextFieldChange = event => {
     this.setState({ [event.target.id]: event.target.value });
   };
-  handleChangeJob = event => {
-    this.setState({
-      jobType: event.target.value,
-      jobConfig: {}
-    });
-  };
   handleSetJobConfig = (key, value) => {
-    this.setState({
-      jobConfig: Object.assign({}, this.state.jobConfig, { [key]: value })
-    });
+    if (typeof key === 'string') {
+      this.setState({
+        jobConfig: Object.assign({}, this.state.jobConfig, { [key]: value })
+      });
+    } else {
+      this.setState({
+        jobConfig: Object.assign({}, this.state.jobConfig, key)
+      });
+    }
+  };
+  handleGetJobConfig = key => {
+    if (this.state.jobConfig[key] == null) {
+      return [];
+    }
+    return this.state.jobConfig[key];
   };
   handleSubmit = () => {
     const data = this.getSubmitData();
     let url = `/projects/${this.props.currentProject.id}/jobs/`;
-    this.setState({ message: 'Requesting...' });
     RequestClient.post(
       url,
       data,
-      res => {
-        this.setState({ message: null });
+      (res) => {
         this.props.hide();
+        this.props.extractorSnackbarShow();
       },
-      mes => {
-        this.setState({
-          error: mes.message,
-          message: null
-        });
+      (mes) => {
+        this.setState({ error: mes.message });
       }
     );
   };
@@ -89,9 +87,28 @@ class JobForm extends React.Component {
     return this.state.activeStep === this.totalSteps() - 1;
   }
   getStepContent(step) {
+    if(this.props.original_id === 0)
+      return 'Unknown type'
     switch (step) {
       case 0:
-        return <AnalyzerForm handleSetJobConfig={this.handleSetJobConfig} />;
+        if (this.props.currentProject.label_type === 'BB2D') {
+          return (
+            <CandidateSelect2D
+              original_id={this.props.original_id}
+              handleSetJobConfig={this.handleSetJobConfig}
+              handleGetJobConfig={this.handleGetJobConfig}
+            />
+          );
+        } else if (this.props.currentProject.label_type === 'BB2D3D') {
+          return (
+            <CandidateSelect2D3D
+              original_id={this.props.original_id}
+              handleSetJobConfig={this.handleSetJobConfig}
+              handleGetJobConfig={this.handleGetJobConfig}
+            />
+          );
+        }
+        return 'Unknown type';
       case 1:
         const submitData = JSON.stringify(this.getSubmitData());
         return (
@@ -110,27 +127,11 @@ class JobForm extends React.Component {
     };
     return submitData;
   };
-  getMessage = () => {
-    if (this.state.error != null) {
-      return (
-        <div>
-          {this.state.error}
-        </div>
-      );
-    } else if (this.state.message != null) {
-      return (
-        <div>
-          {this.state.message}
-        </div>
-      );
-
-    }
-  };
   render() {
     const { classes } = this.props;
     const steps = getSteps();
     const { activeStep } = this.state;
-    const title = 'New Job';
+    const title = 'Extractor Job';
     const closeButton = (
       <Button
         onClick={() => {
@@ -146,22 +147,13 @@ class JobForm extends React.Component {
           open={this.props.formOpen}
           onClose={this.props.hide}
           aria-labelledby="form-dialog-title"
+          maxWidth="sm"
+          fullWidth={true}
         >
           <CardHeader action={closeButton} title={title} />
           <DialogContent>
-            <Stepper alternativeLabel nonLinear activeStep={activeStep}>
-              {steps.map((label, index) => {
-                const props = {};
-                return (
-                  <Step key={label} {...props}>
-                    <StepButton>{label}</StepButton>
-                  </Step>
-                );
-              })}
-            </Stepper>
             <div>
               <div>
-                {this.getMessage()}
                 <div>{this.getStepContent(activeStep)}</div>
                 <div>
                   <Button
@@ -199,8 +191,7 @@ class JobForm extends React.Component {
     );
   }
 }
-
-JobForm.propTypes = {
+ExtractorForm.propTypes = {
   classes: PropTypes.object
 };
 
@@ -210,9 +201,9 @@ const mapStateToProps = state => {
   };
 };
 export default compose(
-  withStyles(mainStyle, { name: 'JobForm' }),
+  withStyles(mainStyle, { name: 'ExtractorForm' }),
   connect(
     mapStateToProps,
     null
   )
-)(JobForm);
+)(ExtractorForm);
