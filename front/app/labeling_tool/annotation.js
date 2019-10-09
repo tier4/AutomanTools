@@ -244,6 +244,7 @@ class Annotation extends React.Component {
     }
     return null;
   }
+  // methods to history
   createHistory(label) {
     this._history.createHistory(label, 'change');
   }
@@ -266,6 +267,33 @@ class Annotation extends React.Component {
   }
   removeFromHistory(id) {
     this.remove(id, false);
+  }
+  // methods to clipboard
+  copyLabels(isAll) {
+    let target = [];
+    if (isAll) {
+      target = Array.from(this.state.labels.values());
+    } else if (this._targetLabel != null) {
+      target = [this._targetLabel];
+    }
+    return target.map(label => label.toObject());
+  }
+  pasteLabels(data) {
+    const labels = new Map(this.state.labels);
+    data.forEach(obj => {
+      let klass = this._klassSet.getByName(obj.name);
+      let bboxes = {};
+      this._controls.getTools().forEach(tool => {
+        const id = tool.candidateId;
+        if (obj.content[id] != null) {
+          bboxes[id] = tool.createBBox(obj.content[id]);
+        }
+      });
+      let label = new Label(this, this._nextId--, klass, bboxes);
+      labels.set(label.id, label);
+    });
+    //this._history.addHistory(label, 'create');
+    this.setState({ labels });
   }
 
   // private
