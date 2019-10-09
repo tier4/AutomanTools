@@ -187,7 +187,7 @@ class OriginalTable extends React.Component {
             Status
           </TableHeaderColumn>
           <TableHeaderColumn width="15%" dataField="actions" dataFormat={actionFormatter}>
-              </TableHeaderColumn>
+          </TableHeaderColumn>
         </ResizableTable>
         <Snackbar
           anchorOrigin={{
