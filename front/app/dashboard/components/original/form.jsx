@@ -6,6 +6,7 @@ import { withStyles } from '@material-ui/core/styles';
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import DialogContent from '@material-ui/core/DialogContent';
+import DialogActions from '@material-ui/core/DialogActions';
 import FormControl from '@material-ui/core/FormControl';
 import Grid from '@material-ui/core/Grid';
 import InputLabel from '@material-ui/core/InputLabel';
@@ -26,11 +27,12 @@ import LocalStorageClient from 'automan/services/storages/local_storage';
 class OriginalDataForm extends React.Component {
   constructor(props) {
     super(props);
+    this.requesting = false;
     this.state = {
-      open: false,
       uploadFiles: [],
       storage: { storage_type: null },
       storages: [],
+      storage_type: 'None',
       targetFileIndex: null,
       isUploaded: false
     };
@@ -39,13 +41,28 @@ class OriginalDataForm extends React.Component {
     if (!this.props.currentProject) {
       return;
     }
-    let that = this;
+    this.requestStorages();
+  }
+  componentDidUpdate(prevProps){
+    if (!this.props.currentProject || this.state.storages.length > 0) {
+      return;
+    }
+    this.requestStorages();
+  }
+  requestStorages() {
     let url = `/projects/${this.props.currentProject.id}/storages/`;
+    if(this.requesting) {
+      return;
+    }
+    this.requesting = true;
     RequestClient.get(
       url,
       null,
       data => {
-        that.setState({ storages: data.records });
+        this.setState({ storages: data.records });
+        if (data.records.length > 0) {
+          this.setState({ storage: data.records[0] });
+        }
       },
       () => {}
     );
@@ -62,6 +79,7 @@ class OriginalDataForm extends React.Component {
         })
       ]
     });
+    event.target.value = '';
   };
   handleChangeStorage = event => {
     this.setState({ storage: event.target.value });
@@ -70,7 +88,11 @@ class OriginalDataForm extends React.Component {
     // TODO: implement
   };
   handleClickTargetCancel = event => {
-    // TODO: implement
+    this.setState({
+      uploadFiles: [],
+      targetFileIndex: null,
+      isUploaded: false
+    });
   };
   progressUpdate = progress => {
     console.log(progress);
@@ -153,19 +175,13 @@ class OriginalDataForm extends React.Component {
     }
     this.nextFileUpload(0);
   };
-  initialize = () => {
+  hide = () => {
     this.setState({
-      open: false,
       uploadFiles: [],
       targetFileIndex: null,
       isUploaded: false
     });
-  };
-  show = () => {
-    this.setState({ open: true });
-  };
-  hide = () => {
-    this.initialize();
+    this.props.hide()
   };
   render() {
     const { classes } = this.props;
@@ -185,7 +201,7 @@ class OriginalDataForm extends React.Component {
               <Grid item xs={2}>
                 <Button
                   disabled={f.progress == 100}
-                  onClick={this.handleClickCancel}
+                  onClick={this.handleClickTargetCancel}
                 >
                   <Cancel />
                   <span>Cancel</span>
@@ -206,7 +222,7 @@ class OriginalDataForm extends React.Component {
     const closeButton = (
       <Button
         onClick={() => {
-          this.props.hide();
+          this.hide();
         }}
       >
         <Close />
@@ -215,19 +231,18 @@ class OriginalDataForm extends React.Component {
     return (
       <Dialog
         open={this.props.formOpen}
-        onClose={this.props.hide}
+        onClose={this.hide}
         aria-labelledby="form-dialog-title"
         maxWidth="sm"
         fullWidth={true}
       >
         <CardHeader action={closeButton} title="Upload form" />
         <DialogContent>
-          <form>
-            <FormControl>
+          <form className={classes.container}>
+            <FormControl className={classes.formControl}>
               <InputLabel htmlFor="storage">storage</InputLabel>
               <Select
-                autoFocus
-                value={this.state.storage.storage_type || false}
+                value={this.state.storage}
                 onChange={this.handleChangeStorage}
               >
                 {storageMenu}
@@ -263,31 +278,26 @@ class OriginalDataForm extends React.Component {
               type="file"
               name="file"
               accept=".bag, .rosbag"
-              multiple
               onChange={this.handleInputFileChange}
             />
-            <Button
-              disabled={isUploaded || isInitialized}
-              onClick={this.handleClickTargetCancel}
-            >
-              <Cancel />
-              <span>Cancel</span>
-            </Button>
-
             {filesContent}
+          </form>
+        </DialogContent>
+        <DialogActions>
+          <div>
             {isUploaded ? (
-              <Button onClick={this.props.hide}>
+              <Button onClick={this.hide}>
                 <CameraAlt />
                 <span>Raws Table</span>
               </Button>
             ) : (
-              <Button disabled={isInitialized} onClick={this.handleClickUpload}>
-                <CloudUpload />
-                <span>Upload</span>
-              </Button>
+                <Button disabled={isInitialized} onClick={this.handleClickUpload}>
+                  <CloudUpload />
+                  <span>Upload</span>
+                </Button>
             )}
-          </form>
-        </DialogContent>
+          </div>
+        </DialogActions>
       </Dialog>
     );
   }
