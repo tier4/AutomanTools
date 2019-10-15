@@ -33,17 +33,18 @@ class History extends React.Component {
     'delete': 'create',
   };
   createAntiHist(hist) {
-    const label = this.annotation.getLabel(hist.id);
     const ret = {
       type: this.ANTI_TYPES[hist.type],
-      id: hist.id
     };
     if (hist.type == 'change') {
-      ret.obj = label.toHistory();
+      ret.objects = hist.objects.map(obj => {
+        const label = this.annotation.getLabel(obj.id);
+        return label.toHistory();
+      });
     } else if (hist.type === 'create') {
-      ret.obj = hist.obj
+      ret.objects = hist.objects;
     } else if (hist.type === 'delete') {
-      ret.obj = hist.obj
+      ret.objects = hist.objects;
     } else {
       // error
     }
@@ -51,14 +52,16 @@ class History extends React.Component {
   }
   undoHist(hist) {
     if (hist.type === 'change') {
-      const label = this.annotation.getLabel(hist.id);
-      label.fromHistory(hist.obj);
-      this._controls.selectLabel(label);
+      for (let obj of hist.objects) {
+        const label = this.annotation.getLabel(obj.id);
+        label.fromHistory(obj);
+      }
+      this._controls.selectLabel(hist.objects[0].id);
     } else if (hist.type === 'create') {
-      this.annotation.removeFromHistory(hist.id);
+      this.annotation.removeFromHistory(hist.objects);
     } else if (hist.type === 'delete') {
-      const label = this.annotation.createFromHistory(hist.id, hist.obj);
-      this._controls.selectLabel(label);
+      const labels = this.annotation.createFromHistory(hist.objects);
+      this._controls.selectLabel(labels[0]);
     } else {
       // error
     }
@@ -99,24 +102,25 @@ class History extends React.Component {
       redoHistory: []
     });
   }
-  createHistory(label, type) {
+  createHistory(labels, type) {
     this.tmpHist = {
       type: type,
-      obj: label.toHistory(),
-      id: label.id
+      objects: labels.map(label => label.toHistory())
     };
   }
-  addHistory(label, type) {
+  addHistory(labels, type) {
     const undoHist = this.state.undoHistory.slice();
     const redoHist = [];
     let hist;
-    if (label == null) {
+    if (labels == null) {
       hist = this.tmpHist;
     } else {
+      if (labels.length == 0) {
+        return;
+      }
       hist = {
         type: type,
-        obj: label.toHistory(),
-        id: label.id
+        objects: labels.map(label => label.toHistory())
       };
     }
     undoHist.push(hist);
