@@ -83,6 +83,10 @@ class Annotation extends React.Component {
     if (this._deleted.length > 0) {
       return true;
     }
+    if (!this._history.hasUndo()) {
+      // check by history
+      return false;
+    }
     let changedFlag = false;
     this.state.labels.forEach(label => {
       changedFlag = changedFlag || label.isChanged;
