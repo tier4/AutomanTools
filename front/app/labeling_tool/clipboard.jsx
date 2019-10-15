@@ -22,6 +22,9 @@ class Clipboard extends React.Component {
     return this.state.copy != null;
   }
   copy(isAll) {
+    if (isAll === null) {
+      isAll = this.annotation.getTarget() == null;
+    }
     const copy = this.annotation.copyLabels(isAll);
     if (copy.length === 0) {
       return;

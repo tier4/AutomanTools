@@ -135,6 +135,16 @@ class Controls extends React.Component {
               this.history.undo();
             }
           }
+        } else if (e.keyCode == 67) {
+          // C key
+          if (e.ctrlKey) {
+            this.clipboard.copy(null);
+          }
+        } else if (e.keyCode == 86) {
+          // V key
+          if (e.ctrlKey) {
+            this.clipboard.paste();
+          }
         } else {
           this.getTool().handles.keydown(e);
         }
