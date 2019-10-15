@@ -4,13 +4,15 @@ import { connect } from 'react-redux';
 import { withStyles } from '@material-ui/core/styles';
 import { TableHeaderColumn } from 'react-bootstrap-table';
 import Typography from '@material-ui/core/Typography';
+import Button from '@material-ui/core/Button';
+import Tooltip from '@material-ui/core/Tooltip';
+import CreateNewFolderIcon from '@material-ui/icons/CreateNewFolder';
 
 import ResizableTable from 'automan/dashboard/components/parts/resizable_table';
 import { mainStyle } from 'automan/assets/main-style';
 
-// TODO: write formatter methods more
-function progressFormatter(cell, row) {
-  return row.progress;
+function actionFormatter(cell, row) {
+  return row.actions;
 }
 
 class DatasetTable extends React.Component {
@@ -21,9 +23,6 @@ class DatasetTable extends React.Component {
       data: [],
       is_loading: true,
       error: null,
-      target: this.props.target,
-      level: 0,
-      click_disable: false,
       query: RequestClient.createPageQuery()
     };
   }
@@ -99,11 +98,27 @@ class DatasetTable extends React.Component {
     const { classes } = this.props;
     let rows;
     if (!this.state.is_loading) {
-      rows = this.state.data.map((label, index) => {
+      rows = this.state.data.map((row, index) => {
+        let actions = ''
+        actions = (
+          <div className="text-center">
+            <Tooltip title="Create annotation">
+              <div style={{ display: 'inline-block' }}>
+                <Button
+                  classes={{ root: classes.tableActionButton }}
+                  onClick={() => this.props.show(row.id)}
+                >
+                  <CreateNewFolderIcon fontSize="small" />
+                </Button>
+              </div>
+            </Tooltip>
+          </div>
+        );
         return {
-          id: label.id,
-          name: label.name,
-          frame_count: label.frame_count >= 1 ? label.frame_count : null
+          id: row.id,
+          name: row.name,
+          frame_count: row.frame_count >= 1 ? row.frame_count : null,
+          actions: actions
         };
       });
     }
@@ -161,6 +176,8 @@ class DatasetTable extends React.Component {
             dataSort={true}
           >
             Frame count
+          </TableHeaderColumn>
+          <TableHeaderColumn width="15%" dataField="actions" dataFormat={actionFormatter}>
           </TableHeaderColumn>
         </ResizableTable>
       </div>
