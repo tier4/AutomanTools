@@ -2,11 +2,11 @@ import React from 'react';
 import { compose } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { withStyles } from '@material-ui/core/styles';
-//import ReactDOM from 'react-dom';
 import { TableHeaderColumn } from 'react-bootstrap-table';
 import { TwitterPicker } from 'react-color';
-import Button from '@material-ui/core/Button';
+import { withStyles } from '@material-ui/core/styles';
+import Fab from '@material-ui/core/Fab';
+import AddIcon from '@material-ui/icons/Add';
 
 import { mainStyle } from 'automan/assets/main-style';
 import ResizableTable from 'automan/dashboard/components/parts/resizable_table';
@@ -18,10 +18,11 @@ function actionFormatter(cell, row) {
 class KlasssetKlassTable extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {
-      klasses: []
-    };
     this.refInputName = React.createRef();
+  }
+  getLabelType() {
+    return this.props.currentProject
+      ? this.props.currentProject.label_type : this.props.labelType;
   }
   getIndex(obj, arr) {
     for (let i = 0; i < arr.length; i++) {
@@ -39,7 +40,7 @@ class KlasssetKlassTable extends React.Component {
     return -1;
   }
   handleClickRm = name => {
-    let clonedKlasses = JSON.parse(JSON.stringify(this.state.klasses));
+    let clonedKlasses = JSON.parse(JSON.stringify(this.props.klasses));
     let index = this.getIndex(
       name,
       clonedKlasses.map(x => {
@@ -47,22 +48,22 @@ class KlasssetKlassTable extends React.Component {
       })
     );
     clonedKlasses.splice(index, 1);
-    this.setState({ klasses: clonedKlasses });
+    this.props.handleKlassesChange(clonedKlasses);
   };
   handleOpenColorPicker(e, index) {
-    let clonedKlasses = JSON.parse(JSON.stringify(this.state.klasses));
+    let clonedKlasses = JSON.parse(JSON.stringify(this.props.klasses));
     clonedKlasses[index].displayColorPicker = true;
-    this.setState({ klasses: clonedKlasses });
+    this.props.handleKlassesChange(clonedKlasses);
   }
   handleCloseColorPicker(e, index) {
-    let clonedKlasses = JSON.parse(JSON.stringify(this.state.klasses));
+    let clonedKlasses = JSON.parse(JSON.stringify(this.props.klasses));
     clonedKlasses[index].displayColorPicker = false;
-    this.setState({ klasses: clonedKlasses });
+    this.props.handleKlassesChange(clonedKlasses);
   }
   handleChangeComplete(color, index) {
-    let clonedKlasses = JSON.parse(JSON.stringify(this.state.klasses));
+    let clonedKlasses = JSON.parse(JSON.stringify(this.props.klasses));
     clonedKlasses[index].color = color.hex;
-    this.setState({ klasses: clonedKlasses });
+    this.props.handleKlassesChange(clonedKlasses);
   }
   formatCellColor(cell, row) {
     return row.colorPicker;
@@ -92,7 +93,7 @@ class KlasssetKlassTable extends React.Component {
     }
   }
   formatMinSize(klass, index, editable) {
-    const labelType = this.props.currentProject.label_type;
+    const labelType = this.getLabelType();
     if (labelType === 'BB2D') {
       return (
         <div className="klass-min-size">
@@ -111,56 +112,42 @@ class KlasssetKlassTable extends React.Component {
     }
   }
   changeMinSize(e, index, axis) {
-    let clonedKlasses = JSON.parse(JSON.stringify(this.state.klasses));
+    let clonedKlasses = JSON.parse(JSON.stringify(this.props.klasses));
     clonedKlasses[index].minSize[axis] = e.target.value;
-    this.setState({ klasses: clonedKlasses });
+    this.props.handleKlassesChange(clonedKlasses);
   }
   handleClickAdd = () => {
     let name = this.refInputName.current.value;
     // TODO: Name Validation
     this.refInputName.current.value = '';
-    let sameNameKlasses = this.state.klasses.filter(function(klass) {
+    let sameNameKlasses = this.props.klasses.filter(function (klass) {
       return klass.name == name;
     });
     let targetKlass = {};
     if (sameNameKlasses.length > 0) {
       alert('Already registered.');
+      return;
     } else {
       targetKlass.name = name;
     }
     const defaultColors = TwitterPicker.defaultProps.colors;
-    const labelType = this.props.currentProject.label_type;
-    const defaultMinSize = 
+    const labelType = this.getLabelType();
+    const defaultMinSize =
       labelType === 'BB2D' ? { x: 10, y: 10 } :
-      labelType === 'BB2D3D' ? { x: 10, y: 10, z: 10 } :
-      {};
-    const idx = this.state.klasses.length;
+        labelType === 'BB2D3D' ? { x: 10, y: 10, z: 10 } :
+          {};
+    const idx = this.props.klasses.length;
     targetKlass.color = defaultColors[idx % defaultColors.length];
     targetKlass.minSize = defaultMinSize;
-    let clonedKlasses = JSON.parse(JSON.stringify(this.state.klasses));
+    let clonedKlasses = JSON.parse(JSON.stringify(this.props.klasses));
     clonedKlasses.push(targetKlass);
-    this.setState({ klasses: clonedKlasses });
-  };
-  handleSubmit = () => {
-    this.setState({ error_string: '' });
-    const data = { klasses: this.state.klasses };
-    RequestClient.post(
-      '/projects/' + this.props.currentProject.id + '/klassset/',
-      data,
-      info => {
-        this.props.handleCloseDialog();
-      },
-      e => {
-        // TODO: display error infomation
-        console.log('ERROR', e);
-      }
-    );
+    this.props.handleKlassesChange(clonedKlasses);
   };
   render() {
     let { klasses, readOnly } = this.props;
     const { classes } = this.props;
     if (!readOnly) {
-      klasses = this.state.klasses;
+      klasses = this.props.klasses;
     }
     let rows = klasses.map(
       (klass, index) => {
@@ -303,7 +290,6 @@ class KlasssetKlassTable extends React.Component {
     }
 
     let addKlassForm = <div />;
-    let submitButton = <div />;
     if (!readOnly) {
       addKlassForm = (
         <form
@@ -321,25 +307,15 @@ class KlasssetKlassTable extends React.Component {
                 placeholder=""
               />
             </div>
-            <button
-              onClick={this.handleClickAdd}
-              type="button"
-              className="btn btn-xs size-30x30-blue"
-            >
-              <i className="glyphicon glyphicon-plus color-white" />
-            </button>
+              <Fab
+                color="primary"
+                size="small"
+                onClick={this.handleClickAdd}
+              >
+                <AddIcon />
+              </Fab>
           </div>
         </form>
-      );
-      submitButton = (
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={this.handleSubmit}
-          className={classes.button}
-        >
-          Submit
-        </Button>
       );
     }
 
@@ -347,7 +323,6 @@ class KlasssetKlassTable extends React.Component {
       <div>
         <div>{addKlassForm}</div>
         <div>{table}</div>
-        <div>{submitButton}</div>
       </div>
     );
   }
