@@ -95,15 +95,17 @@ export default class Popup extends React.Component {
         );
       case 2:
         let klasses = '';
-        klasses = JSON.stringify(this.state.klasses);
-          this.state.klasses.forEach((v) => {
-            klasses += '[' + v.toString().replace(/,/g, ', ') + ']\n';
-          });
+        this.state.klasses.forEach((v) => {
+          klasses += '[name: ' + v.name
+            + ', color: ' + v.color
+            + ', minSize: ' + JSON.stringify(v.minSize)
+            + ']\n';
+        });
         const data = [
           { key: 'name', value: this.state.name },
           { key: 'description', value: this.state.description },
           { key: 'label_type', value: this.state.labelType },
-          { key: 'klasses', value: JSON.stringify(this.state.klasses) }
+          { key: 'klasses', value: klasses }
         ];
         return (
           <ResizableTable data={data}>
