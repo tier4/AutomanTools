@@ -1,4 +1,3 @@
-from django.db import transaction
 from rest_framework import serializers
 from .models import Projects
 from projects.groups.serializer import GroupSerializer
@@ -11,7 +10,6 @@ class ProjectSerializer(serializers.ModelSerializer):
         # fields = '__all__'
         fields = ('name', 'description', 'label_type', 'owner_id')
 
-    @transaction.atomic
     def create(self, validated_data):
         project = Projects(**validated_data)
         project.save()

@@ -2,6 +2,7 @@
 import json
 from django.http import HttpResponse
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from .project_manager import ProjectManager
@@ -32,11 +33,15 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
         return HttpResponse(content=json.dumps(contents), status=200, content_type='application/json')
 
+    @transaction.atomic
     def create(self, request):
         username = request.user
         user_id = AccountManager.get_id_by_username(username)
+        name = request.data.get('name', None)
+
+        # create project
         serializer = ProjectSerializer(data={
-            'name': request.data.get('name', None),
+            'name': name,
             'description': request.data.get('description', None),
             'label_type': request.data.get('label_type', None),
             'owner_id': user_id
@@ -44,8 +49,15 @@ class ProjectViewSet(viewsets.ModelViewSet):
         if not serializer.is_valid():
             raise ValidationError
         serializer.save()
-        contents = {}
-        return HttpResponse(status=201, content=contents, content_type='application/json')
+
+        # create klassset
+        project_manager = ProjectManager()
+        project_id = project_manager.get_project_id_by_name(name)
+        klassset_manager = KlasssetManager()
+        klassset = request.data.get('klasses')
+        klassset_manager.set_klassset(project_id, user_id, klassset)
+
+        return HttpResponse(status=201, content={}, content_type='application/json')
 
     def retrieve(self, request, project_id):
         username = request.user
