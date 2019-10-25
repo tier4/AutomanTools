@@ -6,7 +6,9 @@ import { TableHeaderColumn } from 'react-bootstrap-table';
 import { TwitterPicker } from 'react-color';
 import { withStyles } from '@material-ui/core/styles';
 import Fab from '@material-ui/core/Fab';
+import Button from '@material-ui/core/Button';
 import AddIcon from '@material-ui/icons/Add';
+import DeleteIcon from '@material-ui/icons/Delete';
 
 import { mainStyle } from 'automan/assets/main-style';
 import ResizableTable from 'automan/dashboard/components/parts/resizable_table';
@@ -155,12 +157,13 @@ class KlasssetKlassTable extends React.Component {
         if (!readOnly) {
           actions = (
             <center>
-              <span>
-                <a
-                  className="button glyphicon glyphicon-trash"
-                  onClick={this.handleClickRm.bind(this, klass.name)}
-                />
-              </span>
+              <Button
+                color="secondary"
+                classes={{ root: classes.tableActionButton }}
+                onClick={this.handleClickRm.bind(this, klass.name)}
+              >
+                <DeleteIcon />
+              </Button>
             </center>
           );
           colorPicker = (
