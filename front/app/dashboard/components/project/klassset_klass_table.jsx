@@ -7,6 +7,7 @@ import { TwitterPicker } from 'react-color';
 import { withStyles } from '@material-ui/core/styles';
 import Fab from '@material-ui/core/Fab';
 import Button from '@material-ui/core/Button';
+import TextField from '@material-ui/core/TextField';
 import AddIcon from '@material-ui/icons/Add';
 import DeleteIcon from '@material-ui/icons/Delete';
 
@@ -20,7 +21,7 @@ function actionFormatter(cell, row) {
 class KlasssetKlassTable extends React.Component {
   constructor(props) {
     super(props);
-    this.refInputName = React.createRef();
+    this.state = { klassName: '' };
   }
   getLabelType() {
     return this.props.currentProject
@@ -118,10 +119,13 @@ class KlasssetKlassTable extends React.Component {
     clonedKlasses[index].minSize[axis] = e.target.value;
     this.props.handleKlassesChange(clonedKlasses);
   }
+  handleChangeInput = (e) => {
+    this.setState({ klassName: e.target.value });
+  }
   handleClickAdd = () => {
-    let name = this.refInputName.current.value;
+    let name = this.state.klassName;
     // TODO: Name Validation
-    this.refInputName.current.value = '';
+    this.setState({ klassName: '' });
     let sameNameKlasses = this.props.klasses.filter(function (klass) {
       return klass.name == name;
     });
@@ -299,25 +303,27 @@ class KlasssetKlassTable extends React.Component {
           id="validate"
           role="form"
           className="form-horizontal group-border stripped"
-          onSubmit={(e)=>{e.preventDefault();}}
+          onSubmit={(e) => { e.preventDefault(); }}
         >
           <div className="form-group">
             <label className="col-xs-6 control-label">Class Name</label>
             <div className="col-xs-3">
-              <input
-                ref={this.refInputName}
+              <TextField
+                value={this.state.klassName}
                 type="text"
                 className="form-control"
                 placeholder=""
+                onChange={this.handleChangeInput}
               />
             </div>
-              <Fab
-                color="primary"
-                size="small"
-                onClick={this.handleClickAdd}
-              >
-                <AddIcon />
-              </Fab>
+            <Fab
+              color="primary"
+              size="small"
+              disabled={!this.state.klassName}
+              onClick={this.handleClickAdd}
+            >
+              <AddIcon />
+            </Fab>
           </div>
         </form>
       );
