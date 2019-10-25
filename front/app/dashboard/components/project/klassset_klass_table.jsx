@@ -296,6 +296,7 @@ class KlasssetKlassTable extends React.Component {
           id="validate"
           role="form"
           className="form-horizontal group-border stripped"
+          onSubmit={(e)=>{e.preventDefault();}}
         >
           <div className="form-group">
             <label className="col-xs-6 control-label">Class Name</label>
