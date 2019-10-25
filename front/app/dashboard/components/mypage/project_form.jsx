@@ -147,7 +147,9 @@ export default class Popup extends React.Component {
       name: this.state.name,
       description: this.state.description,
       label_type: this.state.labelType,
-      klasses: this.state.klasses
+      klasses: this.state.klasses,
+      storage_type: 'LOCAL_NFS',
+      storage_config: {}
     };
     RequestClient.post(
       '/projects/',

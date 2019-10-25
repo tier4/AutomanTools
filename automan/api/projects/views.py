@@ -11,6 +11,7 @@ from .serializer import ProjectSerializer
 from api.settings import PER_PAGE, SORT_KEY
 from api.permissions import Permission
 from accounts.account_manager import AccountManager
+from projects.storages.serializer import StorageSerializer
 
 
 class ProjectViewSet(viewsets.ModelViewSet):
@@ -56,6 +57,16 @@ class ProjectViewSet(viewsets.ModelViewSet):
         klassset_manager = KlasssetManager()
         klassset = request.data.get('klasses')
         klassset_manager.set_klassset(project_id, user_id, klassset)
+
+        # create storage
+        storage = StorageSerializer(data={
+            'storage_type': request.data.get('storage_type', None),
+            'storage_config': json.dumps(request.data.get('storage_config', None)),
+            'project': project_id
+        })
+        if not storage.is_valid():
+            raise ValidationError
+        storage.save()
 
         return HttpResponse(status=201, content={}, content_type='application/json')
 
