@@ -16,21 +16,33 @@ import { mainStyle } from 'automan/assets/main-style';
 class CalibrationPage extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { formOpen: false };
+    this.state = {
+      formOpen: false,
+      needUpdate: false
+    };
   }
   show = () => {
     this.setState({ formOpen: true });
   };
-  hide = () => {
-    this.setState({ formOpen: false });
+  hide = (isUploaded) => {
+    this.setState({
+      formOpen: false,
+      needUpdate: isUploaded
+    });
   };
+  handleUpdate = () => {
+    this.setState({ needUpdate: false });
+  }
   render() {
     const { classes } = this.props;
     return (
       <Grid container spacing={24}>
         <Grid item xs={12}>
           <Paper className={classes.root}>
-            <CalibrationTable />
+            <CalibrationTable
+              handleUpdate={this.handleUpdate}
+              needUpdate={this.state.needUpdate}
+            />
           </Paper>
           <Tooltip title="Upload">
             <Fab
