@@ -8,6 +8,7 @@ import Grid from '@material-ui/core/Grid';
 import Tabs from '@material-ui/core/Tabs';
 import Tab from '@material-ui/core/Tab';
 import Typography from '@material-ui/core/Typography';
+import Paper from '@material-ui/core/Paper';
 import Create from '@material-ui/icons/Create';
 import Person from '@material-ui/icons/Person';
 import People from '@material-ui/icons/People';
@@ -108,7 +109,7 @@ class Project extends React.Component {
     return (
       <Grid container spacing={24}>
         <Grid item xs={12}>
-          <div className={classes.root}>
+          <Paper className={classes.root}>
             <AppBar position="static" color="default">
               <Tabs
                 value={permissions !== null ? tabIndex : false}
@@ -157,7 +158,7 @@ class Project extends React.Component {
                 {groupContent}
               </TabContainer>
             )}
-          </div>
+          </Paper>
         </Grid>
       </Grid>
     );

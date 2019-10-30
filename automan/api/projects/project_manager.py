@@ -89,6 +89,12 @@ class ProjectManager(object):
         contents['klassset'] = klassset_info
         return contents
 
+    def get_project_id_by_name(self, name):
+        project = Projects.objects.filter(name=name).first()
+        if project is None:
+            raise ObjectDoesNotExist()
+        return project.id
+
     def delete_project(self, project_id, user_id):
         content = Projects.objects.filter(id=project_id, delete_flag=False).first()
         if content is None:
