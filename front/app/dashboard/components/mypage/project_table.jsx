@@ -24,6 +24,12 @@ class ProjectTable extends React.Component {
   componentDidMount = () => {
     this.updateData();
   };
+  componentDidUpdate = () => {
+    if (this.props.needUpdate) {
+      this.props.handleUpdate();
+      this.updateData();
+    }
+  }
   updateData = () => {
     this.setState({ data: [], is_loading: true, error: null });
 
