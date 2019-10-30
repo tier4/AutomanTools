@@ -25,7 +25,6 @@ export default class PCDLabelTool extends React.Component {
       <Button
         key={0}
         onClick={this.setHeight}
-        disabled
       >
         Set Height
       </Button>
@@ -56,6 +55,7 @@ export default class PCDLabelTool extends React.Component {
   // PCD objects
   _pcdLoader = null;
   _pointMeshes = [];
+  _currentPointMesh = null;
   // to mouse position
   _groundPlane = null;
   // control mode
@@ -113,6 +113,7 @@ export default class PCDLabelTool extends React.Component {
     // use preloaded pcd mesh
     if (this._pointMeshes[frame] != null) {
       this._pointMeshes[frame].visible =true;
+      this._currentPointMesh = this._pointMeshes[frame];
       this._redrawFlag = true;
       this._loaded = true;
       return Promise.resolve();
@@ -121,6 +122,7 @@ export default class PCDLabelTool extends React.Component {
     return new Promise((resolve, reject) => {
       this._pcdLoader.load(url, (mesh) => {
         this._pointMeshes[frame] = mesh;
+        this._currentPointMesh = mesh;
         this._scene.add(mesh);
         this._redrawFlag = true;
         this._loaded = true;
@@ -190,6 +192,38 @@ export default class PCDLabelTool extends React.Component {
   }
   // button actions
   setHeight = () => {
+    const bboxes = Array.from(this.pcdBBoxes);
+    const posArray = this._currentPointMesh.geometry.getAttribute('position').array;
+    let changedLabel = null;
+    let existIncludePoint = false;
+    for (let i=0; i<bboxes.length; ++i) {
+      const bbox = bboxes[i];
+      let maxZ = -Infinity, minZ = Infinity;
+      const boxx = bbox.box.pos.x,
+            boxy = bbox.box.pos.y,
+            boxsx = bbox.box.size.x,
+            boxsy = bbox.box.size.y,
+            yaw = bbox.box.yaw;
+      for (let j=0; j<posArray.length; j+=3) {
+        const dx = posArray[j+0] - boxx,
+              dy = posArray[j+1] - boxy;
+        const x = Math.abs( dx*Math.cos(yaw) + dy*Math.sin(yaw)),
+              y = Math.abs(-dx*Math.sin(yaw) + dy*Math.cos(yaw));
+        if (2*x < boxsx && 2*y < boxsy) {
+          existIncludePoint = true;
+          const z = posArray[j+2];
+          maxZ = Math.max(maxZ, z);
+          minZ = Math.min(minZ, z);
+        }
+      }
+      if (!existIncludePoint) {
+        continue;
+      }
+      if (bbox.setZ((maxZ + minZ) / 2, maxZ - minZ)) {
+        bbox.updateCube(true);
+        this.redrawRequest();
+      }
+    }
   };
   // to controls
   redrawRequest() {
@@ -507,6 +541,13 @@ class PCDBBox {
     const minSize = new THREE.Vector3(0.1, 0.1, 0.1);
     this.box.size.set(x, y, z).max(minSize);
     return this.box.size.clone();
+  }
+  setZ(center, height) {
+    const h = Math.max(height, 0.1); // use min size
+    const ret = this.box.size.z !== h || this.box.pos.z !== center;
+    this.box.size.z = h;
+    this.box.pos.z = center;
+    return ret;
   }
   setLabel(label) {
     if (this.label != null) {
