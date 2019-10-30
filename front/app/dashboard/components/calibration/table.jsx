@@ -18,7 +18,7 @@ function nameFormatter(cell, row) {
 }
 function valueFormatter(cell, row) {
   return (
-    <div style={{whiteSpace: 'pre-line'}}>
+    <div style={{ whiteSpace: 'pre-line' }}>
       {row.value}
     </div>
   );
