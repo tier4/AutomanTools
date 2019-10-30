@@ -219,10 +219,19 @@ export default class PCDLabelTool extends React.Component {
       if (!existIncludePoint) {
         continue;
       }
-      if (bbox.setZ((maxZ + minZ) / 2, maxZ - minZ)) {
+
+      const zCenter = (maxZ + minZ) / 2,
+            zHeight = maxZ - minZ;
+      const changeFlag = bbox.box.size.z !== zHeight || bbox.box.pos.z !== zCenter;
+      if (changeFlag) {
+        changedLabel = bbox.label.createHistory(changedLabel);
+        bbox.setZ(zCenter, zHeight);
         bbox.updateCube(true);
-        this.redrawRequest();
       }
+    }
+    if (changedLabel !== null) {
+      changedLabel.addHistory();
+      this.redrawRequest();
     }
   };
   // to controls
@@ -544,10 +553,8 @@ class PCDBBox {
   }
   setZ(center, height) {
     const h = Math.max(height, 0.1); // use min size
-    const ret = this.box.size.z !== h || this.box.pos.z !== center;
     this.box.size.z = h;
     this.box.pos.z = center;
-    return ret;
   }
   setLabel(label) {
     if (this.label != null) {

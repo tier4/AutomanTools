@@ -70,30 +70,34 @@ class History extends React.Component {
     if (!this.hasUndo()) {
       return;
     }
-    const undoHist = this.state.undoHistory.slice();
-    const redoHist = this.state.redoHistory.slice();
-    const hist = undoHist.pop();
-    const redo = this.createAntiHist(hist);
-    this.undoHist(hist);
-    redoHist.push(redo);
-    this.setState({
-      undoHistory: undoHist,
-      redoHistory: redoHist
+    this.setState(state => {
+      const undoHist = state.undoHistory.slice();
+      const redoHist = state.redoHistory.slice();
+      const hist = undoHist.pop();
+      const redo = this.createAntiHist(hist);
+      this.undoHist(hist);
+      redoHist.push(redo);
+      return {
+        undoHistory: undoHist,
+        redoHistory: redoHist
+      };
     });
   }
   redo() {
     if (!this.hasRedo()) {
       return;
     }
-    const undoHist = this.state.undoHistory.slice();
-    const redoHist = this.state.redoHistory.slice();
-    const hist = redoHist.pop();
-    const undo = this.createAntiHist(hist);
-    this.undoHist(hist);
-    undoHist.push(undo);
-    this.setState({
-      undoHistory: undoHist,
-      redoHistory: redoHist
+    this.setState(state => {
+      const undoHist = state.undoHistory.slice();
+      const redoHist = state.redoHistory.slice();
+      const hist = redoHist.pop();
+      const undo = this.createAntiHist(hist);
+      this.undoHist(hist);
+      undoHist.push(undo);
+      return {
+        undoHistory: undoHist,
+        redoHistory: redoHist
+      };
     });
   }
   resetHistory() {
@@ -102,18 +106,36 @@ class History extends React.Component {
       redoHistory: []
     });
   }
-  createHistory(labels, type) {
-    this.tmpHist = {
+  createHistory(labels, type, hist) {
+    const histObjs = labels.map(label => label.toHistory());
+    if (this.tmpHist !== null && hist === this.tmpHist) {
+      if (type === this.tmpHist.type) {
+        this.tmpHist.objects = this.tmpHist.objects.concat(histObjs);
+        return this.tmpHist;
+      }
+    }
+    const newHist = {
       type: type,
-      objects: labels.map(label => label.toHistory())
+      objects: histObjs,
+      addHistory: () => {
+        if (this.tmpHist === newHist) {
+          this.addHistory(null);
+        }
+      }
     };
+    return this.tmpHist = newHist;
   }
   addHistory(labels, type) {
-    const undoHist = this.state.undoHistory.slice();
-    const redoHist = [];
     let hist;
     if (labels == null) {
-      hist = this.tmpHist;
+      if (this.tmpHist === null) {
+        // TODO: error
+        return;
+      }
+      hist = {
+        type: this.tmpHist.type,
+        objects: this.tmpHist.objects
+      };
     } else {
       if (labels.length == 0) {
         return;
@@ -123,11 +145,15 @@ class History extends React.Component {
         objects: labels.map(label => label.toHistory())
       };
     }
-    undoHist.push(hist);
     this.tmpHist = null;
-    this.setState({
-      undoHistory: undoHist,
-      redoHistory: redoHist
+    this.setState(state => {
+      const undoHist = state.undoHistory.slice();
+      const redoHist = [];
+      undoHist.push(hist);
+      return {
+        undoHistory: undoHist,
+        redoHistory: redoHist
+      };
     });
   }
 
