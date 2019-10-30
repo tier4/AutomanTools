@@ -14,6 +14,7 @@ import {NavigateNext, NavigateBefore} from '@material-ui/icons';
 import KlassSet from 'automan/labeling_tool/klass_set';
 import Annotation from 'automan/labeling_tool/annotation';
 import History from 'automan/labeling_tool/history';
+import Clipboard from 'automan/labeling_tool/clipboard';
 
 import ImageLabelTool from 'automan/labeling_tool/image_label_tool';
 import PCDLabelTool from 'automan/labeling_tool/pcd_label_tool';
@@ -31,6 +32,9 @@ class Controls extends React.Component {
   getKlassSet = (tgt) => { this.klassSet = tgt; }
   history = null;
   getHistory = (tgt) => { this.history = tgt; }
+  clipboard = null;
+  getClipboard = (tgt) => { this.clipboard = tgt; }
+
   // progress
   frameLength = 0;
   // tool status
@@ -89,7 +93,9 @@ class Controls extends React.Component {
     return Promise.all([
       this.annotation.init(this.klassSet, this.history),
       this.klassSet.init(),
-      this.history.init(this.annotation)
+      this.history.init(this.annotation),
+      this.clipboard.init(this.annotation)
+
     ]);
   }
   resize() {
@@ -128,6 +134,16 @@ class Controls extends React.Component {
             } else {
               this.history.undo();
             }
+          }
+        } else if (e.keyCode == 67) {
+          // C key
+          if (e.ctrlKey) {
+            this.clipboard.copy(null);
+          }
+        } else if (e.keyCode == 86) {
+          // V key
+          if (e.ctrlKey) {
+            this.clipboard.paste();
           }
         } else {
           this.getTool().handles.keydown(e);
@@ -457,9 +473,12 @@ class Controls extends React.Component {
                 <Button onClick={() => this.reloadFrame()}>Reload</Button>
               </Grid>
               <Grid item xs={12}>
-                <Button disabled>Copy</Button>
-                <Button disabled>Paste</Button>
               </Grid>
+                <Clipboard
+                  controls={this}
+                  classes={classes}
+                  getRef={this.getClipboard}
+                />
               <Grid item xs={12}>
                 <History
                   controls={this}

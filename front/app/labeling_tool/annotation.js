@@ -83,6 +83,10 @@ class Annotation extends React.Component {
     if (this._deleted.length > 0) {
       return true;
     }
+    if (!this._history.hasUndo()) {
+      // check by history
+      return false;
+    }
     let changedFlag = false;
     this.state.labels.forEach(label => {
       changedFlag = changedFlag || label.isChanged;
@@ -153,7 +157,7 @@ class Annotation extends React.Component {
     const label = new Label(this, this._nextId--, klass, bbox);
     const labels = new Map(this.state.labels);
     labels.set(label.id, label);
-    this._history.addHistory(label, 'create');
+    this._history.addHistory([label], 'create');
     this.setState({ labels });
     return label;
   }
@@ -203,7 +207,7 @@ class Annotation extends React.Component {
       //label.tableItem.addClass('has-image-bbox');
     }
   }
-  remove(id, setHistory=true) {
+  remove(id) {
     let label = this.getLabel(id);
     if (label == null) {
       let txt = 'Label remove error: Error selector "' + id + '"';
@@ -211,9 +215,8 @@ class Annotation extends React.Component {
       return;
     }
 
-    if (setHistory) {
-      this._history.addHistory(label, 'delete');
-    }
+    this._history.addHistory([label], 'delete');
+
     this._controls.getTools().forEach(tool => {
       if (label.bbox[tool.candidateId] != null) {
         tool.disposeBBox(label.bbox[tool.candidateId]);
@@ -244,28 +247,90 @@ class Annotation extends React.Component {
     }
     return null;
   }
+  // methods to history
   createHistory(label) {
-    this._history.createHistory(label, 'change');
+    this._history.createHistory([label], 'change');
   }
   addHistory() {
     this._history.addHistory(null);
   }
-  createFromHistory(id, obj) {
-    let bboxes = {};
-    this._controls.getTools().forEach(tool => {
-      const id = tool.candidateId;
-      if (obj.content[id] != null) {
-        bboxes[id] = tool.createBBox(obj.content[id]);
-      }
-    });
-    let label = new Label(this, id, obj.klass, bboxes);
+  createFromHistory(objects) {
     const labels = new Map(this.state.labels);
-    labels.set(label.id, label);
+    let labelList = [];
+    for (let obj of  objects) {
+      let bboxes = {};
+      this._controls.getTools().forEach(tool => {
+        const id = tool.candidateId;
+        if (obj.content[id] != null) {
+          bboxes[id] = tool.createBBox(obj.content[id]);
+        }
+      });
+      let label = new Label(this, obj.id, obj.klass, bboxes);
+      labels.set(label.id, label);
+      if (label.id >= 0) {
+        this._deleted = this._deleted.filter(id => id != label.id);
+      }
+      labelList.push(label);
+    }
     this.setState({ labels });
-    return label;
+    return labelList;
   }
-  removeFromHistory(id) {
-    this.remove(id, false);
+  removeFromHistory(objects) {
+    const tools = this._controls.getTools();
+    const tgt = this._targetLabel;
+    const labels = new Map(this.state.labels);
+    for (let obj of objects) {
+      let label = this.getLabel(obj.id);
+
+      tools.forEach(tool => {
+        if (label.bbox[tool.candidateId] != null) {
+          tool.disposeBBox(label.bbox[tool.candidateId]);
+        }
+      });
+      if (tgt != null && label.id === tgt.id) {
+        this._targetLabel = null;
+        tgt.setTarget(false);
+        this._controls.getTools().forEach(tool => {
+          tool.updateTarget(tgt, null);
+        });
+      }
+      if (label.id >= 0) {
+        this._deleted.push(label.id);
+      }
+
+      labels.delete(label.id);
+      label.dispose();
+    }
+    this.setState({ labels });
+  }
+  // methods to clipboard
+  copyLabels(isAll) {
+    let target = [];
+    if (isAll) {
+      target = Array.from(this.state.labels.values());
+    } else if (this._targetLabel != null) {
+      target = [this._targetLabel];
+    }
+    return target.map(label => label.toObject());
+  }
+  pasteLabels(data) {
+    const labels = new Map(this.state.labels);
+    let pastedLabels = [];
+    data.forEach(obj => {
+      let klass = this._klassSet.getByName(obj.name);
+      let bboxes = {};
+      this._controls.getTools().forEach(tool => {
+        const id = tool.candidateId;
+        if (obj.content[id] != null) {
+          bboxes[id] = tool.createBBox(obj.content[id]);
+        }
+      });
+      let label = new Label(this, this._nextId--, klass, bboxes);
+      labels.set(label.id, label);
+      pastedLabels.push(label);
+    });
+    this._history.addHistory(pastedLabels, 'create');
+    this.setState({ labels });
   }
 
   // private
