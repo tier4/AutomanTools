@@ -141,7 +141,7 @@ class ProjectTable extends React.Component {
           fetchInfo={fetchProp}
         >
           <TableHeaderColumn width="20%" dataField="name" isKey dataSort={true}>
-            Name
+            Project Name
           </TableHeaderColumn>
           <TableHeaderColumn width="" dataField="description" dataSort={true}>
             Description
