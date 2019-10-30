@@ -6,7 +6,8 @@ import { withStyles } from '@material-ui/core/styles';
 import Fab from '@material-ui/core/Fab';
 import Grid from '@material-ui/core/Grid';
 import Paper from '@material-ui/core/Paper';
-import Add from '@material-ui/icons/Add';
+import CloudUpload from '@material-ui/icons/CloudUpload';
+import Tooltip from '@material-ui/core/Tooltip';
 
 import CalibrationTable from 'automan/dashboard/components/calibration/table.jsx';
 import CalibrationForm from 'automan/dashboard/components/calibration/form.jsx';
@@ -31,16 +32,18 @@ class CalibrationPage extends React.Component {
           <Paper className={classes.root}>
             <CalibrationTable />
           </Paper>
-          <Fab
-            color="primary"
-            aria-label="Add"
-            className={classes.fab}
-            onClick={() => {
-              this.show();
-            }}
-          >
-            <Add />
-          </Fab>
+          <Tooltip title="Upload">
+            <Fab
+              color="primary"
+              aria-label="Upload"
+              className={classes.fab}
+              onClick={() => {
+                this.show();
+              }}
+            >
+              <CloudUpload />
+            </Fab>
+          </Tooltip>
           <CalibrationForm formOpen={this.state.formOpen} hide={this.hide} />
         </Grid>
       </Grid>
