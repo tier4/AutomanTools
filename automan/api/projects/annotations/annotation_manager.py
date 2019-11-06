@@ -1,4 +1,5 @@
 import json
+import uuid
 from django.db import transaction
 from django.db.models import Q
 from django.core.exceptions import ValidationError, ObjectDoesNotExist, FieldError
@@ -120,6 +121,7 @@ class AnnotationManager(object):
             record['object_id'] = object.id
             record['name'] = label.name
             record['content'] = json.loads(label.content)
+            record['instance_id'] = str(object.instance)
             records.append(record)
             count += 1
         labels = {}
@@ -146,7 +148,8 @@ class AnnotationManager(object):
                     raise ValidationError("Label content is invalid.")
             new_object = DatasetObject(
                 annotation_id=annotation_id,
-                frame=frame)
+                frame=frame,
+                instance=self.get_instance_id(label))
             new_object.save()
             new_label = DatasetObjectAnnotation(
                 object_id=new_object.id,
@@ -163,6 +166,7 @@ class AnnotationManager(object):
                 name=label['name'],
                 content=json.dumps(label['content']))
             edited_label.save()
+            self.update_instance_id(label)
 
         for object_id in deleted_list:
             dataset_object = DatasetObject.objects.filter(id=object_id).first()
@@ -184,6 +188,20 @@ class AnnotationManager(object):
             frame_progress=frame)
         new_progress.save()
 
+    def get_instance_id(self, label):
+        use_instance = label.get('use_instance')
+        if use_instance != 'true':
+            return None
+        instance_id = label.get('instance_id', str(uuid.uuid4()))
+        return instance_id
+
+    def update_instance_id(self, label):
+        dataset_object = DatasetObject.objects.filter(id=label['object_id']).first()
+        instance_id = self.get_instance_id(label)
+        if dataset_object.instance != instance_id:
+            dataset_object.instance = self.get_instance_id(label)
+            dataset_object.save()
+
     def set_archive(self, annotation_id, file_path, file_name):
         new_archive = ArchivedLabelDataset(
             annotation_id=annotation_id,
@@ -204,3 +222,35 @@ class AnnotationManager(object):
             annotation_id=annotation_id).order_by('-date').first()
         archive_path = archive.file_path + '/' + archive.file_name
         return archive_path
+
+    def get_instances(self, annotation_id):
+            objects = DatasetObject.objects.filter(annotation_id=annotation_id)
+            records = []
+            for object in objects:
+                records.append(str(object.instance))
+            labels = {}
+            labels['records'] = list(set(records))
+            labels['count'] = len(labels['records'])
+            return labels
+
+    def get_instance(self, annotation_id, instance_id):
+        objects = DatasetObject.objects.filter(
+            annotation_id=annotation_id, instance=instance_id)
+
+        records = []
+        for object in objects:
+            label = DatasetObjectAnnotation.objects.filter(
+                object_id=object.id).order_by('-created_at').first()
+            if label.delete_flag is True:
+                continue
+            record = {}
+            record['object_id'] = object.id
+            record['name'] = label.name
+            record['content'] = json.loads(label.content)
+            record['frame'] = object.frame
+            records.append(record)
+        labels = {}
+        labels['count'] = len(records)
+        labels['instance_id'] = instance_id
+        labels['records'] = records
+        return labels
