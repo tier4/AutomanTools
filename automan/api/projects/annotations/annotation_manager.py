@@ -1,5 +1,6 @@
 import json
 import uuid
+from uuid import UUID
 from django.db import transaction
 from django.db.models import Q
 from django.core.exceptions import ValidationError, ObjectDoesNotExist, FieldError
@@ -234,6 +235,9 @@ class AnnotationManager(object):
             return labels
 
     def get_instance(self, annotation_id, instance_id):
+        if self.is_valid_uuid4(instance_id) is not True:
+            raise ValidationError("instance_id is invalid")
+
         objects = DatasetObject.objects.filter(
             annotation_id=annotation_id, instance=instance_id)
 
@@ -254,3 +258,10 @@ class AnnotationManager(object):
         labels['instance_id'] = instance_id
         labels['records'] = records
         return labels
+
+    def is_valid_uuid4(self, uuid4):
+        try:
+            UUID(uuid4, version=4)
+            return True
+        except:
+            return False
