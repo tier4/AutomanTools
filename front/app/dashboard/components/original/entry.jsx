@@ -39,7 +39,6 @@ class OriginalPage extends React.Component {
     });
   };
   hideAndUpdate = (isUploaded) => {
-    console.log(isUploaded);
     this.setState({ needUpdate: isUploaded });
     this.hide();
   };
