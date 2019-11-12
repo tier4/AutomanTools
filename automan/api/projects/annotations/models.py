@@ -3,6 +3,7 @@ from django.db import models
 from django.utils import timezone
 from projects.datasets.models import LabelDataset
 from projects.models import Projects
+import uuid
 
 
 class Annotation(models.Model):
@@ -34,6 +35,7 @@ class AnnotationProgress(models.Model):
 class DatasetObject(models.Model):
     annotation = models.ForeignKey(Annotation, on_delete=models.CASCADE)
     frame = models.IntegerField(default=0)
+    instance = models.UUIDField(default=None, null=True)
 
 
 class DatasetObjectAnnotation(models.Model):
