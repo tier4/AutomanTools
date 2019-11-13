@@ -58,6 +58,7 @@ export default class PCDLabelTool extends React.Component {
   _currentPointMesh = null;
   // to mouse position
   _groundPlane = null;
+  _zPlane = null;
   // control mode
   _modeMethods = createModeMethods(this);
   _modeStatus = {
@@ -291,8 +292,8 @@ export default class PCDLabelTool extends React.Component {
       camera = new THREE.PerspectiveCamera( 90, aspect, NEAR, FAR);
       camera.position.set(0,0,0.5);
     }
+    camera.rotation.order = 'ZXY';
     camera.up.set(0,0,1);
-    window.camera = camera;
     this._scene.add( camera );
 
     const controls = new THREE.OrbitControls(camera, this._renderer.domElement);
@@ -324,15 +325,18 @@ export default class PCDLabelTool extends React.Component {
   _initEvent() {
     const modeStatus = this._modeStatus;
     const groundMat = new THREE.MeshBasicMaterial({
-      color: 0x000000, wireframe: false,
-      transparent: true, opacity: 0.0
+      color: 0x000000, visible: false
     });
-    const groundGeo = new THREE.PlaneGeometry(200, 200);
+    const groundGeo = new THREE.PlaneGeometry(1e5, 1e5);
     const groundPlane = new THREE.Mesh(groundGeo, groundMat);
     groundPlane.position.x = 0;
     groundPlane.position.y = 0;
     groundPlane.position.z = -1;
     this._groundPlane = groundPlane;
+    const zPlane = new THREE.Mesh(groundGeo, groundMat);
+    zPlane.rotation.x = Math.PI / 2;
+    zPlane.rotation.order = 'ZXY';
+    this._zPlane = zPlane;
 
 
     
@@ -479,6 +483,20 @@ export default class PCDLabelTool extends React.Component {
     }
     return null;
   }
+  getZPos(e, p) {
+    const ray = this.getRay(e);
+    const zPlane = this._zPlane;
+    zPlane.rotation.z = this._camera.rotation.z;
+    zPlane.position.x = p.x;
+    zPlane.position.y = p.y;
+    zPlane.position.z = 0;
+    zPlane.updateMatrixWorld();
+    const intersectPos = ray.intersectObject(zPlane);
+    if (intersectPos.length > 0) {
+      return intersectPos[0].point;
+    }
+    return null;
+  }
 
   creatingBoxUpdate() {
     const data = this._creatingBBox;
@@ -545,6 +563,11 @@ class PCDBBox {
     const ret = new THREE.Vector2(res.x-prev.x, res.y-prev.y)
       .rotateAround(ZERO2, this.box.yaw);
     return ret;
+  }
+  setSizeZ(z) {
+    const prev = this.box.size.clone();
+    const res = this.setSize(prev.x, prev.y, z);
+    return res.z - prev.z;
   }
   setSize(x, y, z) {
     const minSize = new THREE.Vector3(0.1, 0.1, 0.1);
@@ -635,6 +658,13 @@ class PCDBBox {
         BBoxParams.geometry, BBoxParams.material),
     ];
     edges.forEach(m => group.add(m));
+    const zFace = [
+      new THREE.Mesh(
+        BBoxParams.geometry, BBoxParams.material),
+      new THREE.Mesh(
+        BBoxParams.geometry, BBoxParams.material),
+    ];
+    zFace.forEach(m => group.add(m));
     group.visible = false;
     this.pcdTool._scene.add(group);
 
@@ -642,6 +672,7 @@ class PCDBBox {
       mesh: mesh,
       corners: corners,
       edges: edges,
+      zFace: zFace,
       editGroup: group
     };
     this.updateCube(false);
@@ -676,6 +707,11 @@ class PCDBBox {
     edges[2].scale.set(w, w, box.size.z+w);
     edges[3].position.set(-box.size.x/2-w/2, -box.size.y/2-w/2, 0);
     edges[3].scale.set(w, w, box.size.z+w);
+    const zFace = this.cube.zFace;
+    zFace[0].position.set(0, 0, box.size.z/2+w/2);
+    zFace[0].scale.set(box.size.x, box.size.y, w);
+    zFace[1].position.set(0, 0, -box.size.z/2-w/2);
+    zFace[1].scale.set(box.size.x, box.size.y, w);
     if ( changed ) {
       this.label.isChanged = true;
     }
@@ -694,17 +730,18 @@ const modeNames = [
 function createModeMethods(pcdTool) {
   const modeMethods = {
     'edit': {
-      prevPos: null,
       prevHover: null,
       mode: null,
       startParam: null,
       animate: function() {
       },
       mouseDown: function(e) {
-        const pos = pcdTool.getIntersectPos(e);
+        let pos = pcdTool.getIntersectPos(e);
+        if (this.prevHover !== null && this.prevHover.type === 'top') {
+          pos = pcdTool.getZPos(e, this.prevHover.bbox.box.pos);
+        }
 
         if (pos != null && this.prevHover !== null) {
-          this.prevPos = pos;
           this.mode = 'move';
           const startParam = {
             size: this.prevHover.bbox.box.size.clone(),
@@ -752,6 +789,22 @@ function createModeMethods(pcdTool) {
       },
       resetHoverObj: function() {
         pcdTool._editFaceCube.visible = false;
+      },
+      setHoverObjZ: function(bbox, normal) {
+        const cube = pcdTool._editFaceCube;
+        const yaw = bbox.box.yaw;
+        const size = bbox.box.size;
+        const w = EDIT_OBJ_SIZE;
+        cube.rotation.set(0, 0, yaw);
+        const p = bbox.box.pos;
+        cube.position.set(
+          p.x,
+          p.y,
+          p.z + normal.z * (bbox.box.size.z + w) / 2
+        );
+        cube.scale.set(size.x, size.y, w);
+        cube.visible = true;
+        pcdTool.redrawRequest();
       },
       setHoverObj: function(bbox, normal) {
         const cube = pcdTool._editFaceCube;
@@ -856,6 +909,10 @@ function createModeMethods(pcdTool) {
         new THREE.Vector3(-1, 0, 0),
         new THREE.Vector3(0, -1, 0),
       ],
+      TOP_NORMALS: [
+        new THREE.Vector3(0, 0, 1),
+        new THREE.Vector3(0, 0, -1),
+      ],
       mouseMoveCornerIntersectCheck: function(ray) {
         const bboxes = Array.from(pcdTool.pcdBBoxes);
         for(let i=0; i<bboxes.length; ++i) {
@@ -874,6 +931,34 @@ function createModeMethods(pcdTool) {
               this.setHoverObj(bbox, normal);
               this.prevHover = {
                 type: 'corner',
+                bbox: bbox,
+                idx: j
+              };
+              pcdTool.redrawRequest();
+              return true;
+            }
+          }
+        }
+        return false;
+      },
+      mouseMoveTopIntersectCheck: function(ray) {
+        const bboxes = Array.from(pcdTool.pcdBBoxes);
+        for(let i=0; i<bboxes.length; ++i) {
+          const bbox = bboxes[i];
+          for (let j=0; j<2; ++j) {
+            const corner = bbox.cube.zFace[j];
+            const intersectPos = ray.intersectObject(corner);
+            if (intersectPos.length > 0) {
+              if (this.prevHover &&
+                  this.prevHover.type === 'top' &&
+                  this.prevHover.bbox === bbox &&
+                  this.prevHover.idx === j) { return true; }
+              this.resetHover();
+              pcdTool.setMouseType('ns-resize');
+              const normal = this.TOP_NORMALS[j];
+              this.setHoverObjZ(bbox, normal);
+              this.prevHover = {
+                type: 'top',
                 bbox: bbox,
                 idx: j
               };
@@ -945,17 +1030,32 @@ function createModeMethods(pcdTool) {
             .divideScalar(2);
         bbox.box.pos.sub(new THREE.Vector3(dsize.x, dsize.y, 0));
       },
+      // resize z size
+      mouseMoveResizeZP: function(bbox, prev, dz) {
+        const prevSize = prev.size;
+        const dsize = bbox.setSizeZ(prevSize.z + dz) / 2;
+        bbox.box.pos.add(new THREE.Vector3(0, 0, dsize));
+      },
+      mouseMoveResizeZN: function(bbox, prev, dz) {
+        const prevSize = prev.size;
+        const dsize = bbox.setSizeZ(prevSize.z - dz) / 2;
+        bbox.box.pos.sub(new THREE.Vector3(0, 0, dsize));
+      },
       mouseMove: function(e) {
         if (this.mode === 'move') {
           const bbox = this.prevHover.bbox;
-          const pos = pcdTool.getIntersectPos(e);
+          const prev = this.startParam;
+
+          const pos = this.prevHover.type !== 'top'
+            ? pcdTool.getIntersectPos(e)
+            : pcdTool.getZPos(e, prev.pos);
           if (pos == null) {
             return;
           }
-          const prevPos = this.prevPos;
-          const prev = this.startParam;
-          const dx = (pos.x - prev.mouse.x);
-          const dy = (pos.y - prev.mouse.y);
+          const dx = pos.x - prev.mouse.x;
+          const dy = pos.y - prev.mouse.y;
+          const dz = pos.z - prev.mouse.z;
+
           if (this.prevHover.type === 'box') {
             bbox.box.pos.set(prev.pos.x+dx, prev.pos.y+dy, prev.pos.z);
           } else if (this.prevHover.type === 'edge') {
@@ -978,10 +1078,18 @@ function createModeMethods(pcdTool) {
 
             const normal = this.CORNER_NORMALS[idx];
             this.setHoverObj(bbox, normal);
+          } else if (this.prevHover.type === 'top') {
+            const idx = this.prevHover.idx;
+            [
+              this.mouseMoveResizeZP,
+              this.mouseMoveResizeZN
+            ][idx](bbox, prev, dz);
+
+            const normal = this.TOP_NORMALS[idx];
+            this.setHoverObjZ(bbox, normal);
           }
           bbox.updateCube(true);
           pcdTool.redrawRequest();
-          this.prevPos = pos;
           return;
         }
 
@@ -989,8 +1097,14 @@ function createModeMethods(pcdTool) {
         if (this.mouseMoveIntersectCheck(ray)) {
           return;
         }
-        if (this.mouseMoveCornerIntersectCheck(ray)) {
-          return;
+        if (pcdTool._camera.rotation.x < Math.PI / 180 * 45) {
+          if (this.mouseMoveCornerIntersectCheck(ray)) {
+            return;
+          }
+        } else {
+          if (this.mouseMoveTopIntersectCheck(ray)) {
+            return;
+          }
         }
         if (this.mouseMoveEdgeIntersectCheck(ray)) {
           return;
