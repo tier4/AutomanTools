@@ -1093,6 +1093,27 @@ function createModeMethods(pcdTool) {
           return;
         }
 
+        if (pcdTool._creatingBBox.startPos != null) {
+          this.resetHover();
+          const pos = pcdTool.getIntersectPos(e);
+          if (pos == null) {
+            return;
+          }
+          const bbox = pcdTool._creatingBBox;
+          bbox.endPos = pos;
+          const dist = bbox.endPos.distanceTo(bbox.startPos);
+          if (bbox.box == null && dist > 0.01) {
+            bbox.box =  new THREE.Mesh(
+              BBoxParams.geometry, BBoxParams.material);
+            pcdTool._scene.add(bbox.box);
+          }
+          if (bbox.box != null) {
+            pcdTool.creatingBoxUpdate();
+            pcdTool.redrawRequest();
+          }
+          return;
+        }
+
         const ray = pcdTool.getRay(e);
         if (this.mouseMoveIntersectCheck(ray)) {
           return;
@@ -1111,25 +1132,6 @@ function createModeMethods(pcdTool) {
         }
         this.resetHover();
         pcdTool.resetMouseType();
-
-        if (pcdTool._creatingBBox.startPos == null) {
-          return;
-        }
-        const pos = pcdTool.getIntersectPos(e);
-        if (pos != null) {
-          const bbox = pcdTool._creatingBBox;
-          bbox.endPos = pos;
-          const dist = bbox.endPos.distanceTo(bbox.startPos);
-          if (bbox.box == null && dist > 0.01) {
-            bbox.box =  new THREE.Mesh(
-              BBoxParams.geometry, BBoxParams.material);
-            pcdTool._scene.add(bbox.box);
-          }
-          if (bbox.box != null) {
-            pcdTool.creatingBoxUpdate();
-            pcdTool.redrawRequest();
-          }
-        }
       },
       mouseUp: function(e) {
         const mode = this.mode;
