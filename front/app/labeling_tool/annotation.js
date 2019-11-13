@@ -62,7 +62,7 @@ class Annotation extends React.Component {
                 bboxes[id] = tool.createBBox(obj.content[id]);
               }
             });
-            let label = new Label(this, obj.object_id, klass, bboxes);
+            let label = new Label(this, obj.object_id, obj.instance_id, klass, bboxes);
             labels.set(label.id, label);
           });
           this.setState({ labels });
@@ -154,7 +154,7 @@ class Annotation extends React.Component {
       this._controls.error(txt);
       return null;
     }
-    const label = new Label(this, this._nextId--, klass, bbox);
+    const label = new Label(this, this._nextId--, null, klass, bbox);
     const labels = new Map(this.state.labels);
     labels.set(label.id, label);
     this._history.addHistory([label], 'create');
@@ -265,7 +265,7 @@ class Annotation extends React.Component {
           bboxes[id] = tool.createBBox(obj.content[id]);
         }
       });
-      let label = new Label(this, obj.id, obj.klass, bboxes);
+      let label = new Label(this, obj.id, obj.instance_id, obj.klass, bboxes);
       labels.set(label.id, label);
       if (label.id >= 0) {
         this._deleted = this._deleted.filter(id => id != label.id);
@@ -325,7 +325,7 @@ class Annotation extends React.Component {
           bboxes[id] = tool.createBBox(obj.content[id]);
         }
       });
-      let label = new Label(this, this._nextId--, klass, bboxes);
+      let label = new Label(this, this._nextId--, obj.instance_id, klass, bboxes);
       labels.set(label.id, label);
       pastedLabels.push(label);
     });
@@ -438,9 +438,10 @@ class Label {
   minSize = null;
   bbox = null;
 
-  constructor(annotationTool, id, klass, bbox) {
+  constructor(annotationTool, id, instance_id, klass, bbox) {
     this._annotationTool = annotationTool;
     this.id = id;
+    this.instance_id = instance_id;
     this.isChanged = this.id < 0;
     this.isTarget = false;
     this.klass = klass;
@@ -494,10 +495,7 @@ class Label {
     }
   }
   toIDString() {
-    if (this.id < 0) {
-      return '#___';
-    }
-    return `#${this.id}`;
+    return `#${this.id < 0 ? '___' : this.id} (${this.instance_id})`;
   }
   toString() {
     return this.toIDString() + ` ${this.getKlassName()}`;
@@ -522,6 +520,10 @@ class Label {
     if (this.id >= 0) {
       ret.object_id = this.id;
     }
+    ret.use_instance = true;
+    if (this.instance_id != null) {
+      ret.instance_id = this.instance_id;
+    }
     this._annotationTool._controls.getTools().forEach(tool => {
       const id = tool.candidateId;
       if (!this.has(id)) {
@@ -536,6 +538,7 @@ class Label {
   toHistory() {
     const ret = {
       id: this.id,
+      instance_id: this.instance_id,
       klass: this.klass,
       content: {}
     };
@@ -555,6 +558,7 @@ class Label {
       throw new Error('history id error');
     }
     this.klass = obj.klass;
+    this.instance_id = obj.instance_id;
     this._annotationTool._controls.getTools().forEach(tool => {
       const id = tool.candidateId;
       const content = obj.content[id];
