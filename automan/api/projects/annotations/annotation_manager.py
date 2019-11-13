@@ -122,7 +122,7 @@ class AnnotationManager(object):
             record['object_id'] = object.id
             record['name'] = label.name
             record['content'] = json.loads(label.content)
-            record['instance_id'] = str(object.instance)
+            record['instance_id'] = str(object.instance) if object.instance != None else None
             records.append(record)
             count += 1
         labels = {}
