@@ -24,6 +24,12 @@ class ProjectTable extends React.Component {
   componentDidMount = () => {
     this.updateData();
   };
+  componentDidUpdate = () => {
+    if (this.props.needUpdate) {
+      this.props.handleUpdate();
+      this.updateData();
+    }
+  }
   updateData = () => {
     this.setState({ data: [], is_loading: true, error: null });
 
@@ -135,7 +141,7 @@ class ProjectTable extends React.Component {
           fetchInfo={fetchProp}
         >
           <TableHeaderColumn width="20%" dataField="name" isKey dataSort={true}>
-            Name
+            Project Name
           </TableHeaderColumn>
           <TableHeaderColumn width="" dataField="description" dataSort={true}>
             Description

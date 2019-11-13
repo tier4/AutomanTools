@@ -18,7 +18,7 @@ function nameFormatter(cell, row) {
 }
 function valueFormatter(cell, row) {
   return (
-    <div style={{whiteSpace: 'pre-line'}}>
+    <div style={{ whiteSpace: 'pre-line' }}>
       {row.value}
     </div>
   );
@@ -43,8 +43,10 @@ class CalibrationTable extends React.Component {
   componentDidUpdate(prevProps, prevState) {
     if (
       prevProps.currentProject == null ||
-      this.props.currentProject.id !== prevProps.currentProject.id
+      this.props.currentProject.id !== prevProps.currentProject.id ||
+      this.props.needUpdate
     ) {
+      this.props.handleUpdate();
       this.updateData();
     }
   }

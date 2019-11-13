@@ -18,7 +18,8 @@ class MyPage extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      open: false
+      open: false,
+      needUpdate: false
     };
     this.updateData();
   }
@@ -29,9 +30,13 @@ class MyPage extends React.Component {
     this.setState({ open: false });
   };
   handlePostSubmit = () => {
+    this.setState({ needUpdate: true });
     this.updateData();
     this.hide();
   };
+  handleUpdate = () => {
+    this.setState({ needUpdate: false });
+  }
   updateData() {
     this.props.dispatchCurrentUser();
   }
@@ -51,7 +56,10 @@ class MyPage extends React.Component {
         </Grid>
         <Grid item xs={12}>
           <Paper className={classes.root}>
-            <ProjectTable />
+            <ProjectTable
+              handleUpdate={this.handleUpdate}
+              needUpdate={this.state.needUpdate}
+            />
           </Paper>
           <Fab
             color="primary"

@@ -85,12 +85,12 @@ class CalibrationForm extends React.Component {
     this.nextFileUpload(0);
   };
   hide = () => {
+    this.props.hide(this.state.isUploaded);
     this.setState({
       uploadFiles: [],
       targetFileIndex: null,
       isUploaded: false
     });
-    this.props.hide();
   };
   render() {
     const { uploadFiles, isUploaded } = this.state;

@@ -23,7 +23,8 @@ class OriginalPage extends React.Component {
       extractorSnackbar: false,
       analyzerSnackbar: false,
       original_id: 0,
-      message: null
+      message: null,
+      needUpdate: false
     };
   }
   show = () => {
@@ -37,6 +38,13 @@ class OriginalPage extends React.Component {
       extractorSnackbar: false
     });
   };
+  hideAndUpdate = (isUploaded) => {
+    this.setState({ needUpdate: isUploaded });
+    this.hide();
+  };
+  handleUpdate = () => {
+    this.setState({ needUpdate: false });
+  }
   analyzerSubmit = (original_id) => {
     const data = {
       job_type: 'ANALYZER',
@@ -76,6 +84,8 @@ class OriginalPage extends React.Component {
               extractorFormShow={this.extractorFormShow}
               analyzerSubmit={this.analyzerSubmit}
               hide={this.hide}
+              handleUpdate={this.handleUpdate}
+              needUpdate={this.state.needUpdate}
             />
           </Paper>
           <Tooltip title="Upload">
@@ -90,7 +100,7 @@ class OriginalPage extends React.Component {
               <CloudUpload />
             </Fab>
           </Tooltip>
-          <OriginalDataForm formOpen={this.state.formOpen} hide={this.hide} />
+          <OriginalDataForm formOpen={this.state.formOpen} hide={this.hideAndUpdate} />
           <ExtractorForm
             formOpen={this.state.extractorFormOpen}
             hide={this.hide}

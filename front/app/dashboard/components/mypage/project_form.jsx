@@ -157,7 +157,14 @@ export default class Popup extends React.Component {
       '/projects/',
       data,
       res => {
-        this.setState({ result: 'Success' });
+        this.setState({
+          result: 'Success',
+          name: '',
+          description: '',
+          labelType: null,
+          activeStep: 0,
+          klasses: []
+        });
         this.props.handlePostSubmit();
       },
       res => {

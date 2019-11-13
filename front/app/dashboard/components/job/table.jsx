@@ -13,6 +13,8 @@ import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import Button from '@material-ui/core/Button';
+import Tooltip from '@material-ui/core/Tooltip';
+import RefreshIcon from '@material-ui/icons/Refresh';
 
 import { mainStyle } from 'automan/assets/main-style';
 import ResizableTable from 'automan/dashboard/components/parts/resizable_table';
@@ -249,6 +251,17 @@ class JobTable extends React.Component {
       searchDelayTime: 1000
     };
     options.onRowClick = (row, colIndex, rowIndex) => {};
+    const refreshButton = (
+      <Tooltip title="Refresh">
+        <IconButton
+          color="primary"
+          className={classes.Refresh}
+          onClick={(e) => this.updateData(e)}
+        >
+          <RefreshIcon />
+        </IconButton>
+      </Tooltip>
+    );
     const fetchProp = {
       dataTotalSize: this.state.total_count
     };
@@ -257,6 +270,7 @@ class JobTable extends React.Component {
       <div className={classes.tableWrapper}>
         <Typography variant="h6" id="tableTitle">
           Jobs
+          {refreshButton}
         </Typography>
         <ResizableTable
           data={rows}

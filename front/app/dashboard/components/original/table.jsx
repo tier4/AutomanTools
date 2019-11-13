@@ -36,8 +36,10 @@ class OriginalTable extends React.Component {
   componentDidUpdate(prevProps, prevState) {
     if (
       prevProps.currentProject == null ||
-      this.props.currentProject.id !== prevProps.currentProject.id
+      this.props.currentProject.id !== prevProps.currentProject.id ||
+      this.props.needUpdate
     ) {
+      this.props.handleUpdate();
       this.updateData();
     }
   }
