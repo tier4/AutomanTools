@@ -248,8 +248,8 @@ class Annotation extends React.Component {
     return null;
   }
   // methods to history
-  createHistory(label) {
-    this._history.createHistory([label], 'change');
+  createHistory(label, hist = null) {
+    return this._history.createHistory([label], 'change', hist);
   }
   addHistory() {
     this._history.addHistory(null);
@@ -465,8 +465,8 @@ class Label {
   setLabelItem(labelItem) {
     this.labelItem = labelItem;
   }
-  createHistory() {
-    this._annotationTool.createHistory(this);
+  createHistory(hist) {
+    return this._annotationTool.createHistory(this, hist);
   }
   addHistory() {
     this._annotationTool.addHistory();
