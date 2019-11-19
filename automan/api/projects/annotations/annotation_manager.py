@@ -1,13 +1,14 @@
 import json
 import uuid
 from uuid import UUID
+from datetime import datetime, timedelta, timezone
 from django.db import transaction
 from django.db.models import Q
 from django.core.exceptions import ValidationError, ObjectDoesNotExist, FieldError
 from projects.annotations.models import DatasetObject, DatasetObjectAnnotation, AnnotationProgress
 from projects.annotations.helpers.label_types.bb2d import BB2D
 from projects.annotations.helpers.label_types.bb2d3d import BB2D3D
-from .models import Annotation, ArchivedLabelDataset
+from .models import Annotation, ArchivedLabelDataset, FrameLock
 from projects.models import Projects
 from api.settings import PER_PAGE, SORT_KEY
 from api.common import validation_check
@@ -105,11 +106,13 @@ class AnnotationManager(object):
         annotation.delete_flag = True
         annotation.save()
 
-    def get_frame_labels(self, project_id, annotation_id, frame):
+    def get_frame_labels(self, project_id, user_id, try_lock, annotation_id, frame):
         objects = DatasetObject.objects.filter(
             annotation_id=annotation_id, frame=frame)
         if objects is None:
             raise ObjectDoesNotExist()
+        if try_lock:
+            self.release_lock(user_id, annotation_id)
 
         records = []
         count = 0
@@ -128,6 +131,8 @@ class AnnotationManager(object):
         labels = {}
         labels['count'] = count
         labels['records'] = records
+        labels['is_locked'], labels['expires_at'] = self.get_lock(
+            try_lock, user_id, annotation_id, frame)
         return labels
 
     @transaction.atomic
@@ -265,3 +270,36 @@ class AnnotationManager(object):
             return True
         except:
             return False
+
+    def get_lock(self, try_lock, user_id, annotation_id, frame):
+        if try_lock is not True:
+            return False, None
+        lock = FrameLock.objects.filter(
+            annotation_id=annotation_id, frame=frame
+        ).first()
+        new_expires_at = datetime.now(timezone.utc) + timedelta(minutes=5)
+
+        if lock is None:
+            lock = FrameLock(
+                user=user_id,
+                annotation_id=annotation_id,
+                frame=frame,
+                expires_at=new_expires_at)
+            lock.save()
+        elif lock.expires_at < datetime.now(timezone.utc):
+            lock.user = user_id
+            lock.expires_at = new_expires_at
+            lock.save()
+        else:
+            return False, None
+        return True, int(new_expires_at.timestamp())
+
+    def release_lock(self, user_id, annotation_id):
+        lock = FrameLock.objects.filter(
+            user=user_id,
+            annotation_id=annotation_id
+        ).first()
+        if lock is None:
+            return False
+        lock.delete()
+        return True
