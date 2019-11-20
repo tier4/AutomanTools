@@ -36,12 +36,12 @@ class DatasetObject(models.Model):
     annotation = models.ForeignKey(Annotation, on_delete=models.CASCADE)
     frame = models.IntegerField(default=0)
     instance = models.UUIDField(default=None, null=True)
+    delete_flag = models.BooleanField(default=False)
 
 
 class DatasetObjectAnnotation(models.Model):
     object = models.ForeignKey(DatasetObject, on_delete=models.CASCADE)
     created_at = models.DateTimeField(default=timezone.now)
-    delete_flag = models.BooleanField(default=False)
     name = models.CharField(max_length=45)
     content = models.CharField(max_length=511)
 
