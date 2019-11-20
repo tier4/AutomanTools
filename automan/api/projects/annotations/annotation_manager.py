@@ -109,7 +109,7 @@ class AnnotationManager(object):
 
     def get_frame_labels(self, project_id, user_id, try_lock, annotation_id, frame):
         objects = DatasetObject.objects.filter(
-            annotation_id=annotation_id, frame=frame)
+            annotation_id=annotation_id, frame=frame, delete_flag=False)
         if objects is None:
             raise ObjectDoesNotExist()
         if try_lock:
@@ -120,12 +120,12 @@ class AnnotationManager(object):
         for object in objects:
             label = DatasetObjectAnnotation.objects.filter(
                 object_id=object.id).order_by('-created_at').first()
-            if label.delete_flag is True:
-                continue
             record = {}
             record['object_id'] = object.id
             record['name'] = label.name
-            record['content'] = json.loads(label.content)
+            content = json.loads(label.content)
+            content.pop('instance_id', None)
+            record['content'] = content
             record['instance_id'] = str(object.instance)
             records.append(record)
             count += 1
@@ -156,11 +156,13 @@ class AnnotationManager(object):
             for v in label['content'].values():
                 if not LabelClass.validate(v):
                     raise ValidationError("Label content is invalid.")
+            instance_id = self.get_instance_id(label)
             new_object = DatasetObject(
                 annotation_id=annotation_id,
                 frame=frame,
-                instance=self.get_instance_id(label))
+                instance=instance_id)
             new_object.save()
+            label['content']['instance_id'] = instance_id
             new_label = DatasetObjectAnnotation(
                 object_id=new_object.id,
                 name=label['name'],
@@ -179,14 +181,16 @@ class AnnotationManager(object):
             self.update_instance_id(label)
 
         for object_id in deleted_list:
-            dataset_object = DatasetObject.objects.filter(id=object_id).first()
+            dataset_object = DatasetObject.objects.filter(
+                id=object_id, delete_flag=False).first()
             if dataset_object.annotation_id != int(annotation_id):
                 raise ValidationError("Label content is invalid.")
+            dataset_object.delete_flag = True
+            dataset_object.save()
             deleted_label = DatasetObjectAnnotation(
                 object_id=object_id,
                 name='',
-                content='{}',
-                delete_flag=True)
+                content='{}')
             deleted_label.save()
 
         # FIXME: state, progress
@@ -234,7 +238,8 @@ class AnnotationManager(object):
         return archive_path
 
     def get_instances(self, annotation_id):
-            objects = DatasetObject.objects.filter(annotation_id=annotation_id)
+            objects = DatasetObject.objects.filter(
+                annotation_id=annotation_id, delete_flag=False)
             records = []
             for object in objects:
                 records.append(str(object.instance))
@@ -248,18 +253,18 @@ class AnnotationManager(object):
             raise ValidationError("instance_id is invalid")
 
         objects = DatasetObject.objects.filter(
-            annotation_id=annotation_id, instance=instance_id)
+            annotation_id=annotation_id, instance=instance_id, delete_flag=False)
 
         records = []
         for object in objects:
             label = DatasetObjectAnnotation.objects.filter(
                 object_id=object.id).order_by('-created_at').first()
-            if label.delete_flag is True:
-                continue
             record = {}
             record['object_id'] = object.id
             record['name'] = label.name
-            record['content'] = json.loads(label.content)
+            content = json.loads(label.content)
+            content.pop('instance_id', None)
+            record['content'] = content
             record['frame'] = object.frame
             records.append(record)
         labels = {}
