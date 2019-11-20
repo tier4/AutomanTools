@@ -4,7 +4,8 @@ from uuid import UUID
 from datetime import datetime, timedelta, timezone
 from django.db import transaction
 from django.db.models import Q
-from django.core.exceptions import ValidationError, ObjectDoesNotExist, FieldError
+from django.core.exceptions import (
+    ValidationError, ObjectDoesNotExist, PermissionDenied, FieldError)
 from projects.annotations.models import DatasetObject, DatasetObjectAnnotation, AnnotationProgress
 from projects.annotations.helpers.label_types.bb2d import BB2D
 from projects.annotations.helpers.label_types.bb2d3d import BB2D3D
@@ -146,6 +147,9 @@ class AnnotationManager(object):
             LabelClass = BB2D3D
         else:
             raise UnknownLabelTypeError  # TODO: BB3D
+
+        if not self.has_valid_lock(user_id, annotation_id, frame):
+            raise PermissionDenied
 
         # TODO: bulk insert (try to use bulk_create method)
         for label in created_list:
@@ -302,4 +306,16 @@ class AnnotationManager(object):
         if lock is None:
             return False
         lock.delete()
+        return True
+
+    def has_valid_lock(self, user_id, annotation_id, frame):
+        lock = FrameLock.objects.filter(
+            user=user_id,
+            annotation_id=annotation_id,
+            frame=frame
+        ).first()
+        if lock is None:
+            return False
+        lock.expires_at = datetime.now(timezone.utc) + timedelta(minutes=5)
+        lock.save()
         return True
