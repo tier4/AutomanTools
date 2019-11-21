@@ -122,7 +122,7 @@ class AnnotationManager(object):
             record['object_id'] = object.id
             record['name'] = label.name
             record['content'] = json.loads(label.content)
-            record['instance_id'] = str(object.instance)
+            record['instance_id'] = str(object.instance) if object.instance != None else None
             records.append(record)
             count += 1
         labels = {}
@@ -191,7 +191,7 @@ class AnnotationManager(object):
 
     def get_instance_id(self, label):
         use_instance = label.get('use_instance')
-        if use_instance != 'true':
+        if not use_instance:
             return None
         instance_id = label.get('instance_id', str(uuid.uuid4()))
         return instance_id
