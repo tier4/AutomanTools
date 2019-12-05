@@ -5,3 +5,5 @@ STATUS_MAP = {
     'succeeded': 'SUCCEEDED',
     'unknown': 'UNKNOWN'
 }
+
+UNKNOWN_LIMIT_TIME = 1000

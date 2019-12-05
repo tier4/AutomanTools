@@ -4,9 +4,20 @@ import { connect } from 'react-redux';
 import { withStyles } from '@material-ui/core/styles';
 import { TableHeaderColumn } from 'react-bootstrap-table';
 import Typography from '@material-ui/core/Typography';
-
+import Button from '@material-ui/core/Button';
+import Tooltip from '@material-ui/core/Tooltip';
+import Snackbar from '@material-ui/core/Snackbar';
+import FindInPage from '@material-ui/icons/FindInPage';
+import Unarchive from '@material-ui/icons/Unarchive';
+import IconButton from '@material-ui/core/IconButton';
+import CloseIcon from '@material-ui/icons/Close';
 import ResizableTable from 'automan/dashboard/components/parts/resizable_table';
 import { mainStyle } from 'automan/assets/main-style';
+
+
+function actionFormatter(cell, row) {
+  return row.actions;
+}
 
 class OriginalTable extends React.Component {
   constructor(props) {
@@ -25,8 +36,10 @@ class OriginalTable extends React.Component {
   componentDidUpdate(prevProps, prevState) {
     if (
       prevProps.currentProject == null ||
-      this.props.currentProject.id !== prevProps.currentProject.id
+      this.props.currentProject.id !== prevProps.currentProject.id ||
+      this.props.needUpdate
     ) {
+      this.props.handleUpdate();
       this.updateData();
     }
   }
@@ -34,20 +47,19 @@ class OriginalTable extends React.Component {
     if (!this.props.currentProject) {
       return;
     }
-    let that = this;
     this.setState({ data: [], error: null });
     let url = '/projects/' + this.props.currentProject.id + '/originals/';
     RequestClient.get(
       url,
       this.state.query.getData(),
-      function(res) {
-        that.setState({
+      (res) => {
+        this.setState({
           total_count: res.count,
           data: res.records
         });
       },
-      function(mes) {
-        that.setState({ error: mes.message });
+      (mes) => {
+        this.setState({ error: mes.message });
       }
     );
   }
@@ -88,17 +100,43 @@ class OriginalTable extends React.Component {
     }
     const { classes } = this.props;
     let rows = [];
-    rows = this.state.data.map(
-      function(row, index) {
-        return {
-          index: index,
-          name: row.name,
-          size: row.size,
-          file_type: row.file_type,
-          status: row.status
-        };
-      }.bind(this)
-    );
+    rows = this.state.data.map((row, index) => {
+      let actions = ''
+      actions = (
+        <div className="text-center">
+          <Tooltip title="Analyze">
+            <div style={{display:'inline-block'}}>
+              <Button
+                disabled={row.status !== 'uploaded'}
+                classes={{ root: classes.tableActionButton }}
+                onClick={() => this.props.analyzerSubmit(row.id)}
+              >
+                <FindInPage fontSize="small" />
+              </Button>
+            </div>
+          </Tooltip>
+          <Tooltip title="Extract">
+            <div style={{display:'inline-block'}}>
+              <Button
+                disabled={row.status !== 'analyzed'}
+                classes={{ root: classes.tableActionButton }}
+                onClick={() => this.props.extractorFormShow(row.id)}
+              >
+                <Unarchive fontSize="small" />
+              </Button>
+            </div>
+          </Tooltip>
+        </div>
+      );
+      return {
+        index: index,
+        name: row.name,
+        size: Math.round(row.size / (1024 * 1024) * 10) / 10,
+        file_type: row.file_type,
+        status: row.status,
+        actions: actions
+      };
+    });
     const options = {
       sizePerPageList: [
         {
@@ -142,7 +180,7 @@ class OriginalTable extends React.Component {
             Name
           </TableHeaderColumn>
           <TableHeaderColumn width="10%" dataField="size" dataSort={true}>
-            Size
+            Size (MB)
           </TableHeaderColumn>
           <TableHeaderColumn width="20%" dataField="file_type" dataSort={true}>
             FileType
@@ -150,7 +188,57 @@ class OriginalTable extends React.Component {
           <TableHeaderColumn width="20%" dataField="status" dataSort={true}>
             Status
           </TableHeaderColumn>
+          <TableHeaderColumn width="15%" dataField="actions" dataFormat={actionFormatter}>
+          </TableHeaderColumn>
         </ResizableTable>
+        <Snackbar
+          anchorOrigin={{
+            vertical: 'bottom',
+            horizontal: 'left',
+          }}
+          open={this.props.formOpen}
+          autoHideDuration={5000}
+          onClose={this.props.hide}
+          ContentProps={{
+            'aria-describedby': 'message-id',
+          }}
+          message={<span id="message-id">Analyzer job is submitted.</span>}
+          action={[
+            <IconButton
+              key="close"
+              aria-label="close"
+              color="inherit"
+              className={classes.close}
+              onClick={this.props.hide}
+            >
+              <CloseIcon />
+            </IconButton>
+          ]}
+        />
+        <Snackbar
+          anchorOrigin={{
+            vertical: 'bottom',
+            horizontal: 'left',
+          }}
+          open={this.props.extractorSnackbar}
+          autoHideDuration={5000}
+          onClose={this.props.hide}
+          ContentProps={{
+            'aria-describedby': 'message-id',
+          }}
+          message={<span id="message-id">Extractor job is submitted.</span>}
+          action={[
+            <IconButton
+              key="close"
+              aria-label="close"
+              color="inherit"
+              className={classes.close}
+              onClick={this.props.hide}
+            >
+              <CloseIcon />
+            </IconButton>
+          ]}
+        />
       </div>
     );
   }

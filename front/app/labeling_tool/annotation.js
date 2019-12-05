@@ -1,23 +1,41 @@
+import React from 'react';
+import ReactDOM from 'react-dom';
+
+import List from '@material-ui/core/List';
+import ListItem from '@material-ui/core/ListItem';
+import ListItemIcon from '@material-ui/core/ListItemIcon';
+import ListItemText from '@material-ui/core/ListItemText';
+import ListSubheader from '@material-ui/core/ListSubheader';
+
+import classNames from 'classnames';
+
 import RequestClient from 'automan/services/request-client';
 
-export default class Annotation {
-  _labels = null;
+class Annotation extends React.Component {
+  _labelTool = null;
+  _controls = null;
+  _klassSet = null;
+  // data
   _deleted = null;
   _targetLabel = null;
-  // DOM
-  _bboxTable = null;
   // status
   _loaded = true;
   _nextId = -1;
-  _labelTool = null;
 
-  constructor(labelTool) {
-    this._labelTool = labelTool;
+  constructor(props) {
+    super(props);
+    this._labelTool = props.labelTool;
+    this._controls = props.controls;
+    this.state = {
+      instanceIds: null,
+      labels: null
+    };
+    props.getRef(this);
   }
-  init() {
+  init(klassSet, history) {
+    this._klassSet = klassSet;
+    this._history = history;
     return new Promise((resolve, reject) => {
-      this._bboxTable = $('#bbox-table');
-
       resolve();
     });
   }
@@ -25,26 +43,38 @@ export default class Annotation {
     return this._loaded;
   }
   load(frameNumber) {
+    if (!this._loaded) {
+      return Promise.reject();
+    }
     this._removeAll();
     this._nextId = -1;
+    this._history.resetHistory();
     return new Promise((resolve, reject) => {
-      this._labels = new Map();
       this._deleted = [];
 
       RequestClient.get(
-        this._labelTool.getURL('frame_labels'),
+        this._labelTool.getURL('frame_labels', frameNumber),
         null,
         res => {
+          const labels = new Map(), instanceIds = new Map();
           res.records.forEach(obj => {
-            let klass = this._labelTool.getKlass(obj.name);
+            let klass = this._klassSet.getByName(obj.name);
             let bboxes = {};
-            this._labelTool.getTools().forEach(tool => {
+            this._controls.getTools().forEach(tool => {
               const id = tool.candidateId;
               if (obj.content[id] != null) {
                 bboxes[id] = tool.createBBox(obj.content[id]);
               }
             });
-            let label = new Label(this, obj.object_id, klass, bboxes);
+            let label = new Label(this, obj.object_id, obj.instance_id, klass, bboxes);
+            labels.set(label.id, label);
+            if (label.instanceId != null) {
+              instanceIds.set(label.instanceId, label);
+            }
+          });
+          this.setState({ labels, instanceIds }, () => {
+            this._loaded = true;
+            resolve();
           });
         },
         err => {
@@ -52,19 +82,21 @@ export default class Annotation {
         }
       );
 
-      resolve();
-      this._loaded = true;
     });
   }
   isChanged() {
-    if (this._labels == null) {
+    if (this.state.labels == null) {
       return false;
     }
     if (this._deleted.length > 0) {
       return true;
     }
+    if (!this._history.hasUndo()) {
+      // check by history
+      return false;
+    }
     let changedFlag = false;
-    this._labels.forEach(label => {
+    this.state.labels.forEach(label => {
       changedFlag = changedFlag || label.isChanged;
     });
     return changedFlag;
@@ -77,7 +109,7 @@ export default class Annotation {
     const edited = [];
     const deleted = this._deleted;
     this._deleted = [];
-    this._labels.forEach(label => {
+    this.state.labels.forEach(label => {
       if (label.id < 0) {
         created.push(label.toObject());
       } else if (label.isChanged) {
@@ -91,7 +123,7 @@ export default class Annotation {
         deleted: deleted
       };
       RequestClient.post(
-        this._labelTool.getURL('frame_labels'),
+        this._labelTool.getURL('frame_labels', this._controls.getFrameNumber()),
         data,
         () => {
           resolve();
@@ -106,14 +138,20 @@ export default class Annotation {
     return this._targetLabel;
   }
   setTarget(tgt) {
-    let next = this._getLabel(tgt),
+    let next = this.getLabel(tgt),
       prev = this._targetLabel;
     if (prev != null && next != null && next.id === prev.id) {
       return prev;
     }
+    if (prev != null) {
+      prev.setTarget(false);
+    }
+    if (next != null) {
+      next.setTarget(true);
+    }
     this._targetLabel = next;
     // table dom events
-    this._labelTool.getTools().forEach(tool => {
+    this._controls.getTools().forEach(tool => {
       tool.updateTarget(prev, next);
     });
     return next;
@@ -121,66 +159,75 @@ export default class Annotation {
   create(klass, bbox) {
     if (klass == null) {
       let txt = 'Label create error: Error Class "' + klass + '"';
-      this._labelTool.controls.error(txt);
+      this._controls.error(txt);
       return null;
     }
-    return new Label(this, this._nextId--, klass, bbox);
+    const label = new Label(this, this._nextId--, null, klass, bbox);
+    this._history.addHistory([label], 'create');
+    this.setState(state => {
+      const labels = new Map(state.labels);
+      labels.set(label.id, label);
+      return { labels };
+    });
+    return label;
   }
   changeKlass(id, klass) {
-    let label = this._getLabel(id);
+    let label = this.getLabel(id);
     if (label == null) {
       let txt = 'Label change Class error: Error selector "' + id + '"';
-      this._labelTool.controls.error(txt);
+      this._controls.error(txt);
       return;
     }
     if (klass == null) {
       let txt = 'Label change Class error: Error Class "' + klass + '"';
-      this._labelTool.controls.error(txt);
+      this._controls.error(txt);
       return;
     }
-    label.klass = klass;
-    label.updateKlass();
-    this._labelTool.getTools().forEach(tool => {
+    label.setKlass(klass);
+    this._controls.getTools().forEach(tool => {
       tool.updateBBox(label);
     });
   }
   attachBBox(id, candidateId, bbox) {
-    let label = this._getLabel(id);
+    let label = this.getLabel(id);
     if (label == null) {
       let txt = 'Label add BBox error: Error selector "' + id + '"';
-      this._labelTool.controls.error(txt);
+      this._controls.error(txt);
       return;
     }
     if (label.has(candidateId)) {
       let txt = `Label add BBox error: this BBox is already attached in "${id}"`;
-      this._labelTool.controls.error(txt);
+      this._controls.error(txt);
       return;
     }
     label.bbox[candidateId] = bbox;
     //label.tableItem.addClass('has-image-bbox');
   }
   removeBBox(id, candidateId) {
-    let label = this._getLabel(id);
+    let label = this.getLabel(id);
     if (label == null) {
       let txt = 'Label remove BBox error: Error selector "' + id + '"';
-      this._labelTool.controls.error(txt);
+      this._controls.error(txt);
       return;
     }
     if (label.has(candidateId)) {
-      const tool = this._labelTool.getToolFromCandidateId(candidateId);
+      const tool = this._controls.getToolFromCandidateId(candidateId);
       tool.disposeBBox(label.bbox[candidateId]);
       label.bbox[candidateId] = null;
       //label.tableItem.addClass('has-image-bbox');
     }
   }
   remove(id) {
-    let label = this._getLabel(id);
+    let label = this.getLabel(id);
     if (label == null) {
       let txt = 'Label remove error: Error selector "' + id + '"';
-      this._labelTool.controls.error(txt);
+      this._controls.error(txt);
       return;
     }
-    this._labelTool.getTools().forEach(tool => {
+
+    this._history.addHistory([label], 'delete');
+
+    this._controls.getTools().forEach(tool => {
       if (label.bbox[tool.candidateId] != null) {
         tool.disposeBBox(label.bbox[tool.candidateId]);
       }
@@ -188,35 +235,173 @@ export default class Annotation {
     const tgt = this._targetLabel;
     if (tgt != null && label.id === tgt.id) {
       this._targetLabel = null;
-      this._labelTool.getTools().forEach(tool => {
+      tgt.setTarget(false);
+      this._controls.getTools().forEach(tool => {
         tool.updateTarget(tgt, null);
       });
     }
     if (label.id >= 0) {
       this._deleted.push(label.id);
     }
-    this._labels.delete(label.id);
+
+    const labelId = label.id;
+    const instanceId = label.instanceId;
+    this.setState(state => {
+      const labels = new Map(state.labels);
+      const instanceIds = new Map(state.instanceIds);
+      labels.delete(labelId);
+      if (instanceId != null) {
+        instanceIds.delete(instanceId);
+      }
+      return { labels, instanceIds };
+    });
     label.dispose();
   }
-
-  // private
-  _getLabel(label) {
+  getLabel(label) {
     if (label instanceof Label) {
       return label;
     } else if (typeof label === 'number') {
-      return this._labels.get(label) || null;
+      return this.state.labels.get(label) || null;
     }
     return null;
   }
+  // methods to history
+  createHistory(label, hist = null) {
+    return this._history.createHistory([label], 'change', hist);
+  }
+  addHistory() {
+    this._history.addHistory(null);
+  }
+  createFromHistory(objects) {
+    let labelList = [];
+    for (let obj of  objects) {
+      if (obj.instanceId !== null && this.state.instanceIds.has(obj.instanceId)) {
+        console.error('create error');
+        continue;
+      }
+      let bboxes = {};
+      this._controls.getTools().forEach(tool => {
+        const id = tool.candidateId;
+        if (obj.content[id] != null) {
+          bboxes[id] = tool.createBBox(obj.content[id]);
+        }
+      });
+      let label = new Label(this, obj.id, obj.instanceId, obj.klass, bboxes);
+      if (label.id >= 0) {
+        this._deleted = this._deleted.filter(id => id != label.id);
+      }
+      labelList.push(label);
+    }
+    this.setState(state => {
+      const labels = new Map(state.labels);
+      const instanceIds = new Map(state.instanceIds);
+      for (let label of labelList) {
+        labels.set(label.id, label);
+        if (label.instanceId != null) {
+          instanceIds.set(label.instanceId);
+        }
+      }
+      return { labels, instanceIds };
+    });
+    return labelList.slice();
+  }
+  removeFromHistory(objects) {
+    const tools = this._controls.getTools();
+    const tgt = this._targetLabel;
+    const removeIds = [], removeInstanceIds = [];
+    for (let obj of objects) {
+      let label = this.getLabel(obj.id);
+
+      tools.forEach(tool => {
+        if (label.bbox[tool.candidateId] != null) {
+          tool.disposeBBox(label.bbox[tool.candidateId]);
+        }
+      });
+      if (tgt != null && label.id === tgt.id) {
+        this._targetLabel = null;
+        tgt.setTarget(false);
+        this._controls.getTools().forEach(tool => {
+          tool.updateTarget(tgt, null);
+        });
+      }
+      if (label.id >= 0) {
+        this._deleted.push(label.id);
+      }
+
+      removeIds.push(label.id);
+      if (label.instanceId !== null) {
+        removeInstanceIds.push(label.instanceId);
+      }
+      label.dispose();
+    }
+    this.setState(state => {
+      const labels = new Map(state.labels);
+      const instanceIds = new Map(state.instanceIds);
+      for (let id of removeIds) {
+        labels.delete(id);
+      }
+      for (let id of removeInstanceIds) {
+        instanceIds.delete(id);
+      }
+      return { labels, instanceIds };
+    });
+  }
+  // methods to clipboard
+  copyLabels(isAll) {
+    let target = [];
+    if (isAll) {
+      target = Array.from(this.state.labels.values());
+    } else if (this._targetLabel != null) {
+      target = [this._targetLabel];
+    }
+    return target.map(label => label.toObject());
+  }
+  pasteLabels(data) {
+    const labels = new Map(this.state.labels);
+    let pastedLabels = [];
+
+    data.forEach(obj => {
+      let instanceId = obj.instanceId;
+      if (instanceId !== null && this.state.instanceIds.has(instanceId)) {
+        instanceId = null;
+      }
+      let klass = this._klassSet.getByName(obj.name);
+      let bboxes = {};
+      this._controls.getTools().forEach(tool => {
+        const id = tool.candidateId;
+        if (obj.content[id] != null) {
+          bboxes[id] = tool.createBBox(obj.content[id]);
+        }
+      });
+      let label = new Label(this, this._nextId--, instanceId, klass, bboxes);
+      labels.set(label.id, label);
+      pastedLabels.push(label);
+    });
+
+    this._history.addHistory(pastedLabels, 'create');
+    this.setState(state => {
+      const labels = new Map(state.labels);
+      const instanceIds = new Map(state.instanceIds);
+      for (let label of pastedLabels) {
+        labels.set(label.id, label);
+        if (label.instanceId != null) {
+          instanceIds.set(label.instanceId);
+        }
+      }
+      return { labels, instanceIds };
+    });
+  }
+
+  // private
   _removeAll() {
-    this._labelTool.selectLabel(null);
-    if (this._labels == null) {
+    this._controls.selectLabel(null);
+    if (this.state.labels == null) {
       return;
     }
     this._loaded = false;
 
-    this._labels.forEach(label => {
-      this._labelTool.getTools().forEach(tool => {
+    this.state.labels.forEach(label => {
+      this._controls.getTools().forEach(tool => {
         const id = tool.candidateId;
         if (label.bbox[id] != null) {
           tool.disposeBBox(label.bbox[id]);
@@ -224,36 +409,105 @@ export default class Annotation {
       });
       label.dispose();
     });
-    this._labels.clear();
-    this._labels = null;
     this._targetLabel = null;
+    this.setState({labels: null, instanceIds: null});
+  }
+  renderList(classes) {
+    if (this.state.labels === null) {
+      return [];
+    }
+    let list = [];
+    for (let [_, label] of this.state.labels) {
+      list.push(
+        <LabelItem
+          key={label.id}
+          classes={classes}
+          controls={this._controls}
+          label={label}
+        />
+      );
+    }
+    return list;
+  }
+  render() {
+    const classes = this.props.classes;
+    return (
+      <List
+        className={classes.list}
+        subheader={
+          <ListSubheader
+            className={classes.listHead}
+          >
+            Bounding Box
+          </ListSubheader>
+        }
+      >
+        {this.renderList(classes)}
+      </List>
+    );
   }
 }
+export default Annotation;
 
+class LabelItem extends React.Component {
+  constructor(props) {
+    super(props);
+    this.classes = props.classes;
+    this.controls = props.controls;
+    const label = props.label;
+    label.setLabelItem(this);
+    this.state = {
+      color: label.getColor(),
+      isTarget: label.isTarget
+    };
+    this.label = label;
+  }
+  updateKlass() {
+    this.setState({ color: this.label.getColor() });
+  }
+  updateTarget() {
+    this.setState({ isTarget: this.label.isTarget });
+  }
+  render() {
+    const classes = this.props.classes;
+    const label = this.label;
+    return (
+      <ListItem
+        key={label.id}
+        className={classNames(classes.listItem, this.state.isTarget && classes.selectedListItem)}
+        onClick={() => this.controls.selectLabel(label)}
+        button
+      >
+        <div
+          className={classes.colorPane}
+          style={{ backgroundColor: this.state.color }}
+        />
+        <ListItemText primary={label.toString()} />
+      </ListItem>
+    );
+  }
+}
 class Label {
   _annotationTool = null;
+  _listItem = null;
+  id = 0;
+  isChanged = false;
+  isTarget = false;
+  klass = null;
+  minSize = null;
+  bbox = null;
 
-  constructor(annotationTool, id, klass, bbox) {
+  constructor(annotationTool, id, instanceId, klass, bbox) {
     this._annotationTool = annotationTool;
     this.id = id;
+    this.instanceId = instanceId;
     this.isChanged = this.id < 0;
+    this.isTarget = false;
     this.klass = klass;
     this.minSize = klass.getMinSize();
     this.bbox = {};
 
-    this.tableItem = $('<li class="jpeg-label-sidebar-item">');
-    this.tableItem.click(() => {
-      this._annotationTool._labelTool.selectLabel(this);
-    });
-    this.tableItem.css({ background: this.klass.color });
-    this.tableItem.append(
-      $('<span class="list-image-bbox">').text(this.toIDString())
-    );
-
-    this._annotationTool._bboxTable.append(this.tableItem);
-    this._annotationTool._labels.set(this.id, this);
-
-    this._annotationTool._labelTool.getTools().forEach(tool => {
+    this._annotationTool._controls.getTools().forEach(tool => {
       const id = tool.candidateId;
       if (bbox[id] == null) {
         this.bbox[id] = null;
@@ -264,16 +518,23 @@ class Label {
     });
   }
   addBBox(name) {
-    const ret = $('<span class="list-image-bbox">').text(name);
-    this.tableItem.append(ret);
-    return ret;
+    // how to change state?
   }
   dispose() {
-    this.tableItem.remove();
   }
-  updateKlass() {
+  setLabelItem(labelItem) {
+    this.labelItem = labelItem;
+  }
+  createHistory(hist) {
+    return this._annotationTool.createHistory(this, hist);
+  }
+  addHistory() {
+    this._annotationTool.addHistory();
+  }
+
+  setKlass(klass) {
+    this.klass = klass;
     this.isChanged = true;
-    this.tableItem.css({ background: this.klass.color });
     this.minSize = this.klass.getMinSize();
     Object.keys(this.bbox).forEach(id => {
       const bbox = this.bbox[id];
@@ -282,12 +543,18 @@ class Label {
       }
       bbox.updateKlass();
     });
+    if (this.labelItem != null) {
+      this.labelItem.updateKlass();
+    }
+  }
+  setTarget(val) {
+    this.isTarget = val;
+    if (this.labelItem != null) {
+      this.labelItem.updateTarget();
+    }
   }
   toIDString() {
-    if (this.id < 0) {
-      return '#___';
-    }
-    return `#${this.id}`;
+    return `#${this.id < 0 ? '___' : this.id}`;
   }
   toString() {
     return this.toIDString() + ` ${this.getKlassName()}`;
@@ -312,7 +579,11 @@ class Label {
     if (this.id >= 0) {
       ret.object_id = this.id;
     }
-    this._annotationTool._labelTool.getTools().forEach(tool => {
+    ret.use_instance = true;
+    if (this.instanceId != null) {
+      ret.instanceId = this.instanceId;
+    }
+    this._annotationTool._controls.getTools().forEach(tool => {
       const id = tool.candidateId;
       if (!this.has(id)) {
         return;
@@ -322,5 +593,39 @@ class Label {
       ret.content[id] = content;
     });
     return ret;
+  }
+  toHistory() {
+    const ret = {
+      id: this.id,
+      instanceId: this.instanceId,
+      klass: this.klass,
+      content: {}
+    };
+    this._annotationTool._controls.getTools().forEach(tool => {
+      const id = tool.candidateId;
+      if (!this.has(id)) {
+        return;
+      }
+      const content = {};
+      this.bbox[id].toContent(content);
+      ret.content[id] = content;
+    });
+    return ret;
+  }
+  fromHistory(obj) {
+    if (this.id !== obj.id) {
+      throw new Error('history id error');
+    }
+    this.klass = obj.klass;
+    this.instanceId = obj.instanceId;
+    this._annotationTool._controls.getTools().forEach(tool => {
+      const id = tool.candidateId;
+      const content = obj.content[id];
+      if (content == null) {
+        return;
+      }
+      this.bbox[id].fromContent(content);
+      this.bbox[id].updateParam();
+    });
   }
 }

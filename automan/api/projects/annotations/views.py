@@ -96,3 +96,16 @@ def download_archived_annotation(request, project_id, annotation_id):
     archive_path = annotation_manager.get_archive_path(annotation_id)
     archive = open(archive_path, "rb").read()
     return HttpResponse(archive, content_type="application/octet-stream")
+
+
+@api_view(['GET'])
+def instances(request, project_id, annotation_id):
+    annotation_manager = AnnotationManager()
+    contents = annotation_manager.get_instances(annotation_id)
+    return HttpResponse(content=json.dumps(contents), status=200, content_type='application/json')
+
+@api_view(['GET'])
+def instance(request, project_id, annotation_id, instance_id):
+    annotation_manager = AnnotationManager()
+    contents = annotation_manager.get_instance(annotation_id, instance_id)
+    return HttpResponse(content=json.dumps(contents), status=200, content_type='application/json')

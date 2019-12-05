@@ -3,32 +3,25 @@ import { compose } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { withStyles } from '@material-ui/core/styles';
-import AppBar from '@material-ui/core/AppBar';
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import DialogContent from '@material-ui/core/DialogContent';
-//import FormControl from '@material-ui/core/FormControl';
+import DialogActions from '@material-ui/core/DialogActions';
 import Grid from '@material-ui/core/Grid';
-import IconButton from '@material-ui/core/IconButton';
-//import InputLabel from '@material-ui/core/InputLabel';
 import LinearProgress from '@material-ui/core/LinearProgress';
-//import MenuItem from '@material-ui/core/MenuItem';
-//import Select from '@material-ui/core/Select';
-import Toolbar from '@material-ui/core/Toolbar';
 import CameraAlt from '@material-ui/icons/CameraAlt';
 import Cancel from '@material-ui/icons/Cancel';
 import Close from '@material-ui/icons/Close';
 import CloudUpload from '@material-ui/icons/CloudUpload';
+import CardHeader from '@material-ui/core/CardHeader';
 
 import { mainStyle } from 'automan/assets/main-style';
-
 import LocalStorageClient from 'automan/services/storages/local_storage';
 
 class CalibrationForm extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      open: false,
       uploadFiles: [],
       targetFileIndex: null,
       isUploaded: false
@@ -46,15 +39,14 @@ class CalibrationForm extends React.Component {
         })
       ]
     });
-  };
-  handleChangeStorage = event => {
-    this.setState({ storage: event.target.value });
+    event.target.value = '';
   };
   handleClickCancel = event => {
-    // TODO: implement
-  };
-  handleClickTargetCancel = event => {
-    // TODO: implement
+    this.setState({
+      uploadFiles: [],
+      targetFileIndex: null,
+      isUploaded: false
+    });
   };
   progressUpdate = progress => {
     console.log(progress);
@@ -77,8 +69,6 @@ class CalibrationForm extends React.Component {
     }
     that.setState({ targetFileIndex: index });
     let targetFile = that.state.uploadFiles[index];
-    //let name = targetFile.fileInfo.name;
-    //let size = targetFile.fileInfo.size;
     let requestPath = `/projects/${this.props.currentProject.id}/calibrations/`;
     LocalStorageClient.upload(
       requestPath,
@@ -94,22 +84,15 @@ class CalibrationForm extends React.Component {
     }
     this.nextFileUpload(0);
   };
-  initialize = () => {
+  hide = () => {
+    this.props.hide(this.state.isUploaded);
     this.setState({
-      open: false,
       uploadFiles: [],
       targetFileIndex: null,
       isUploaded: false
     });
   };
-  show = () => {
-    this.setState({ open: true });
-  };
-  hide = () => {
-    this.initialize();
-  };
   render() {
-    const { classes } = this.props;
     const { uploadFiles, isUploaded } = this.state;
     const isInitialized = this.state.uploadFiles.length == 0;
     const filesContent = (
@@ -137,25 +120,24 @@ class CalibrationForm extends React.Component {
         })}
       </div>
     );
+    const closeButton = (
+      <Button
+        onClick={() => {
+          this.hide();
+        }}
+      >
+        <Close />
+      </Button>
+    );
     return (
       <Dialog
-        fullScreen
         open={this.props.formOpen}
-        onClose={this.props.hide}
+        onClose={this.hide}
         aria-labelledby="form-dialog-title"
+        maxWidth="sm"
+        fullWidth={true}
       >
-        <AppBar>
-          <Toolbar>
-            <IconButton
-              color="inherit"
-              onClick={this.props.hide}
-              aria-label="Close"
-            >
-              <Close />
-            </IconButton>
-          </Toolbar>
-        </AppBar>
-        <div className={classes.drawerHeader} />
+        <CardHeader action={closeButton} title="Calibration upload form" />
         <DialogContent>
           <label>CALIBRATION FILE</label>
           <form
@@ -178,29 +160,24 @@ class CalibrationForm extends React.Component {
               multiple
               onChange={this.handleInputFileChange}
             />
-
-            <Button
-              disabled={isUploaded || isInitialized}
-              onClick={this.handleClickTargetCancel}
-            >
-              <Cancel />
-              <span>Cancel</span>
-            </Button>
-
             {filesContent}
+          </form>
+        </DialogContent>
+        <DialogActions>
+          <div>
             {isUploaded ? (
-              <Button onClick={this.props.hide}>
+              <Button onClick={this.hide}>
                 <CameraAlt />
                 <span>Calibrations Table</span>
               </Button>
             ) : (
-              <Button disabled={isInitialized} onClick={this.handleClickUpload}>
-                <CloudUpload />
-                <span>Upload</span>
-              </Button>
-            )}
-          </form>
-        </DialogContent>
+                <Button disabled={isInitialized} onClick={this.handleClickUpload}>
+                  <CloudUpload />
+                  <span>Upload</span>
+                </Button>
+              )}
+          </div>
+        </DialogActions>
       </Dialog>
     );
   }

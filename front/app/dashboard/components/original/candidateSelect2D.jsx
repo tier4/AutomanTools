@@ -4,24 +4,10 @@ import { compose } from 'redux';
 import { connect } from 'react-redux';
 import { withStyles } from '@material-ui/core/styles';
 import FormLabel from '@material-ui/core/FormLabel';
-//import FormControl from '@material-ui/core/FormControl';
 import FormGroup from '@material-ui/core/FormGroup';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
-//import FormHelperText from '@material-ui/core/FormHelperText';
 import Checkbox from '@material-ui/core/Checkbox';
 import { mainStyle } from 'automan/assets/main-style';
-
-// TODO: need?
-/*
-const styles = theme => ({
-  root: {
-    display: 'flex'
-  },
-  formControl: {
-    margin: theme.spacing.unit * 3
-  }
-});
-*/
 
 class CandidateSelect2D extends React.Component {
   constructor(props) {
@@ -33,7 +19,8 @@ class CandidateSelect2D extends React.Component {
     };
   }
   componentDidMount() {
-    const original_id = this.props.handleGetJobConfig('original_id');
+    const original_id = this.props.original_id;
+    this.props.handleSetJobConfig({original_id: this.props.original_id});
     const candidates = this.props.handleGetJobConfig('candidates');
     this.setState({ candidates: candidates });
     let url =
@@ -71,7 +58,7 @@ class CandidateSelect2D extends React.Component {
                 control={
                   <Checkbox
                     onChange={this.handleChangeCandidate}
-                    value={x.candidate_id}
+                    value={x.candidate_id.toString()}
                     checked={this.state.candidates.includes(x.candidate_id)}
                   />
                 }

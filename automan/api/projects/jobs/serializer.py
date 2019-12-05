@@ -7,12 +7,11 @@ from django.core.exceptions import FieldError, ValidationError
 from rest_framework import serializers
 from libs.k8s.jobs import BaseJob
 from libs.k8s.jobs.annotation_archiver import AnnotationArchiver
-from libs.k8s.jobs.rosbag_extractor_2d import RosbagExtractor2D
 from libs.k8s.jobs.rosbag_extractor import RosbagExtractor
 from libs.k8s.jobs.rosbag_analyzer import RosbagAnalyzer
-from datetime import datetime
+from datetime import datetime, timezone
 from projects.jobs.models import Job
-from projects.jobs.const import STATUS_MAP
+from projects.jobs.const import STATUS_MAP, UNKNOWN_LIMIT_TIME
 from projects.project_manager import ProjectManager
 from projects.originals.original_manager import OriginalManager
 from projects.datasets.dataset_manager import DatasetManager
@@ -54,21 +53,46 @@ class JobSerializer(serializers.ModelSerializer):
             record['job_type'] = job.job_type
             if job.status not in [STATUS_MAP['succeeded'], STATUS_MAP['failed']]:
                 status, start_time, completion_time = cls.__get_job_status(job.id, job.job_type)
+                if job.status != STATUS_MAP['unknown'] and status == STATUS_MAP['unknown']:
+                    job.unknown_started_at = datetime.now(timezone.utc)
                 job.status = status
                 job.started_at = start_time
                 job.completed_at = completion_time
+                if job.status == STATUS_MAP['unknown'] and cls.__is_unknown_time_limit(job.unknown_started_at):
+                    job.status = STATUS_MAP['failed']
+                if job.status == STATUS_MAP['failed']:
+                    namespace = cls.__generate_job_namespace()
+                    pod_log = BaseJob().logs(cls.__generate_job_name(job.id, job.job_type), namespace)
+                    job.pod_log = pod_log
                 job.save()
             record['status'] = job.status
             record['started_at'] = str(job.started_at) if job.started_at else ''
             record['completed_at'] = str(job.completed_at) if job.completed_at else ''
             record['registered_at'] = str(job.registered_at)
-            record['job_config'] = job.job_config
+            record['description'] = cls.get_job_description(job.job_type, job.job_config)
+            record['pod_log'] = job.pod_log
             record['user_id'] = job.user_id
             records.append(record)
         contents = {}
         contents['count'] = cls.job_total_count(project_id)
         contents['records'] = records
         return contents
+
+    @classmethod
+    def get_job_description(cls, job_type, job_config_json):
+        job_config = json.loads(job_config_json)
+        desc = {}
+        if job_type == 'analyzer':
+            automan_config = job_config['automan_config']
+            desc['path'] = automan_config['path']
+            desc['lanel_type'] = automan_config['label_type']
+        elif job_type == 'extractor':
+            for key in job_config['raw_data_config']:
+                desc[key] = job_config['raw_data_config'][key]
+        elif job_type == 'archiver':
+            for key in job_config['archive_config']:
+                desc[key] = job_config['archive_config'][key]
+        return json.dumps(desc)
 
     @classmethod
     def job_total_count(cls, project_id):
@@ -131,7 +155,7 @@ class JobSerializer(serializers.ModelSerializer):
         storage_config.update({'output_dir': output_dir})
         automan_config = cls.__get_automan_config(user_id)
         automan_config.update({'path': '/projects/' + project_id + '/datasets/'})
-        raw_data_config = cls.__get_raw_data_config(original_id, candidates)
+        raw_data_config = cls.__get_raw_data_config(project_id, original_id, candidates)
         job_config = {
             'storage_type': storage['storage_type'],
             'storage_config': storage_config,
@@ -148,15 +172,9 @@ class JobSerializer(serializers.ModelSerializer):
         new_job.save()
 
         if original['file_type'] == 'rosbag':
-            project = ProjectManager().get_project(project_id, user_id)
-            if project['label_type'] == 'BB2D':
-                job = RosbagExtractor2D(**job_config)
-                job.create(cls.__generate_job_name(new_job.id, 'extractor'))
-                res = job.run()
-            elif project['label_type'] == 'BB2D3D':
-                job = RosbagExtractor(**job_config)
-                job.create(cls.__generate_job_name(new_job.id, 'extractor'))
-                res = job.run()
+            job = RosbagExtractor(**job_config)
+            job.create(cls.__generate_job_name(new_job.id, 'extractor'))
+            res = job.run()
             return res
         else:
             raise ValidationError()
@@ -164,6 +182,8 @@ class JobSerializer(serializers.ModelSerializer):
     @classmethod
     @transaction.atomic
     def analyze(cls, user_id, project_id, original_id):
+        project = ProjectManager().get_project(project_id, user_id)
+        label_type = project['label_type']
         original = OriginalManager().get_original(project_id, original_id, status='uploaded')
         storage = StorageSerializer().get_storage(project_id, original['storage_id'])
         storage_config = copy.deepcopy(storage['storage_config'])
@@ -171,7 +191,7 @@ class JobSerializer(serializers.ModelSerializer):
             storage['storage_type'], storage['storage_config'], original['name'])
         storage_config.update({'path': original_path})
         automan_config = cls.__get_automan_config(user_id)
-        automan_config.update({'path': '/projects/' + project_id + '/originals/' + str(original_id) + '/'})
+        automan_config.update({'path': '/projects/' + project_id + '/originals/' + str(original_id) + '/', 'label_type': label_type})
         job_config = {
             'storage_type': storage['storage_type'],
             'storage_config': storage_config,
@@ -205,7 +225,7 @@ class JobSerializer(serializers.ModelSerializer):
         return automan_config
 
     @staticmethod
-    def __get_raw_data_config(original_id, candidates):
+    def __get_raw_data_config(project_id, original_id, candidates):
         records = {}
         for candidate_id in candidates:
             original_manager = OriginalManager()
@@ -214,11 +234,21 @@ class JobSerializer(serializers.ModelSerializer):
             records[analyzed_info['topic_name']] = candidate_id
 
         raw_data_config = {
+            'project_id': int(project_id),
             'original_id': original_id,
             'candidates': candidates,
             'records': records,
         }
         return raw_data_config
+
+    @classmethod
+    def __is_unknown_time_limit(cls, unknown_started):
+        if not unknown_started:
+            return False
+        time = datetime.now(timezone.utc) - unknown_started
+        if time.seconds > UNKNOWN_LIMIT_TIME:
+            return True
+        return False
 
     @classmethod
     def __get_job_status(cls, id, job_type):

@@ -74,6 +74,7 @@ class Sidebar extends React.Component {
     );
 
     let secondaryListItems = '';
+    let jobsListItems = '';
     let pageName = window.document.location.pathname.split('/')[3];
     if (currentProject != null) {
       secondaryListItems = (
@@ -136,6 +137,11 @@ class Sidebar extends React.Component {
             </ListItemIcon>
             <ListItemText primary="Annotation" />
           </ListItem>
+        </div>
+      );
+      jobsListItems = (
+        <div>
+          <Divider />
           <ListItem
             button
             component={Link}
@@ -157,6 +163,8 @@ class Sidebar extends React.Component {
         <List>{mainListItems}</List>
         <Divider />
         <List>{secondaryListItems}</List>
+        <List>{jobsListItems}</List>
+
       </div>
     );
   }

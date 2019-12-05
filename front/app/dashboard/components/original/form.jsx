@@ -3,22 +3,21 @@ import { compose } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { withStyles } from '@material-ui/core/styles';
-import AppBar from '@material-ui/core/AppBar';
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import DialogContent from '@material-ui/core/DialogContent';
+import DialogActions from '@material-ui/core/DialogActions';
 import FormControl from '@material-ui/core/FormControl';
 import Grid from '@material-ui/core/Grid';
-import IconButton from '@material-ui/core/IconButton';
 import InputLabel from '@material-ui/core/InputLabel';
 import LinearProgress from '@material-ui/core/LinearProgress';
 import MenuItem from '@material-ui/core/MenuItem';
 import Select from '@material-ui/core/Select';
-import Toolbar from '@material-ui/core/Toolbar';
 import CameraAlt from '@material-ui/icons/CameraAlt';
 import Cancel from '@material-ui/icons/Cancel';
 import Close from '@material-ui/icons/Close';
 import CloudUpload from '@material-ui/icons/CloudUpload';
+import CardHeader from '@material-ui/core/CardHeader';
 
 import { mainStyle } from 'automan/assets/main-style';
 
@@ -28,11 +27,12 @@ import LocalStorageClient from 'automan/services/storages/local_storage';
 class OriginalDataForm extends React.Component {
   constructor(props) {
     super(props);
+    this.requesting = false;
     this.state = {
-      open: false,
       uploadFiles: [],
       storage: { storage_type: null },
       storages: [],
+      storage_type: 'None',
       targetFileIndex: null,
       isUploaded: false
     };
@@ -41,13 +41,28 @@ class OriginalDataForm extends React.Component {
     if (!this.props.currentProject) {
       return;
     }
-    let that = this;
+    this.requestStorages();
+  }
+  componentDidUpdate(prevProps){
+    if (!this.props.currentProject || this.state.storages.length > 0) {
+      return;
+    }
+    this.requestStorages();
+  }
+  requestStorages() {
     let url = `/projects/${this.props.currentProject.id}/storages/`;
+    if(this.requesting) {
+      return;
+    }
+    this.requesting = true;
     RequestClient.get(
       url,
       null,
       data => {
-        that.setState({ storages: data.records });
+        this.setState({ storages: data.records });
+        if (data.records.length > 0) {
+          this.setState({ storage: data.records[0] });
+        }
       },
       () => {}
     );
@@ -64,6 +79,7 @@ class OriginalDataForm extends React.Component {
         })
       ]
     });
+    event.target.value = '';
   };
   handleChangeStorage = event => {
     this.setState({ storage: event.target.value });
@@ -72,7 +88,11 @@ class OriginalDataForm extends React.Component {
     // TODO: implement
   };
   handleClickTargetCancel = event => {
-    // TODO: implement
+    this.setState({
+      uploadFiles: [],
+      targetFileIndex: null,
+      isUploaded: false
+    });
   };
   progressUpdate = progress => {
     console.log(progress);
@@ -155,19 +175,13 @@ class OriginalDataForm extends React.Component {
     }
     this.nextFileUpload(0);
   };
-  initialize = () => {
+  hide = () => {
+    this.props.hide(this.state.isUploaded)
     this.setState({
-      open: false,
       uploadFiles: [],
       targetFileIndex: null,
       isUploaded: false
     });
-  };
-  show = () => {
-    this.setState({ open: true });
-  };
-  hide = () => {
-    this.initialize();
   };
   render() {
     const { classes } = this.props;
@@ -187,7 +201,7 @@ class OriginalDataForm extends React.Component {
               <Grid item xs={2}>
                 <Button
                   disabled={f.progress == 100}
-                  onClick={this.handleClickCancel}
+                  onClick={this.handleClickTargetCancel}
                 >
                   <Cancel />
                   <span>Cancel</span>
@@ -205,32 +219,30 @@ class OriginalDataForm extends React.Component {
         </MenuItem>
       );
     });
+    const closeButton = (
+      <Button
+        onClick={() => {
+          this.hide();
+        }}
+      >
+        <Close />
+      </Button>
+    );
     return (
       <Dialog
-        fullScreen
         open={this.props.formOpen}
-        onClose={this.props.hide}
+        onClose={this.hide}
         aria-labelledby="form-dialog-title"
+        maxWidth="sm"
+        fullWidth={true}
       >
-        <AppBar>
-          <Toolbar>
-            <IconButton
-              color="inherit"
-              onClick={this.props.hide}
-              aria-label="Close"
-            >
-              <Close />
-            </IconButton>
-          </Toolbar>
-        </AppBar>
-        <div className={classes.drawerHeader} />
+        <CardHeader action={closeButton} title="Upload form" />
         <DialogContent>
-          <form>
-            <FormControl>
+          <form className={classes.container}>
+            <FormControl className={classes.formControl}>
               <InputLabel htmlFor="storage">storage</InputLabel>
               <Select
-                autoFocus
-                value={this.state.storage.storage_type || false}
+                value={this.state.storage}
                 onChange={this.handleChangeStorage}
               >
                 {storageMenu}
@@ -266,31 +278,26 @@ class OriginalDataForm extends React.Component {
               type="file"
               name="file"
               accept=".bag, .rosbag"
-              multiple
               onChange={this.handleInputFileChange}
             />
-            <Button
-              disabled={isUploaded || isInitialized}
-              onClick={this.handleClickTargetCancel}
-            >
-              <Cancel />
-              <span>Cancel</span>
-            </Button>
-
             {filesContent}
+          </form>
+        </DialogContent>
+        <DialogActions>
+          <div>
             {isUploaded ? (
-              <Button onClick={this.props.hide}>
+              <Button onClick={this.hide}>
                 <CameraAlt />
                 <span>Raws Table</span>
               </Button>
             ) : (
-              <Button disabled={isInitialized} onClick={this.handleClickUpload}>
-                <CloudUpload />
-                <span>Upload</span>
-              </Button>
+                <Button disabled={isInitialized} onClick={this.handleClickUpload}>
+                  <CloudUpload />
+                  <span>Upload</span>
+                </Button>
             )}
-          </form>
-        </DialogContent>
+          </div>
+        </DialogActions>
       </Dialog>
     );
   }

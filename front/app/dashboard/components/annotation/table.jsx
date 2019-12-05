@@ -7,6 +7,13 @@ import Typography from '@material-ui/core/Typography';
 
 import ResizableTable from 'automan/dashboard/components/parts/resizable_table';
 import { mainStyle } from 'automan/assets/main-style';
+import Button from '@material-ui/core/Button';
+import Tooltip from '@material-ui/core/Tooltip';
+import Archive from '@material-ui/icons/Archive';
+import CloudDownload from '@material-ui/icons/CloudDownload';
+import Snackbar from '@material-ui/core/Snackbar';
+import IconButton from '@material-ui/core/IconButton';
+import CloseIcon from '@material-ui/icons/Close';
 
 function actionFormatter(cell, row) {
   return row.actions;
@@ -20,9 +27,16 @@ class AnnotationTable extends React.Component {
       data: [],
       is_loading: true,
       error: null,
-      query: RequestClient.createPageQuery()
+      query: RequestClient.createPageQuery(),
+      snackbar: false,
     };
   }
+  show = () => {
+    this.setState({ snackbar: true });
+  };
+  hide = () => {
+    this.setState({ snackbar: false });
+  };
   componentDidMount() {
     this.updatePage();
   }
@@ -114,7 +128,9 @@ class AnnotationTable extends React.Component {
         RequestClient.post(
           url,
           data,
-          res => {},
+          res => {
+            this.show();
+          },
           mes => {
             this.setState({
               error: mes.message
@@ -130,11 +146,11 @@ class AnnotationTable extends React.Component {
     );
   }
   render() {
-    // if ( this.state.error ) {
-    //     return (
-    //         <div> {this.state.error} </div>
-    //     );
-    // }
+    if ( this.state.error ) {
+      return (
+        <div> {this.state.error} </div>
+      );
+    }
 
     const { classes } = this.props;
     let rows = [];
@@ -148,14 +164,17 @@ class AnnotationTable extends React.Component {
           ) {
             actions = (
               <div className="text-center">
-                <span>
-                  <a
-                    className="button glyphicon glyphicon-folder-close"
+                <Tooltip title="Archive">
+                  <Button
+                    classes={{root: classes.tableActionButton}}
                     onClick={e => this.handleArchive(row)}
-                    title="Archive"
-                  />
-                  <a
-                    className="button glyphicon glyphicon-download-alt"
+                    className={classes.button}>
+                    <Archive fontSize="small"/>
+                  </Button>
+                </Tooltip>
+                <Tooltip title="Download">
+                  <Button
+                    classes={{root: classes.tableActionButton}}
                     onClick={()=>{
                       RequestClient.getBinaryAsURL(row.archive_url, (url) => {
                         let a = document.createElement('a');
@@ -164,20 +183,30 @@ class AnnotationTable extends React.Component {
                         a.click();
                       }, () => {});
                     }}
-                    title="Download"
-                  />
-                </span>
+                    className={classes.button}>
+                    <CloudDownload fontSize="small"/>
+                  </Button>
+                </Tooltip>
               </div>
             );
           } else {
             actions = (
               <div className="text-center">
                 <span>
-                  <a
-                    className="button glyphicon glyphicon-folder-close"
-                    onClick={e => this.handleArchive(row)}
-                    title="Archive"
-                  />
+                  <Tooltip title="Archive">
+                    <Button
+                      classes={{root: classes.tableActionButton}}
+                      onClick={e => this.handleArchive(row)}
+                      className={classes.button}>
+                      <Archive fontSize="small"/>
+                    </Button>
+                  </Tooltip>
+                  <Button
+                    disabled
+                    classes={{root: classes.tableActionButton}}
+                    className={classes.button}>
+                    <CloudDownload fontSize="small"/>
+                  </Button>
                 </span>
               </div>
             );
@@ -248,10 +277,33 @@ class AnnotationTable extends React.Component {
           <TableHeaderColumn width="10%" dataField="dataset_id">
             Dataset ID
           </TableHeaderColumn>
-          <TableHeaderColumn width="10%" dataField="actions" dataFormat={actionFormatter}>
-            Actions
+          <TableHeaderColumn width="15%" dataField="actions" dataFormat={actionFormatter}>
           </TableHeaderColumn>
         </ResizableTable>
+        <Snackbar
+          anchorOrigin={{
+            vertical: 'bottom',
+            horizontal: 'left',
+          }}
+          open={this.state.snackbar}
+          autoHideDuration={5000}
+          onClose={this.hide}
+          ContentProps={{
+            'aria-describedby': 'message-id',
+          }}
+          message={<span id="message-id">Archiver job is submitted.</span>}
+          action={[
+            <IconButton
+              key="close"
+              aria-label="close"
+              color="inherit"
+              className={classes.close}
+              onClick={this.hide}
+            >
+              <CloseIcon />
+            </IconButton>
+          ]}
+        />
       </div>
     );
   }

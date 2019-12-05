@@ -1,27 +1,26 @@
 import React from 'react';
 import { withStyles } from '@material-ui/core/styles';
-import Fab from '@material-ui/core/Fab';
 import Grid from '@material-ui/core/Grid';
 import Paper from '@material-ui/core/Paper';
-import Add from '@material-ui/icons/Add';
 
+import AnnotationForm from 'automan/dashboard/components/dataset/annotationForm'
 import DatasetTable from 'automan/dashboard/components/dataset/table';
 import { mainStyle } from 'automan/assets/main-style';
-
-import JobForm from 'automan/dashboard/components/dataset/form';
 
 class DatasetPage extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      target: -1,
-      datasetId: null,
+      dataset_id: null,
       formOpen: false
     };
   }
-  show = () => {
-    this.setState({ formOpen: true });
-  };
+  show = (dataset_id) => {
+    this.setState({
+      dataset_id: dataset_id,
+      formOpen: true
+    });
+  }
   hide = () => {
     this.setState({ formOpen: false });
   };
@@ -29,21 +28,15 @@ class DatasetPage extends React.Component {
     const { classes } = this.props;
     return (
       <Grid container spacing={24}>
-        <JobForm formOpen={this.state.formOpen} hide={this.hide} />
+        <AnnotationForm
+          hide={this.hide}
+          formOpen={this.state.formOpen}
+          dataset_id={this.state.dataset_id}
+        />
         <Grid item xs={12}>
           <Paper className={classes.root}>
-            <DatasetTable target={-1} />
+            <DatasetTable show={this.show}/>
           </Paper>
-          <Fab
-            color="primary"
-            aria-label="Add"
-            className={classes.fab}
-            onClick={() => {
-              this.show();
-            }}
-          >
-            <Add />
-          </Fab>
         </Grid>
       </Grid>
     );

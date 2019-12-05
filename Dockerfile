@@ -25,7 +25,7 @@ RUN apt update && \
     libsqlite3-dev \
     libssl-dev \
     llvm \
-    mysql-client \
+    default-mysql-client \
     tk-dev \
     wget \
     xz-utils \

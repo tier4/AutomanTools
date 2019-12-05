@@ -1,14 +1,54 @@
 
-export default class ImageLabelTool {
+import React from 'react';
+import ReactDOM from 'react-dom';
+
+export default class ImageLabelTool extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      scale: 1.0
+    };
+    this._labelTool = props.labelTool;
+    this._controls = props.controls;
+    this._element = React.createRef();
+  }
+  componentDidMount() {
+    this.init();
+  }
+  getButtons() {
+    return null;
+  }
+  render() {
+    const wrapperStyle = {
+      transform: `scale(${this.state.scale})`,
+      transformOrigin: 'left top'
+    };
+    return (
+      <div
+        ref={this._element}
+        style={wrapperStyle}
+      />
+    );
+  }
+
   // private
+  _controls = null;
   _labelTool = null;
   _decoration = null;
   // DOM
+  _element = null;
   _container = null;
   _paper = null;
   _loaded = true;
   _image = null;
-  _scale = 1.0; // TODO: use scale
+  _imageSize = {
+    width: 0,
+    height: 0
+  };
+  _wrapperSize = {
+    width: 0,
+    height: 0
+  };
 
   // public
   name = 'Image';
@@ -21,21 +61,19 @@ export default class ImageLabelTool {
   isTargetCandidate(id) {
     return this.candidateId == id;
   }
-  constructor(labelTool) {
-    this._labelTool = labelTool;
-  }
   init() {
-    const container = $('#jpeg-label-canvas');
-    this._paper = Raphael(container.get(0));
-    this._container = container;
+    //const container = $('#jpeg-label-canvas');
+    const container = this._element.current;
+    this._paper = Raphael(container);
+    this._container = $(container);
     this._decoration = new Decorations(this._paper);
-    container.hide();
+    this._container.hide();
   }
-  load() {
+  load(frame) {
     this._loaded = false;
 
     // TODO: use getURL
-    const imgURL = this._labelTool.getURL('frame_blob', this.candidateId);
+    const imgURL = this._labelTool.getURL('frame_blob', this.candidateId, frame);
     this._initImage(imgURL);
     this._decoration.hide();
 
@@ -45,11 +83,13 @@ export default class ImageLabelTool {
     });
   }
   handles = {
-    resize() {
+    resize: size => {
+      this._wrapperSize = size;
+      this._resize();
     },
-    keydown(e) {
+    keydown: e =>{
     },
-    keyup(e) {
+    keyup: e =>{
     }
   };
   setActive(isActive) {
@@ -88,6 +128,19 @@ export default class ImageLabelTool {
 
 
 
+  _resize() {
+    const paper = this._paper;
+
+    let scale = Math.min(
+      this._wrapperSize.width / this._imageSize.width,
+      this._wrapperSize.height / this._imageSize.height
+    );
+    paper.setSize(
+      this._imageSize.width, 
+      this._imageSize.height
+    );
+    this.setState({ scale: scale });
+  }
   _initImage(url) {
     if (this._image != null) {
       this._image.remove();
@@ -98,7 +151,11 @@ export default class ImageLabelTool {
     img.src = url;
     img.addEventListener('load', () => {
       // TODO: resize method
-      paper.setSize(img.width, img.height);
+      this._imageSize = {
+        width: img.width,
+        height: img.height
+      };
+      this._resize();
       img = null; // dispose image
     });
     const image = paper.image(url, 0, 0, "100%", "100%");
@@ -118,7 +175,9 @@ export default class ImageLabelTool {
   _creatingRect = null;
   _creatingBox = null;
   _imageDragMove = (dx, dy) => {
-    const klass = this._labelTool.getTargetKlass();
+    const klass = this._controls.getTargetKlass();
+    dx = dx / this.state.scale | 0;
+    dy = dy / this.state.scale | 0;
     if (this._creatingRect == null) {
       const posDiff = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
       if (posDiff >= 10) {
@@ -147,12 +206,13 @@ export default class ImageLabelTool {
       });
     }
   };
-  _imageDragStart = (x, y) => {
-    this._labelTool.selectLabel(null);
+  _imageDragStart = (x, y, e) => {
+    if (e.button !== 0) { return; } // not left click
+    this._controls.selectLabel(null);
     const offset = this._container.offset();
     this._creatingBox = {
-      sx: x-offset.left,
-      sy: y-offset.top,
+      sx: (x - offset.left) / this.state.scale | 0,
+      sy: (y - offset.top) / this.state.scale | 0,
       ex: 0, ey: 0
     };
   };
@@ -167,8 +227,8 @@ export default class ImageLabelTool {
           'max_y_2d': Math.max(box.sy, box.ey)
         });
       // TODO: add branch use selecting label
-      const label = this._labelTool.createLabel(
-          this._labelTool.getTargetKlass(),
+      const label = this._controls.createLabel(
+          this._controls.getTargetKlass(),
           {[this.candidateId]: imageBBox}
         );
       if (label == null) {
@@ -292,17 +352,13 @@ class ImageBBox {
     this.prev = null;
     if (content != null) {
       // TODO: is there no annotation?
-      this.box.set(new THREE.Vector2(
-          +content['min_x_2d'],
-          +content['min_y_2d']
-        ), new THREE.Vector2(
-          +content['max_x_2d'],
-          +content['max_y_2d']
-        )
-      );
+      this.fromContent(content);
     }
     this.initRect();
     this.initResizer();
+  }
+  getScale() {
+    return this.imageTool.state.scale;
   }
   setLabel(label) {
     if (this.label != null) {
@@ -310,15 +366,19 @@ class ImageBBox {
       throw "Label already set";
     }
     this.label = label;
-    this.labelItem = label.addBBox('Image');
+    //this.labelItem = label.addBBox('Image');
     this.rect.attr({ 'stroke': label.getColor() });
   }
   updateKlass() {
     this.rect.attr({ 'stroke': this.label.getColor() });
     this.deco.show(this);
   }
+  updateParam() {
+    // TODO: change content
+    this.setElementPos();
+  }
   remove() {
-    this.labelItem.remove();
+    //this.labelItem.remove();
     this.rect.remove();
     this.edgeResizers.forEach(it => it.remove());
     this.cornerResizers.forEach(it => it.remove());
@@ -328,6 +388,16 @@ class ImageBBox {
     obj['min_y_2d'] = this.box.min.y;
     obj['max_x_2d'] = this.box.max.x;
     obj['max_y_2d'] = this.box.max.y;
+  }
+  fromContent(content) {
+    this.box.set(new THREE.Vector2(
+        +content['min_x_2d'],
+        +content['min_y_2d']
+      ), new THREE.Vector2(
+        +content['max_x_2d'],
+        +content['max_y_2d']
+      )
+    );
   }
   initRect() {
     const size = this.box.getSize();
@@ -376,18 +446,21 @@ class ImageBBox {
   resizerDragBL(dx, dy) { this.setMinX(dx); this.setMaxY(dy); this.setVisiblePos(); }
   resizerDragBR(dx, dy) { this.setMaxX(dx); this.setMaxY(dy); this.setVisiblePos(); }
   setMinX(dx) {
+    dx = dx / this.getScale() | 0;
     const prevBox = this.prev.box;
     const x = Math.min(Math.max(prevBox.min.x+dx, 0),
         prevBox.max.x - this.label.getMinSize().x);
     this.box.min.x = x;
   }
   setMinY(dy) {
+    dy = dy / this.getScale() | 0;
     const prevBox = this.prev.box;
     const y = Math.min(Math.max(prevBox.min.y+dy, 0),
         prevBox.max.y - this.label.getMinSize().y);
     this.box.min.y = y;
   }
   setMaxX(dx) {
+    dx = dx / this.getScale() | 0;
     const prevBox = this.prev.box;
     const width = this.paper.width;
     const x = Math.max(Math.min(prevBox.max.x+dx, width),
@@ -395,6 +468,7 @@ class ImageBBox {
     this.box.max.x = x;
   }
   setMaxY(dy) {
+    dy = dy / this.getScale() | 0;
     const prevBox = this.prev.box;
     const height = this.paper.height;
     const y = Math.max(Math.min(prevBox.max.y+dy, height),
@@ -407,6 +481,8 @@ class ImageBBox {
     this.cornerResizers.forEach(it => it.toFront());
   }
   dragMove(dx, dy) {
+    dx = dx / this.getScale() | 0;
+    dy = dy / this.getScale() | 0;
     const prev = this.prev;
     const width = this.paper.width,
           height = this.paper.height;
@@ -418,12 +494,16 @@ class ImageBBox {
     this.setVisiblePos();
   }
   dragStart() {
-    this.imageTool._labelTool.selectLabel(this.label);
+    this.imageTool._controls.selectLabel(this.label);
     this.prev = {
       box: this.box.clone()
     };
+    this.label.createHistory();
   }
   dragEnd() {
+    if (!this.box.equals(this.prev.box)) {
+      this.label.addHistory();
+    }
     this.setElementPos();
   }
   setVisiblePos() {

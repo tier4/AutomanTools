@@ -6,42 +6,107 @@ import { withStyles } from '@material-ui/core/styles';
 import Fab from '@material-ui/core/Fab';
 import Grid from '@material-ui/core/Grid';
 import Paper from '@material-ui/core/Paper';
-import Add from '@material-ui/icons/Add';
+import CloudUpload from '@material-ui/icons/CloudUpload';
+import Tooltip from '@material-ui/core/Tooltip';
 
 import OriginalTable from 'automan/dashboard/components/original/table.jsx';
 import OriginalDataForm from 'automan/dashboard/components/original/form.jsx';
+import ExtractorForm from 'automan/dashboard/components/original/extractorForm.jsx';
 import { mainStyle } from 'automan/assets/main-style';
 
 class OriginalPage extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { formOpen: false };
+    this.state = {
+      formOpen: false,
+      extractorFormOpen: false,
+      extractorSnackbar: false,
+      analyzerSnackbar: false,
+      original_id: 0,
+      message: null,
+      needUpdate: false
+    };
   }
   show = () => {
     this.setState({ formOpen: true });
   };
   hide = () => {
-    this.setState({ formOpen: false });
+    this.setState({
+      formOpen: false,
+      analyzerSnackbar: false,
+      extractorFormOpen: false,
+      extractorSnackbar: false
+    });
   };
+  hideAndUpdate = (isUploaded) => {
+    this.setState({ needUpdate: isUploaded });
+    this.hide();
+  };
+  handleUpdate = () => {
+    this.setState({ needUpdate: false });
+  }
+  analyzerSubmit = (original_id) => {
+    const data = {
+      job_type: 'ANALYZER',
+      job_config: { ['original_id']: original_id }
+    };
+    let url = `/projects/${this.props.currentProject.id}/jobs/`;
+    this.setState({ message: 'Requesting...' });
+    RequestClient.post(
+      url,
+      data,
+      res => {this.setState({ message: null });},
+      mes => {
+        this.setState({
+          error: mes.message,
+          message: null
+        });
+      }
+    );
+    this.setState({ analyzerSnackbar: true });
+  };
+  extractorFormShow = (original_id) => {
+    this.setState({ original_id: original_id });
+    this.setState({ extractorFormOpen: true });
+  }
+  extractorSnackbarShow = () => {
+    this.setState({ extractorSnackbar: true });
+  }
   render() {
     const { classes } = this.props;
     return (
       <Grid container spacing={24}>
         <Grid item xs={12}>
           <Paper className={classes.root}>
-            <OriginalTable />
+            <OriginalTable
+              formOpen={this.state.analyzerSnackbar}
+              extractorSnackbar={this.state.extractorSnackbar}
+              extractorFormShow={this.extractorFormShow}
+              analyzerSubmit={this.analyzerSubmit}
+              hide={this.hide}
+              handleUpdate={this.handleUpdate}
+              needUpdate={this.state.needUpdate}
+            />
           </Paper>
-          <Fab
-            color="primary"
-            aria-label="Add"
-            className={classes.fab}
-            onClick={() => {
-              this.show();
-            }}
-          >
-            <Add />
-          </Fab>
-          <OriginalDataForm formOpen={this.state.formOpen} hide={this.hide} />
+          <Tooltip title="Upload">
+            <Fab
+              color="primary"
+              aria-label="Upload"
+              className={classes.fab}
+              onClick={() => {
+                this.show();
+              }}
+            >
+              <CloudUpload />
+            </Fab>
+          </Tooltip>
+          <OriginalDataForm formOpen={this.state.formOpen} hide={this.hideAndUpdate} />
+          <ExtractorForm
+            formOpen={this.state.extractorFormOpen}
+            hide={this.hide}
+            original_id={this.state.original_id}
+            extractorSnackbarShow={this.extractorSnackbarShow}
+          />
         </Grid>
       </Grid>
     );
@@ -51,10 +116,15 @@ class OriginalPage extends React.Component {
 OriginalPage.propTypes = {
   classes: PropTypes.object.isRequired
 };
+const mapStateToProps = state => {
+  return {
+    currentProject: state.projectReducer.currentProject
+  };
+};
 export default compose(
   withStyles(mainStyle, { name: 'OriginalPage' }),
   connect(
-    null,
+    mapStateToProps,
     null
   )
 )(OriginalPage);
