@@ -54,9 +54,11 @@ class Annotation extends React.Component {
 
       RequestClient.get(
         this._labelTool.getURL('frame_labels', frameNumber),
-        null,
+        {try_lock: true},
         res => {
           const labels = new Map(), instanceIds = new Map();
+          const isLocked = res.is_locked,
+                expiresAt = res.expires_at;
           res.records.forEach(obj => {
             let klass = this._klassSet.getByName(obj.name);
             let bboxes = {};
@@ -76,6 +78,10 @@ class Annotation extends React.Component {
             this._loaded = true;
             resolve();
           });
+
+          if (!isLocked) {
+            window.alert('This frame is locked.');
+          }
         },
         err => {
           reject(err);

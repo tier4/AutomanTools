@@ -425,6 +425,9 @@ export default class LabelTool_ extends React.Component {
         ret = this.filenames[candidateId][frameNumber-1];
         break;
       }
+      case 'unlock':
+        ret = ANNOTATION_ROOT + 'unlock/';
+        break;
       /*
            Add more request urls
         */
