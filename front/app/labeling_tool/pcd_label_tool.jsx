@@ -193,7 +193,13 @@ export default class PCDLabelTool extends React.Component {
   }
   // button actions
   setHeight = () => {
-    const bboxes = Array.from(this.pcdBBoxes);
+    let bboxes;
+    const tgt = this._controls.getTargetLabel();
+    if (tgt !== null) {
+      bboxes = [tgt.bbox[this.candidateId]];
+    } else {
+      bboxes = Array.from(this.pcdBBoxes);
+    }
     const posArray = this._currentPointMesh.geometry.getAttribute('position').array;
     let changedLabel = null;
     let existIncludePoint = false;
