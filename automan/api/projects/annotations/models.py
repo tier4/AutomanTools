@@ -45,6 +45,7 @@ class DatasetObjectAnnotation(models.Model):
     name = models.CharField(max_length=45)
     content = models.CharField(max_length=511)
 
+
 class FrameLock(models.Model):
     annotation = models.ForeignKey(Annotation, on_delete=models.CASCADE)
     frame = models.IntegerField()

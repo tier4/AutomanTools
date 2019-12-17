@@ -105,6 +105,7 @@ def instances(request, project_id, annotation_id):
     contents = annotation_manager.get_instances(annotation_id)
     return HttpResponse(content=json.dumps(contents), status=200, content_type='application/json')
 
+
 @api_view(['GET'])
 def instance(request, project_id, annotation_id, instance_id):
     annotation_manager = AnnotationManager()

@@ -31,12 +31,10 @@ class KlasssetManager(object):
         return klassset
 
     def get_klassset_info(self, project_id):
-        klassset = KlassSet.objects.filter(
-            project_id=project_id, delete_flag=False).first()
+        klassset = self.get_klassset(project_id)
         try:
             klasses = KlassKlassSet.objects.filter(
-                klass_set_id=klassset.id,
-                delete_flag=False)
+                klass_set_id=klassset.id, delete_flag=False)
         except Exception:
             klasses = []
 
@@ -51,3 +49,15 @@ class KlasssetManager(object):
         contents['records'] = records
 
         return contents
+
+    def get_klassset_names(self, project_id):
+        klassset = self.get_klassset(project_id)
+        try:
+            klasses = KlassKlassSet.objects.filter(
+                klass_set_id=klassset.id, delete_flag=False)
+        except Exception:
+            klasses = []
+        names = []
+        for klass in klasses:
+            names.append(klass.name)
+        return names

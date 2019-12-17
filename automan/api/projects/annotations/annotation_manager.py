@@ -14,6 +14,7 @@ from projects.models import Projects
 from api.settings import PER_PAGE, SORT_KEY
 from api.common import validation_check
 from api.errors import UnknownLabelTypeError
+from projects.klassset.klassset_manager import KlasssetManager
 
 
 class AnnotationManager(object):
@@ -150,9 +151,13 @@ class AnnotationManager(object):
 
         if not self.has_valid_lock(user_id, annotation_id, frame):
             raise PermissionDenied
+        klassset_manager = KlasssetManager()
+        names = klassset_manager.get_klassset_names(project_id)
 
         # TODO: bulk insert (try to use bulk_create method)
         for label in created_list:
+            if self.is_valid_label_name(label['name'], names) is not True:
+                continue
             for v in label['content'].values():
                 if not LabelClass.validate(v):
                     raise ValidationError("Label content is invalid.")
@@ -201,6 +206,11 @@ class AnnotationManager(object):
             progress=0,
             frame_progress=frame)
         new_progress.save()
+
+    def is_valid_label_name(self, label_name, names):
+        if label_name not in names:
+            return False
+        return True
 
     def get_instance_id(self, label):
         use_instance = label.get('use_instance')
