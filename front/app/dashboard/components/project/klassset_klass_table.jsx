@@ -116,7 +116,7 @@ class KlasssetKlassTable extends React.Component {
   }
   changeMinSize(e, index, axis) {
     let clonedKlasses = JSON.parse(JSON.stringify(this.props.klasses));
-    clonedKlasses[index].minSize[axis] = e.target.value;
+    clonedKlasses[index].minSize[axis] = parseInt(e.target.value);
     this.props.handleKlassesChange(clonedKlasses);
   }
   handleChangeInput = (e) => {

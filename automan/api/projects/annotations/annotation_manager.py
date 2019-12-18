@@ -109,6 +109,7 @@ class AnnotationManager(object):
         annotation.save()
 
     def get_frame_labels(self, project_id, user_id, try_lock, annotation_id, frame):
+        print("[call] get_frame_labels")
         objects = DatasetObject.objects.filter(
             annotation_id=annotation_id, frame=frame, delete_flag=False)
         if objects is None:
@@ -127,7 +128,7 @@ class AnnotationManager(object):
             content = json.loads(label.content)
             content.pop('instance_id', None)
             record['content'] = content
-            record['instance_id'] = str(object.instance)
+            record['instance_id'] = str(object.instance) if object.instance != None else None
             records.append(record)
             count += 1
         labels = {}
@@ -214,7 +215,7 @@ class AnnotationManager(object):
 
     def get_instance_id(self, label):
         use_instance = label.get('use_instance')
-        if use_instance != 'true':
+        if not use_instance:
             return None
         instance_id = label.get('instance_id', str(uuid.uuid4()))
         return instance_id

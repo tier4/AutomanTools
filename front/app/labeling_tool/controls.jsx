@@ -9,7 +9,7 @@ import Divider from '@material-ui/core/Divider';
 import Grid from '@material-ui/core/Grid';
 import Button from '@material-ui/core/Button';
 import IconButton from '@material-ui/core/IconButton';
-import {NavigateNext, NavigateBefore} from '@material-ui/icons';
+import {NavigateNext, NavigateBefore, ExitToApp } from '@material-ui/icons';
 
 import KlassSet from 'automan/labeling_tool/klass_set';
 import Annotation from 'automan/labeling_tool/annotation';
@@ -383,6 +383,18 @@ class Controls extends React.Component {
   }
 
   // events
+  onClickLogout = (e) => {
+    this.isLoading = true;
+    RequestClient.delete(
+      this.labelTool.getURL('unlock'),
+      null,
+      res => {
+        window.close();
+      },
+      err => {
+      }
+    );
+  };
   onClickNextFrame = (e) => {
     this.nextFrame();
   };
@@ -550,8 +562,16 @@ class Controls extends React.Component {
           <Grid item xs={3} className={classes.gridItem}>
             {frameNumberForm}
           </Grid>
-          <Grid item xs={9}>
+          <Grid item xs={8}>
             {this.renderKlassSet(classes)}
+          </Grid>
+          <Grid item xs={1}>
+            <IconButton
+              onClick={this.onClickLogout}
+              style={{backgroundColor: '#fff'}}
+            >
+              <ExitToApp />
+            </IconButton>
           </Grid>
         </Grid>
       </AppBar>

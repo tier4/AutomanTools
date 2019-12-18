@@ -27,6 +27,7 @@ class Annotation extends React.Component {
     this._labelTool = props.labelTool;
     this._controls = props.controls;
     this.state = {
+      instanceIds: null,
       labels: null
     };
     props.getRef(this);
@@ -42,6 +43,9 @@ class Annotation extends React.Component {
     return this._loaded;
   }
   load(frameNumber) {
+    if (!this._loaded) {
+      return Promise.reject();
+    }
     this._removeAll();
     this._nextId = -1;
     this._history.resetHistory();
@@ -50,9 +54,11 @@ class Annotation extends React.Component {
 
       RequestClient.get(
         this._labelTool.getURL('frame_labels', frameNumber),
-        null,
+        {try_lock: true},
         res => {
-          const labels = new Map();
+          const labels = new Map(), instanceIds = new Map();
+          const isLocked = res.is_locked,
+                expiresAt = res.expires_at;
           res.records.forEach(obj => {
             let klass = this._klassSet.getByName(obj.name);
             let bboxes = {};
@@ -62,18 +68,26 @@ class Annotation extends React.Component {
                 bboxes[id] = tool.createBBox(obj.content[id]);
               }
             });
-            let label = new Label(this, obj.object_id, klass, bboxes);
+            let label = new Label(this, obj.object_id, obj.instance_id, klass, bboxes);
             labels.set(label.id, label);
+            if (label.instanceId != null) {
+              instanceIds.set(label.instanceId, label);
+            }
           });
-          this.setState({ labels });
+          this.setState({ labels, instanceIds }, () => {
+            this._loaded = true;
+            resolve();
+          });
+
+          if (!isLocked) {
+            window.alert('This frame is locked.');
+          }
         },
         err => {
           reject(err);
         }
       );
 
-      resolve();
-      this._loaded = true;
     });
   }
   isChanged() {
@@ -154,11 +168,13 @@ class Annotation extends React.Component {
       this._controls.error(txt);
       return null;
     }
-    const label = new Label(this, this._nextId--, klass, bbox);
-    const labels = new Map(this.state.labels);
-    labels.set(label.id, label);
+    const label = new Label(this, this._nextId--, null, klass, bbox);
     this._history.addHistory([label], 'create');
-    this.setState({ labels });
+    this.setState(state => {
+      const labels = new Map(state.labels);
+      labels.set(label.id, label);
+      return { labels };
+    });
     return label;
   }
   changeKlass(id, klass) {
@@ -234,9 +250,17 @@ class Annotation extends React.Component {
       this._deleted.push(label.id);
     }
 
-    const labels = new Map(this.state.labels);
-    labels.delete(label.id);
-    this.setState({ labels });
+    const labelId = label.id;
+    const instanceId = label.instanceId;
+    this.setState(state => {
+      const labels = new Map(state.labels);
+      const instanceIds = new Map(state.instanceIds);
+      labels.delete(labelId);
+      if (instanceId != null) {
+        instanceIds.delete(instanceId);
+      }
+      return { labels, instanceIds };
+    });
     label.dispose();
   }
   getLabel(label) {
@@ -255,9 +279,12 @@ class Annotation extends React.Component {
     this._history.addHistory(null);
   }
   createFromHistory(objects) {
-    const labels = new Map(this.state.labels);
     let labelList = [];
     for (let obj of  objects) {
+      if (obj.instanceId !== null && this.state.instanceIds.has(obj.instanceId)) {
+        console.error('create error');
+        continue;
+      }
       let bboxes = {};
       this._controls.getTools().forEach(tool => {
         const id = tool.candidateId;
@@ -265,20 +292,29 @@ class Annotation extends React.Component {
           bboxes[id] = tool.createBBox(obj.content[id]);
         }
       });
-      let label = new Label(this, obj.id, obj.klass, bboxes);
-      labels.set(label.id, label);
+      let label = new Label(this, obj.id, obj.instanceId, obj.klass, bboxes);
       if (label.id >= 0) {
         this._deleted = this._deleted.filter(id => id != label.id);
       }
       labelList.push(label);
     }
-    this.setState({ labels });
-    return labelList;
+    this.setState(state => {
+      const labels = new Map(state.labels);
+      const instanceIds = new Map(state.instanceIds);
+      for (let label of labelList) {
+        labels.set(label.id, label);
+        if (label.instanceId != null) {
+          instanceIds.set(label.instanceId);
+        }
+      }
+      return { labels, instanceIds };
+    });
+    return labelList.slice();
   }
   removeFromHistory(objects) {
     const tools = this._controls.getTools();
     const tgt = this._targetLabel;
-    const labels = new Map(this.state.labels);
+    const removeIds = [], removeInstanceIds = [];
     for (let obj of objects) {
       let label = this.getLabel(obj.id);
 
@@ -298,10 +334,23 @@ class Annotation extends React.Component {
         this._deleted.push(label.id);
       }
 
-      labels.delete(label.id);
+      removeIds.push(label.id);
+      if (label.instanceId !== null) {
+        removeInstanceIds.push(label.instanceId);
+      }
       label.dispose();
     }
-    this.setState({ labels });
+    this.setState(state => {
+      const labels = new Map(state.labels);
+      const instanceIds = new Map(state.instanceIds);
+      for (let id of removeIds) {
+        labels.delete(id);
+      }
+      for (let id of removeInstanceIds) {
+        instanceIds.delete(id);
+      }
+      return { labels, instanceIds };
+    });
   }
   // methods to clipboard
   copyLabels(isAll) {
@@ -316,7 +365,12 @@ class Annotation extends React.Component {
   pasteLabels(data) {
     const labels = new Map(this.state.labels);
     let pastedLabels = [];
+
     data.forEach(obj => {
+      let instanceId = obj.instanceId;
+      if (instanceId !== null && this.state.instanceIds.has(instanceId)) {
+        instanceId = null;
+      }
       let klass = this._klassSet.getByName(obj.name);
       let bboxes = {};
       this._controls.getTools().forEach(tool => {
@@ -325,12 +379,23 @@ class Annotation extends React.Component {
           bboxes[id] = tool.createBBox(obj.content[id]);
         }
       });
-      let label = new Label(this, this._nextId--, klass, bboxes);
+      let label = new Label(this, this._nextId--, instanceId, klass, bboxes);
       labels.set(label.id, label);
       pastedLabels.push(label);
     });
+
     this._history.addHistory(pastedLabels, 'create');
-    this.setState({ labels });
+    this.setState(state => {
+      const labels = new Map(state.labels);
+      const instanceIds = new Map(state.instanceIds);
+      for (let label of pastedLabels) {
+        labels.set(label.id, label);
+        if (label.instanceId != null) {
+          instanceIds.set(label.instanceId);
+        }
+      }
+      return { labels, instanceIds };
+    });
   }
 
   // private
@@ -351,7 +416,7 @@ class Annotation extends React.Component {
       label.dispose();
     });
     this._targetLabel = null;
-    this.setState({labels: null});
+    this.setState({labels: null, instanceIds: null});
   }
   renderList(classes) {
     if (this.state.labels === null) {
@@ -438,9 +503,10 @@ class Label {
   minSize = null;
   bbox = null;
 
-  constructor(annotationTool, id, klass, bbox) {
+  constructor(annotationTool, id, instanceId, klass, bbox) {
     this._annotationTool = annotationTool;
     this.id = id;
+    this.instanceId = instanceId;
     this.isChanged = this.id < 0;
     this.isTarget = false;
     this.klass = klass;
@@ -494,10 +560,7 @@ class Label {
     }
   }
   toIDString() {
-    if (this.id < 0) {
-      return '#___';
-    }
-    return `#${this.id}`;
+    return `#${this.id < 0 ? '___' : this.id}`;
   }
   toString() {
     return this.toIDString() + ` ${this.getKlassName()}`;
@@ -522,6 +585,10 @@ class Label {
     if (this.id >= 0) {
       ret.object_id = this.id;
     }
+    ret.use_instance = true;
+    if (this.instanceId != null) {
+      ret.instanceId = this.instanceId;
+    }
     this._annotationTool._controls.getTools().forEach(tool => {
       const id = tool.candidateId;
       if (!this.has(id)) {
@@ -536,6 +603,7 @@ class Label {
   toHistory() {
     const ret = {
       id: this.id,
+      instanceId: this.instanceId,
       klass: this.klass,
       content: {}
     };
@@ -555,6 +623,7 @@ class Label {
       throw new Error('history id error');
     }
     this.klass = obj.klass;
+    this.instanceId = obj.instanceId;
     this._annotationTool._controls.getTools().forEach(tool => {
       const id = tool.candidateId;
       const content = obj.content[id];
