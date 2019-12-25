@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom';
 
 import Button from '@material-ui/core/Button';
 
+import BoxFrameObject from './pcd_tool/box_frame_object';
 
 // 3d eidt arrow
 const arrowColors = [0xff0000, 0x00ff00, 0x0000ff],
@@ -408,14 +409,18 @@ export default class PCDLabelTool extends React.Component {
       this._redrawFlag = false;
     }
   }
-  setArrow(bbox) {
+  setArrow(bbox, direction) {
     if (bbox == null) {
       this._editArrowGroup.visible = false;
     } else {
-      const pos = bbox.box.pos;
+      let pos = bbox, dir = direction;
+      if (bbox instanceof PCDBBox) {
+        pos = bbox.box.pos;
+        dir = bbox.box.yaw;
+      }
       this._editArrowGroup.visible = true;
       this._editArrowGroup.position.set(pos.x, pos.y, pos.z);
-      this._editArrowGroup.rotation.z = bbox.box.yaw;
+      this._editArrowGroup.rotation.z = dir;
     }
   }
   setMouseType(name) {
@@ -504,17 +509,33 @@ export default class PCDLabelTool extends React.Component {
           ep = data.endPos;
     const cx = (sp.x + ep.x) / 2,
           cy = (sp.y + ep.y) / 2,
-          w = sp.x - ep.x,
-          h = sp.y - ep.y;
-    const phi = this._camera.rotation.z,
-          rx = Math.cos(phi),
+          dx = sp.x - ep.x,
+          dy = sp.y - ep.y;
+    let phi = this._camera.rotation.z;
+    const rx = Math.cos(phi),
           ry = Math.sin(phi);
-    data.box.position.set(cx, cy, -0.5);
-    data.box.rotation.z = phi;
-    data.box.scale.set(
-        Math.abs(w*rx + h*ry),
-        Math.abs(w*ry - h*rx),
-        1.0);
+    let w = dx*rx + dy*ry,
+        h = dx*ry - dy*rx;
+    if (Math.abs(w) > Math.abs(h)) {
+      h = Math.abs(h);
+      if (w < 0) {
+        phi = (phi + Math.PI) % (Math.PI * 2);
+        w = -w;
+      }
+    } else {
+      w = Math.abs(w);
+      if (h < 0) {
+        phi = (phi + Math.PI / 2) % (Math.PI * 2);
+        h = -h;
+      } else {
+        phi = (phi + Math.PI * 3 / 2) % (Math.PI * 2);
+      }
+      [w, h] = [h, w];
+    }
+    const pos = new THREE.Vector3(cx, cy, -0.5),
+          size = new THREE.Vector3(w, h, 1.0);
+    data.box.setParam(pos, size, phi);
+    this.setArrow(pos, phi);
   }
 
 };
@@ -523,17 +544,7 @@ const BBoxParams = {
   geometry: new THREE.CubeGeometry(1.0, 1.0, 1.0),
   material: new THREE.MeshBasicMaterial({
     color: 0x008866,
-    wireframe: true
-  }),
-  selectingMaterial: new THREE.MeshBasicMaterial({
-    color: 0xff0000,
-    wireframe: true
-  }),
-  hoverMaterial: new THREE.MeshBasicMaterial({
-    color: 0xffff00,
-    wireframe: true
   })
-
 };
 class PCDBBox {
   constructor(pcdTool, content) {
@@ -585,16 +596,17 @@ class PCDBBox {
       throw "Label already set";
     }
     this.label = label;
+    this.cube.meshFrame.setColor(label.getColor());
   }
   updateSelected(selected) {
     this.selected = selected;
-    if (selected) {
-      this.cube.mesh.material = BBoxParams.selectingMaterial;
-    } else {
-      this.cube.mesh.material = BBoxParams.material;
-    }
+    this.cube.meshFrame.setStatus(selected, false);
+  }
+  hover(isInto) {
+    this.cube.meshFrame.setStatus(this.selected, isInto);
   }
   updateKlass() {
+    this.cube.meshFrame.setColor(this.label.getColor());
   }
   updateParam() {
     this.updateCube(true);
@@ -602,9 +614,7 @@ class PCDBBox {
   }
   remove() {
     // TODO: remove meshes
-    //this.labelItem.remove();
-    const mesh = this.cube.mesh;
-    this.pcdTool._scene.remove(mesh);
+    this.cube.meshFrame.removeFrom(this.pcdTool._scene);
     const group = this.cube.editGroup;
     this.pcdTool._scene.remove(group);
     this.pcdTool.redrawRequest();
@@ -632,8 +642,9 @@ class PCDBBox {
   initCube() {
     const mesh = new THREE.Mesh(
         BBoxParams.geometry, BBoxParams.material);
-    const box = this.box;
-    this.pcdTool._scene.add(mesh);
+
+    const meshFrame = new BoxFrameObject();
+    meshFrame.addTo(this.pcdTool._scene);
     
     const group = new THREE.Group();
     const corners = [
@@ -670,6 +681,7 @@ class PCDBBox {
 
     this.cube = {
       mesh: mesh,
+      meshFrame: meshFrame,
       corners: corners,
       edges: edges,
       zFace: zFace,
@@ -678,13 +690,16 @@ class PCDBBox {
     this.updateCube(false);
   }
   updateCube(changed) {
-    const mesh = this.cube.mesh;
     const box = this.box;
+    const mesh = this.cube.mesh;
     // TODO: check change flag
     // TODO: clamp() all
     mesh.position.set(box.pos.x, box.pos.y, box.pos.z);
     mesh.scale.set(box.size.x, box.size.y, box.size.z);
     mesh.rotation.z = box.yaw;
+    mesh.updateMatrixWorld();
+    const meshFrame = this.cube.meshFrame;
+    meshFrame.setParam(box.pos, box.size, box.yaw);
     const group = this.cube.editGroup;
     group.position.set(box.pos.x, box.pos.y, box.pos.z);
     group.rotation.z = box.yaw;
@@ -861,11 +876,7 @@ function createModeMethods(pcdTool) {
           return;
         }
         const bbox = this.prevHover.bbox;
-        if ( bbox.selected ) {
-          bbox.cube.mesh.material = BBoxParams.selectingMaterial;
-        } else {
-          bbox.cube.mesh.material = BBoxParams.material;
-        }
+        bbox.hover(false);
         pcdTool.redrawRequest();
         this.prevHover = null;
       },
@@ -979,7 +990,7 @@ function createModeMethods(pcdTool) {
                 this.prevHover.type === 'box' &&
                 this.prevHover.bbox === bbox) { return true; }
             this.resetHover();
-            bbox.cube.mesh.material = BBoxParams.hoverMaterial;
+            bbox.hover(true);
             pcdTool.setMouseType('all-scroll');
             this.prevHover = {
               type: 'box',
@@ -1103,9 +1114,9 @@ function createModeMethods(pcdTool) {
           bbox.endPos = pos;
           const dist = bbox.endPos.distanceTo(bbox.startPos);
           if (bbox.box == null && dist > 0.01) {
-            bbox.box =  new THREE.Mesh(
-              BBoxParams.geometry, BBoxParams.material);
-            pcdTool._scene.add(bbox.box);
+            bbox.box = new BoxFrameObject();
+            bbox.box.addTo(pcdTool._scene);
+            bbox.box.setColor('#fff');
           }
           if (bbox.box != null) {
             pcdTool.creatingBoxUpdate();
@@ -1159,21 +1170,24 @@ function createModeMethods(pcdTool) {
             bbox.endPos = pos;
           }
           pcdTool.creatingBoxUpdate();
+          const boxPos = bbox.box.getPos();
+          const boxSize = bbox.box.getSize();
+          const boxYaw = bbox.box.getYaw();
           const pcdBBox = new PCDBBox(pcdTool, {
-                'x_3d': bbox.box.position.x,
-                'y_3d': bbox.box.position.y,
+                'x_3d': boxPos.x,
+                'y_3d': boxPos.y,
                 'z_3d': -0.5,
-                'width_3d': bbox.box.scale.x,
-                'height_3d': bbox.box.scale.y,
-                'length_3d': bbox.box.scale.z,
-                'rotation_y': bbox.box.rotation.z,
+                'width_3d': boxSize.x,
+                'height_3d': boxSize.y,
+                'length_3d': boxSize.z,
+                'rotation_y': boxYaw,
               });
           // TODO: add branch use selecting label 
           const label = pcdTool._controls.createLabel(
             pcdTool._controls.getTargetKlass(),
             {[pcdTool.candidateId]: pcdBBox}
           );
-          pcdTool._scene.remove(bbox.box);
+          bbox.box.removeFrom(pcdTool._scene);
           pcdTool.redrawRequest();
           bbox.startPos = null;
           bbox.endPos = null;
