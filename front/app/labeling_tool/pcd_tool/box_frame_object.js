@@ -64,7 +64,7 @@ export default class BoxFrameObject {
     }
     this.meshGroup = meshGroup;
     this.meshByAxis = meshByAxis;
-    this.bold = false;
+    this.bold = true;
 
     const colorMat = new THREE.MeshBasicMaterial({
       color: 0x000000, side: THREE.DoubleSide,
