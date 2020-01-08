@@ -5,6 +5,7 @@ from projects.members.models import Members
 from projects.klassset.klassset_manager import KlasssetManager
 from api.common import validation_check
 from api.settings import SORT_KEY, PER_PAGE, SUPPORT_LABEL_TYPES
+from api.permissions import Permission
 
 
 class ProjectManager(object):
@@ -39,6 +40,7 @@ class ProjectManager(object):
             record['description'] = project.description
             record['label_type'] = project.label_type
             record['created_at'] = str(project.created_at)
+            record['can_delete'] = Permission.hasPermission(user_id, 'delete_project', project.id)
             records.append(record)
             try:
                 klassset_manager = KlasssetManager()
@@ -46,7 +48,7 @@ class ProjectManager(object):
                 record['klassset_name'] = klassset.name
                 record['klassset_id'] = klassset.id
             except Exception:
-                record['klassset_name'] = ' '
+                record['klassset_name'] = ''
                 record['klassset_id'] = 0
         contents = {}
         contents['count'] = self.project_total_count(user_id)
@@ -96,11 +98,10 @@ class ProjectManager(object):
         return project.id
 
     def delete_project(self, project_id, user_id):
-        content = Projects.objects.filter(id=project_id, delete_flag=False).first()
+        content = Projects.objects.filter(id=project_id).first()
         if content is None:
             raise ObjectDoesNotExist()
-        content.delete_flag = True
-        content.save()
+        content.delete()
 
     def __is_support_label_type(self, label_type):
         return label_type in SUPPORT_LABEL_TYPES

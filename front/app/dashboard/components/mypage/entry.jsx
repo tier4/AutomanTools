@@ -23,6 +23,16 @@ class MyPage extends React.Component {
     };
     this.updateData();
   }
+  deleteProject = (project_id) => {
+    console.log("project_id = %d", project_id)
+    RequestClient.delete(
+      '/projects/' + project_id + '/',
+      null,
+      res => {
+        this.setState({ needUpdate: true });
+      }
+    );
+  };
   show = () => {
     this.setState({ open: true });
   };
@@ -59,6 +69,7 @@ class MyPage extends React.Component {
             <ProjectTable
               handleUpdate={this.handleUpdate}
               needUpdate={this.state.needUpdate}
+              deleteProject={this.deleteProject}
             />
           </Paper>
           <Fab

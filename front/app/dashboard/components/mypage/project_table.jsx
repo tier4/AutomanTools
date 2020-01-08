@@ -5,10 +5,17 @@ import { withRouter } from 'react-router-dom';
 import { withStyles } from '@material-ui/core/styles';
 import { TableHeaderColumn } from 'react-bootstrap-table';
 import Typography from '@material-ui/core/Typography';
+import Button from '@material-ui/core/Button';
+import Tooltip from '@material-ui/core/Tooltip';
+import DeleteIcon from '@material-ui/icons/Delete';
 
 import ResizableTable from 'automan/dashboard/components/parts/resizable_table';
 import { mainStyle } from 'automan/assets/main-style';
 //import projectReducer from 'automan/dashboard/reducers/projectReducer';
+
+function actionFormatter(cell, row) {
+  return row.actions;
+}
 
 class ProjectTable extends React.Component {
   constructor(props) {
@@ -90,12 +97,29 @@ class ProjectTable extends React.Component {
     const { classes } = this.props;
     let rows = [];
     rows = this.state.data.map((row, index) => {
+      let actions = ''
+      actions = (
+        <div className="text-center">
+          <Tooltip title="Delete">
+            <div style={{ display: 'inline-block' }}>
+              <Button
+                classes={{ root: classes.tableActionButton }}
+                onClick={() => this.props.deleteProject(row.id)}
+                disabled={!row.can_delete}
+              >
+                <DeleteIcon fontSize="small" />
+              </Button>
+            </div>
+          </Tooltip>
+        </div>
+      );
       return {
         description: row.description,
         id: row.id,
         name: row.name,
         labelType: row.label_type,
-        createdAt: row.created_at.slice(0, 19)
+        createdAt: row.created_at.slice(0, 19),
+        actions: actions
       };
     });
     const options = {
@@ -122,7 +146,9 @@ class ProjectTable extends React.Component {
       searchDelayTime: 1000
     };
     options.onRowClick = (row, colIndex, rowIndex) => {
-      this.handleClick(row);
+      if (colIndex <= 3) {
+        this.handleClick(row);
+      }
     };
     const fetchProp = {
       dataTotalSize: this.state.total_count
@@ -151,6 +177,8 @@ class ProjectTable extends React.Component {
           </TableHeaderColumn>
           <TableHeaderColumn width="20%" dataField="createdAt">
             Created At
+          </TableHeaderColumn>
+          <TableHeaderColumn width="15%" dataField="actions" dataFormat={actionFormatter}>
           </TableHeaderColumn>
         </ResizableTable>
       </div>
