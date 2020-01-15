@@ -7,6 +7,7 @@ import Typography from '@material-ui/core/Typography';
 import Button from '@material-ui/core/Button';
 import Tooltip from '@material-ui/core/Tooltip';
 import CreateNewFolderIcon from '@material-ui/icons/CreateNewFolder';
+import DeleteIcon from '@material-ui/icons/Delete';
 
 import ResizableTable from 'automan/dashboard/components/parts/resizable_table';
 import { mainStyle } from 'automan/assets/main-style';
@@ -112,6 +113,16 @@ class DatasetTable extends React.Component {
                 </Button>
               </div>
             </Tooltip>
+            <Tooltip title="Delete">
+            <div style={{ display: 'inline-block' }}>
+              <Button
+                classes={{ root: classes.tableActionButton }}
+                onClick={() => this.props.deleteDataset(row.id)}
+              >
+                <DeleteIcon fontSize="small" />
+              </Button>
+            </div>
+          </Tooltip>
           </div>
         );
         return {
