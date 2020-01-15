@@ -13,6 +13,7 @@ import IconButton from '@material-ui/core/IconButton';
 import CloseIcon from '@material-ui/icons/Close';
 import ResizableTable from 'automan/dashboard/components/parts/resizable_table';
 import { mainStyle } from 'automan/assets/main-style';
+import DeleteIcon from '@material-ui/icons/Delete';
 
 
 function actionFormatter(cell, row) {
@@ -126,6 +127,16 @@ class OriginalTable extends React.Component {
               </Button>
             </div>
           </Tooltip>
+          <Tooltip title="Delete">
+            <div style={{ display: 'inline-block' }}>
+              <Button
+                classes={{ root: classes.tableActionButton }}
+                onClick={() => this.props.deleteOrig(row.id)}
+              >
+                <DeleteIcon fontSize="small" />
+              </Button>
+            </div>
+          </Tooltip>
         </div>
       );
       return {
@@ -188,7 +199,7 @@ class OriginalTable extends React.Component {
           <TableHeaderColumn width="20%" dataField="status" dataSort={true}>
             Status
           </TableHeaderColumn>
-          <TableHeaderColumn width="15%" dataField="actions" dataFormat={actionFormatter}>
+          <TableHeaderColumn width="25%" dataField="actions" dataFormat={actionFormatter}>
           </TableHeaderColumn>
         </ResizableTable>
         <Snackbar

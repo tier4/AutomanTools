@@ -27,6 +27,17 @@ class OriginalPage extends React.Component {
       needUpdate: false
     };
   }
+  deleteOrig = (original_id) => {
+    RequestClient.delete(
+      '/projects/' + this.props.currentProject.id
+      + '/originals/' + original_id + '/',
+      null,
+      res => {
+        this.setState({ needUpdate: true });
+      }
+    );
+  };
+
   show = () => {
     this.setState({ formOpen: true });
   };
@@ -55,7 +66,7 @@ class OriginalPage extends React.Component {
     RequestClient.post(
       url,
       data,
-      res => {this.setState({ message: null });},
+      res => { this.setState({ message: null }); },
       mes => {
         this.setState({
           error: mes.message,
@@ -86,6 +97,7 @@ class OriginalPage extends React.Component {
               hide={this.hide}
               handleUpdate={this.handleUpdate}
               needUpdate={this.state.needUpdate}
+              deleteOrig={this.deleteOrig}
             />
           </Paper>
           <Tooltip title="Upload">

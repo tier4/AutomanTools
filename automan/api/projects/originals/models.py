@@ -44,7 +44,7 @@ class RosbagTopic(models.Model):
 
 
 class DatasetCandidate(models.Model):
-    original = models.ForeignKey(Original, on_delete=models.CASCADE)
+    original = models.IntegerField()
     data_type = models.CharField(max_length=255, default='')
     frame_count = models.IntegerField()
     analyzed_info = models.CharField(max_length=255, default='')
