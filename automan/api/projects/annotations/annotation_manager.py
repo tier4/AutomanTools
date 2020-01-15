@@ -31,7 +31,7 @@ class AnnotationManager(object):
         return new_annotation.id
 
     def get_annotation(self, annotation_id):
-        annotation = Annotation.objects.filter(id=annotation_id, delete_flag=False).first()
+        annotation = Annotation.objects.filter(id=annotation_id).first()
 
         if annotation is None:
             raise ObjectDoesNotExist()
@@ -43,7 +43,7 @@ class AnnotationManager(object):
         return contents
 
     def annotation_total_count(self, project_id):
-        annotations = Annotation.objects.filter(project_id=project_id, delete_flag=False)
+        annotations = Annotation.objects.filter(project_id=project_id)
         return annotations.count()
 
     def list_annotations(
@@ -56,17 +56,14 @@ class AnnotationManager(object):
             if is_reverse is False:
                 annotations = Annotation.objects.order_by(sort_key).filter(
                     Q(project_id=project_id),
-                    Q(delete_flag=False),
                     Q(name__contains=search_keyword))[begin:begin + per_page]
             else:
                 annotations = Annotation.objects.order_by(sort_key).reverse().filter(
                     Q(project_id=project_id),
-                    Q(delete_flag=False),
                     Q(name__contains=search_keyword))[begin:begin + per_page]
         except FieldError:
             annotations = Annotation.objects.order_by("id").filter(
                 Q(project_id=project_id),
-                Q(delete_flag=False),
                 Q(name__contains=search_keyword))[begin:begin + per_page]
 
         records = []
@@ -102,10 +99,7 @@ class AnnotationManager(object):
 
     def delete_annotation(self, annotation_id):
         annotation = Annotation.objects.filter(id=annotation_id).first()
-        if annotation.delete_flag is True:
-            raise ObjectDoesNotExist()
-        annotation.delete_flag = True
-        annotation.save()
+        annotation.delete()
 
     def get_frame_labels(self, project_id, user_id, try_lock, annotation_id, frame):
         objects = DatasetObject.objects.filter(

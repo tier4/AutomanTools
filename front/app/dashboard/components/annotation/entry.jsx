@@ -12,6 +12,22 @@ import { mainStyle } from 'automan/assets/main-style';
 class AnnotationPage extends React.Component {
   constructor(props) {
     super(props);
+    this.state = {
+      needUpdate: false
+    }
+  }
+  deleteAnnotation = (annotation_id) => {
+    RequestClient.delete(
+      '/projects/' + this.props.currentProject.id
+      + '/annotations/' + annotation_id + '/',
+      null,
+      res => {
+        this.setState({ needUpdate: true });
+      }
+    );
+  };
+  handleUpdate = () => {
+    this.setState({ needUpdate: false });
   }
   handleClickAnnotation = annotationId => {
     if (this.props.currentProject.klassset.count === 0) {
@@ -19,10 +35,10 @@ class AnnotationPage extends React.Component {
     } else {
       window.open(
         '/application/' +
-          this.props.currentProject.id +
-          '/annotations/' +
-          annotationId +
-          '/labeling_tool/',
+        this.props.currentProject.id +
+        '/annotations/' +
+        annotationId +
+        '/labeling_tool/',
         '_blank'
       );
     }
@@ -33,7 +49,12 @@ class AnnotationPage extends React.Component {
       <Grid container spacing={24}>
         <Grid item xs={12}>
           <Paper className={classes.root}>
-            <AnnotationTable onClickAnnotation={this.handleClickAnnotation} />
+            <AnnotationTable
+              onClickAnnotation={this.handleClickAnnotation}
+              deleteAnnotation={this.deleteAnnotation}
+              handleUpdate={this.handleUpdate}
+              needUpdate={this.state.needUpdate}
+            />
           </Paper>
         </Grid>
       </Grid>
