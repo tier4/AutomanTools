@@ -29,7 +29,6 @@ class DatasetPage extends React.Component {
     this.setState({ formOpen: false });
   };
   deleteDataset = (dataset_id) => {
-    console.log("deleteDataset called!")
     RequestClient.delete(
       '/projects/' + this.props.currentProject.id
       + '/datasets/' + dataset_id + '/',
@@ -39,6 +38,9 @@ class DatasetPage extends React.Component {
       }
     );
   };
+  handleUpdate = () => {
+    this.setState({ needUpdate: false });
+  }
   render() {
     const { classes } = this.props;
     return (
@@ -53,6 +55,8 @@ class DatasetPage extends React.Component {
             <DatasetTable
               show={this.show}
               deleteDataset={this.deleteDataset}
+              needUpdate={this.state.needUpdate}
+              handleUpdate={this.handleUpdate}
             />
           </Paper>
         </Grid>

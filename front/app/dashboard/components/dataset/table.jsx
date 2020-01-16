@@ -8,6 +8,11 @@ import Button from '@material-ui/core/Button';
 import Tooltip from '@material-ui/core/Tooltip';
 import CreateNewFolderIcon from '@material-ui/icons/CreateNewFolder';
 import DeleteIcon from '@material-ui/icons/Delete';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+import DialogTitle from '@material-ui/core/DialogTitle';
 
 import ResizableTable from 'automan/dashboard/components/parts/resizable_table';
 import { mainStyle } from 'automan/assets/main-style';
@@ -24,7 +29,10 @@ class DatasetTable extends React.Component {
       data: [],
       is_loading: true,
       error: null,
-      query: RequestClient.createPageQuery()
+      query: RequestClient.createPageQuery(),
+      open: false,
+      row_id: null,
+      row_name: ''
     };
   }
   componentDidMount() {
@@ -33,11 +41,27 @@ class DatasetTable extends React.Component {
   componentDidUpdate(prevProps, prevState) {
     if (
       prevProps.currentProject == null ||
-      this.props.currentProject.id !== prevProps.currentProject.id
+      this.props.currentProject.id !== prevProps.currentProject.id ||
+      this.props.needUpdate
     ) {
+      this.props.handleUpdate();
       this.updatePage();
     }
   }
+  handleClickOpen = row => {
+    this.setState({
+      open: true,
+      row_id: row.id,
+      row_name: row.name
+    });
+  };
+  handleOK = () => {
+    this.setState({ open: false });
+    this.props.deleteDataset(this.state.row_id);
+  };
+  handleCancel = () => {
+    this.setState({ open: false });
+  };
   handleSearchChange(txt) {
     const query = this.state.query;
     if (txt === query.getSearch()) {
@@ -114,15 +138,15 @@ class DatasetTable extends React.Component {
               </div>
             </Tooltip>
             <Tooltip title="Delete">
-            <div style={{ display: 'inline-block' }}>
-              <Button
-                classes={{ root: classes.tableActionButton }}
-                onClick={() => this.props.deleteDataset(row.id)}
-              >
-                <DeleteIcon fontSize="small" />
-              </Button>
-            </div>
-          </Tooltip>
+              <div style={{ display: 'inline-block' }}>
+                <Button
+                  classes={{ root: classes.tableActionButton }}
+                  onClick={() => this.handleClickOpen(row)}
+                >
+                  <DeleteIcon fontSize="small" />
+                </Button>
+              </div>
+            </Tooltip>
           </div>
         );
         return {
@@ -191,6 +215,27 @@ class DatasetTable extends React.Component {
           <TableHeaderColumn width="15%" dataField="actions" dataFormat={actionFormatter}>
           </TableHeaderColumn>
         </ResizableTable>
+        <Dialog
+          open={this.state.open}
+          onClose={this.handleClose}
+          aria-labelledby="alert-dialog-title"
+          aria-describedby="alert-dialog-description"
+        >
+          <DialogTitle id="alert-dialog-title">{"Delete dataset?"}</DialogTitle>
+          <DialogContent>
+            <DialogContentText id="alert-dialog-description">
+              Name: {this.state.row_name}
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={this.handleCancel} color="primary">
+              Canncel
+            </Button>
+            <Button onClick={this.handleOK} color="primary" autoFocus>
+              OK
+            </Button>
+          </DialogActions>
+        </Dialog>
       </div>
     );
   }
