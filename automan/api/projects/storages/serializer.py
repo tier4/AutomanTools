@@ -80,6 +80,19 @@ class StorageSerializer(serializers.ModelSerializer):
             'storage_config': json.loads(storage.storage_config),
         }
         return record
+    
+    def get_storages(self, project_id):
+        storages = Storage.objects.filter(project_id=project_id)
+        records = []
+        for storage in storages:
+            record = {
+                'id': storage.id,
+                'storage_type': storage.storage_type,
+                'storage_config': json.loads(storage.storage_config),
+            }
+            print(record)
+            records.append(record)
+        return records
 
     @staticmethod
     def get_original_path(storage_type, storage_config, name):

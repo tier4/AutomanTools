@@ -1,7 +1,9 @@
+import shutil
 from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist, FieldError
 from projects.models import Projects
 from projects.members.models import Members
+from projects.storages.serializer import StorageSerializer
 from projects.klassset.klassset_manager import KlasssetManager
 from api.common import validation_check
 from api.settings import SORT_KEY, PER_PAGE, SUPPORT_LABEL_TYPES
@@ -101,6 +103,11 @@ class ProjectManager(object):
         content = Projects.objects.filter(id=project_id).first()
         if content is None:
             raise ObjectDoesNotExist()
+        storages = StorageSerializer().get_storages(project_id)
+        for storage in storages:
+            dir_path = (storage['storage_config']['mount_path']
+                        + storage['storage_config']['base_dir'])
+            shutil.rmtree(dir_path)
         content.delete()
 
     def __is_support_label_type(self, label_type):
