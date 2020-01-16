@@ -24,7 +24,6 @@ class MyPage extends React.Component {
     this.updateData();
   }
   deleteProject = (project_id) => {
-    console.log("project_id = %d", project_id)
     RequestClient.delete(
       '/projects/' + project_id + '/',
       null,

@@ -8,6 +8,11 @@ import Typography from '@material-ui/core/Typography';
 import Button from '@material-ui/core/Button';
 import Tooltip from '@material-ui/core/Tooltip';
 import DeleteIcon from '@material-ui/icons/Delete';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+import DialogTitle from '@material-ui/core/DialogTitle';
 
 import ResizableTable from 'automan/dashboard/components/parts/resizable_table';
 import { mainStyle } from 'automan/assets/main-style';
@@ -25,7 +30,10 @@ class ProjectTable extends React.Component {
       is_loading: false,
       total_count: 0,
       data: [],
-      query: RequestClient.createPageQuery()
+      query: RequestClient.createPageQuery(),
+      open: false,
+      row_id: null,
+      row_name: '',
     };
   }
   componentDidMount = () => {
@@ -55,6 +63,20 @@ class ProjectTable extends React.Component {
         this.setState({ error: mes.message });
       }
     );
+  };
+  handleDialogOpen = row => {
+    this.setState({
+      open: true,
+      row_id: row.id,
+      row_name: row.name
+    });
+  };
+  handleOK = () => {
+    this.setState({ open: false });
+    this.props.deleteProject(this.state.row_id);
+  };
+  handleCancel = () => {
+    this.setState({ open: false });
   };
   handleSearchChange = txt => {
     const query = this.state.query;
@@ -104,7 +126,7 @@ class ProjectTable extends React.Component {
             <div style={{ display: 'inline-block' }}>
               <Button
                 classes={{ root: classes.tableActionButton }}
-                onClick={() => this.props.deleteProject(row.id)}
+                onClick={() => this.handleDialogOpen(row)}
                 disabled={!row.can_delete}
               >
                 <DeleteIcon fontSize="small" />
@@ -181,6 +203,27 @@ class ProjectTable extends React.Component {
           <TableHeaderColumn width="15%" dataField="actions" dataFormat={actionFormatter}>
           </TableHeaderColumn>
         </ResizableTable>
+        <Dialog
+          open={this.state.open}
+          onClose={this.handleClose}
+          aria-labelledby="alert-dialog-title"
+          aria-describedby="alert-dialog-description"
+        >
+          <DialogTitle id="alert-dialog-title">{"Delete Project"}</DialogTitle>
+          <DialogContent>
+            <DialogContentText id="alert-dialog-description">
+              Name: {this.state.row_name}
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={this.handleCancel} color="primary">
+              Canncel
+            </Button>
+            <Button onClick={this.handleOK} color="primary" autoFocus>
+              OK
+            </Button>
+          </DialogActions>
+        </Dialog>
       </div>
     );
   }
