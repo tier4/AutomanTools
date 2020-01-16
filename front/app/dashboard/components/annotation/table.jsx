@@ -15,6 +15,11 @@ import Snackbar from '@material-ui/core/Snackbar';
 import IconButton from '@material-ui/core/IconButton';
 import CloseIcon from '@material-ui/icons/Close';
 import DeleteIcon from '@material-ui/icons/Delete';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+import DialogTitle from '@material-ui/core/DialogTitle';
 
 function actionFormatter(cell, row) {
   return row.actions;
@@ -30,6 +35,9 @@ class AnnotationTable extends React.Component {
       error: null,
       query: RequestClient.createPageQuery(),
       snackbar: false,
+      open: false,
+      row_id: null,
+      row_name: '',
     };
   }
   show = () => {
@@ -37,6 +45,20 @@ class AnnotationTable extends React.Component {
   };
   hide = () => {
     this.setState({ snackbar: false });
+  };
+  handleDialogOpen = row => {
+    this.setState({
+      open: true,
+      row_id: row.id,
+      row_name: row.name
+    });
+  };
+  handleOK = () => {
+    this.setState({ open: false });
+    this.props.deleteAnnotation(this.state.row_id);
+  };
+  handleCancel = () => {
+    this.setState({ open: false });
   };
   componentDidMount() {
     this.updatePage();
@@ -194,7 +216,7 @@ class AnnotationTable extends React.Component {
                   <div style={{ display: 'inline-block' }}>
                     <Button
                       classes={{ root: classes.tableActionButton }}
-                      onClick={() => this.props.deleteAnnotation(row.id)}
+                      onClick={() => this.handleDialogOpen(row)}
                     >
                       <DeleteIcon fontSize="small" />
                     </Button>
@@ -224,7 +246,7 @@ class AnnotationTable extends React.Component {
                     <div style={{ display: 'inline-block' }}>
                       <Button
                         classes={{ root: classes.tableActionButton }}
-                        onClick={() => this.props.deleteAnnotation(row.id)}
+                        onClick={() => this.handleDialogOpen(row)}
                       >
                         <DeleteIcon fontSize="small" />
                       </Button>
@@ -327,6 +349,27 @@ class AnnotationTable extends React.Component {
             </IconButton>
           ]}
         />
+        <Dialog
+          open={this.state.open}
+          onClose={this.handleClose}
+          aria-labelledby="alert-dialog-title"
+          aria-describedby="alert-dialog-description"
+        >
+          <DialogTitle id="alert-dialog-title">{"Delete Annotation"}</DialogTitle>
+          <DialogContent>
+            <DialogContentText id="alert-dialog-description">
+              Name: {this.state.row_name}
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={this.handleCancel} color="primary">
+              Canncel
+            </Button>
+            <Button onClick={this.handleOK} color="primary" autoFocus>
+              OK
+            </Button>
+          </DialogActions>
+        </Dialog>
       </div>
     );
   }
