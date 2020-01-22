@@ -16,6 +16,7 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 
 import ResizableTable from 'automan/dashboard/components/parts/resizable_table';
 import { mainStyle } from 'automan/assets/main-style';
+import { listProject } from 'automan/dashboard/actions/projectAction';
 //import projectReducer from 'automan/dashboard/reducers/projectReducer';
 
 function actionFormatter(cell, row) {
@@ -58,6 +59,7 @@ class ProjectTable extends React.Component {
           data: res.records,
           is_loading: false
         });
+        this.props.dispatchListProject();
       },
       mes => {
         this.setState({ error: mes.message });
@@ -229,6 +231,9 @@ class ProjectTable extends React.Component {
   }
 }
 
+const mapDispatchToProps = dispatch => ({
+  dispatchListProject: () => dispatch(listProject()),
+});
 const mapStateToProps = state => {
   return {
     projects: state.projectReducer.projects
@@ -239,7 +244,7 @@ export default withRouter(
     withStyles(mainStyle, { name: 'ProjectTable' }),
     connect(
       mapStateToProps,
-      null
+      mapDispatchToProps
     )
   )(ProjectTable)
 );
