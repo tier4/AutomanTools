@@ -1,5 +1,6 @@
 import json
 import uuid
+import os
 from uuid import UUID
 from datetime import datetime, timedelta, timezone
 from django.db import transaction
@@ -98,8 +99,17 @@ class AnnotationManager(object):
         return newest_annotation
 
     def delete_annotation(self, annotation_id):
+        archives = ArchivedLabelDataset.objects.filter(annotation_id=annotation_id)
+        for archive in archives:
+            path = archive.file_path + '/' + archive.file_name
+            os.remove(path)
         annotation = Annotation.objects.filter(id=annotation_id).first()
         annotation.delete()
+
+    def delete_annotations(self, dataset_id):
+        annotations = Annotation.objects.filter(dataset_id=dataset_id)
+        for annotation in annotations:
+            self.delete_annotation(annotation.id)
 
     def get_frame_labels(self, project_id, user_id, try_lock, annotation_id, frame):
         objects = DatasetObject.objects.filter(

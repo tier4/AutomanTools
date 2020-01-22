@@ -6,6 +6,7 @@ from api.common import validation_check
 from api.settings import SORT_KEY, PER_PAGE
 from .models import LabelDataset, DatasetDatasetCandidate
 from projects.originals.candidate_manager import CandidateManager
+from projects.annotations.annotation_manager import AnnotationManager
 
 
 class DatasetManager(object):
@@ -85,6 +86,8 @@ class DatasetManager(object):
             candidate_manager.delete_candidate(dataset.original)
         # delete dataset files (image, pcd)
         shutil.rmtree(dataset.file_path)
+        annotation_manager = AnnotationManager()
+        annotation_manager.delete_annotations(dataset_id)
         dataset.delete()
 
     def get_dataset(self, user_id, dataset_id):
