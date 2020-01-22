@@ -27,8 +27,7 @@ class OriginalManager(object):
             user_id=user_id,
             file_type=file_type,
             size=size,
-            storage_id=storage_id,
-            delete_flag=False)
+            storage_id=storage_id)
         new_original.save()
         storage_config = copy.deepcopy(STORAGE_CONFIG)
         storage_config.update({'blob': name})
@@ -62,10 +61,10 @@ class OriginalManager(object):
     def get_original(self, project_id, original_id, status=None):
         if status:
             original = Original.objects.filter(
-                id=original_id, delete_flag=False, status=status).first()
+                id=original_id, status=status).first()
         else:
             original = Original.objects.filter(
-                id=original_id, delete_flag=False).first()
+                id=original_id).first()
         if original is None:
             raise ObjectDoesNotExist()
         content = {
@@ -79,7 +78,6 @@ class OriginalManager(object):
             'uploaded_at': str(original.uploaded_at),
             'analyzed_at': str(original.analyzed_at),
             'canceled_at': str(original.canceled_at),
-            'delete_flag': original.delete_flag,
             'project_id': original.project.id,
             'status': original.status,
         }
@@ -94,19 +92,16 @@ class OriginalManager(object):
             if is_reverse is False:
                 originals = Original.objects.order_by(sort_key).filter(
                     Q(project_id=project_id),
-                    Q(delete_flag=False),
                     Q(name__contains=search_keyword),
                     Q(status__contains=status))[begin:begin + per_page]
             else:
                 originals = Original.objects.order_by(sort_key).reverse().filter(
                     Q(project_id=project_id),
-                    Q(delete_flag=False),
                     Q(name__contains=search_keyword),
                     Q(status__contains=status))[begin:begin + per_page]
         except FieldError:
             originals = Original.objects.order_by("id").filter(
                 Q(project_id=project_id),
-                Q(delete_flag=False),
                 Q(name__contains=search_keyword),
                 Q(status__contains=status))[begin:begin + per_page]
         records = []
@@ -156,7 +151,7 @@ class OriginalManager(object):
         return record
 
     def original_total_count(self, project_id):
-        originals = Original.objects.filter(project_id=project_id, delete_flag=False)
+        originals = Original.objects.filter(project_id=project_id)
         return originals.count()
 
     def save_file(self, project_id, original_id, file):

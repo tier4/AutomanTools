@@ -18,13 +18,13 @@ class GroupSerializer(serializers.ModelSerializer):
         try:
             if is_reverse is False:
                 groups = Groups.objects.order_by(sort_key).filter(
-                    project_id=project_id, delete_flag=False)
+                    project_id=project_id)
             else:
                 groups = Groups.objects.order_by(sort_key).reverse().filter(
-                    project_id=project_id, delete_flag=False)
+                    project_id=project_id)
         except FieldError:
             groups = Groups.objects.order_by(SORT_KEY).filter(
-                project_id=project_id, delete_flag=False)
+                project_id=project_id)
 
         if groups is None:
             raise ObjectDoesNotExist()
@@ -42,8 +42,7 @@ class GroupSerializer(serializers.ModelSerializer):
 
     @classmethod
     def __get_group_users(cls, group_id):
-        group_users = Members.objects.filter(
-            group_id=group_id, delete_flag=False)
+        group_users = Members.objects.filter(group_id=group_id)
         user_ids = [int(gu.user_id) for gu in group_users]
         users = User.objects.filter(id__in=user_ids, is_active=1)
         records = [{'id': user.id, 'username': user.username} for user in users]

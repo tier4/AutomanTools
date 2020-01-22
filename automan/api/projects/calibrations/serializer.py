@@ -21,17 +21,14 @@ class CalibrationSerializer(serializers.ModelSerializer):
             if is_reverse is False:
                 calibrations = Calibration.objects.order_by(sort_key).filter(
                     Q(project_id=project_id),
-                    Q(delete_flag=False),
                     Q(name__contains=search_keyword))[begin:begin + per_page]
             else:
                 calibrations = Calibration.objects.order_by(sort_key).reverse().filter(
                     Q(project_id=project_id),
-                    Q(delete_flag=False),
                     Q(name__contains=search_keyword))[begin:begin + per_page]
         except FieldError:
             calibrations = Calibration.objects.order_by("id").filter(
                 Q(project_id=project_id),
-                Q(delete_flag=False),
                 Q(name__contains=search_keyword))[begin:begin + per_page]
         records = []
         for calibration in calibrations:
@@ -48,6 +45,5 @@ class CalibrationSerializer(serializers.ModelSerializer):
 
     @staticmethod
     def calibration_total_count(project_id):
-        calibrations = Calibration.objects.filter(
-            project_id=project_id, delete_flag=False)
+        calibrations = Calibration.objects.filter(project_id=project_id)
         return calibrations.count()

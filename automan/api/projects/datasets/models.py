@@ -11,7 +11,6 @@ class LabelDataset(models.Model):
     updated_at = models.DateTimeField(default=timezone.now)
     file_path = models.CharField(max_length=255, default='')
     name = models.CharField(max_length=100, default='')
-    delete_flag = models.BooleanField(default=False)
     frame_count = models.IntegerField(default=-1)
     project = models.ForeignKey(Projects, null=True, on_delete=models.CASCADE)
 

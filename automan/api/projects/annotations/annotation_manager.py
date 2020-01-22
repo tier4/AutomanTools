@@ -33,7 +33,6 @@ class AnnotationManager(object):
 
     def get_annotation(self, annotation_id):
         annotation = Annotation.objects.filter(id=annotation_id).first()
-
         if annotation is None:
             raise ObjectDoesNotExist()
         contents = {}

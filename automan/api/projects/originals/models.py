@@ -15,7 +15,6 @@ class Original(models.Model):
     uploaded_at = models.DateTimeField(null=True)
     analyzed_at = models.DateTimeField(null=True)
     canceled_at = models.DateTimeField(null=True)
-    delete_flag = models.BooleanField(default=False)
     project = models.ForeignKey(Projects, on_delete=models.CASCADE)
     storage = models.ForeignKey(Storage, on_delete=models.CASCADE)
     status = models.CharField(max_length=127, default='registered')

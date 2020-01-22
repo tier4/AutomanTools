@@ -19,17 +19,14 @@ class DatasetManager(object):
             if is_reverse is False:
                 datasets = LabelDataset.objects.order_by(sort_key).filter(
                     Q(project_id=project_id),
-                    Q(delete_flag=False),
                     Q(name__contains=search_keyword) | Q(name__contains=search_keyword))[begin:begin + per_page]
             else:
                 datasets = LabelDataset.objects.order_by(sort_key).reverse().filter(
                     Q(project_id=project_id),
-                    Q(delete_flag=False),
                     Q(name__contains=search_keyword) | Q(name__contains=search_keyword))[begin:begin + per_page]
         except FieldError:
             datasets = LabelDataset.objects.order_by("id").filter(
                 Q(project_id=project_id),
-                Q(delete_flag=False),
                 Q(name__contains=search_keyword) | Q(name__contains=search_keyword))[begin:begin + per_page]
         records = []
         for dataset in datasets:
@@ -52,8 +49,7 @@ class DatasetManager(object):
         return datasets.count()
 
     def dataset_total_count(self, project_id):
-        datasets = LabelDataset.objects.filter(
-            project_id=project_id, delete_flag=False)
+        datasets = LabelDataset.objects.filter(project_id=project_id)
         return datasets.count()
 
     def create_dataset(self, name, file_path, frame_count, original_id, project_id, candidates):
@@ -62,8 +58,7 @@ class DatasetManager(object):
             file_path=file_path,
             frame_count=frame_count,
             original=original_id,
-            project_id=project_id,
-            delete_flag=False)
+            project_id=project_id)
         new_dataset.save()
 
         for candidate in candidates:
@@ -91,7 +86,7 @@ class DatasetManager(object):
         dataset.delete()
 
     def get_dataset(self, user_id, dataset_id):
-        dataset = LabelDataset.objects.filter(id=dataset_id, delete_flag=False).first()
+        dataset = LabelDataset.objects.filter(id=dataset_id).first()
         if dataset is None:
             raise ObjectDoesNotExist()
         contents = {}
@@ -105,7 +100,7 @@ class DatasetManager(object):
         return contents
 
     def get_dataset_file_path(self, user_id, dataset_id):
-        dataset = LabelDataset.objects.filter(id=dataset_id, delete_flag=False).first()
+        dataset = LabelDataset.objects.filter(id=dataset_id).first()
         if dataset is None:
             raise ObjectDoesNotExist()
         return dataset.file_path

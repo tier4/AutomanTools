@@ -21,17 +21,14 @@ class ProjectManager(object):
             if is_reverse is False:
                 projects = Projects.objects.order_by(sort_key).filter(
                     Q(id__in=project_ids),
-                    Q(delete_flag=False),
                     Q(name__contains=search_keyword) | Q(description__contains=search_keyword))[begin:begin + per_page]
             else:
                 projects = Projects.objects.order_by(sort_key).reverse().filter(
                     Q(id__in=project_ids),
-                    Q(delete_flag=False),
                     Q(name__contains=search_keyword) | Q(description__contains=search_keyword))[begin:begin + per_page]
         except FieldError:
             projects = Projects.objects.order_by("id").filter(
                 Q(id__in=project_ids),
-                Q(delete_flag=False),
                 Q(name__contains=search_keyword) | Q(description__contains=search_keyword))[begin:begin + per_page]
 
         records = []
@@ -62,8 +59,7 @@ class ProjectManager(object):
 
     @classmethod
     def __user_projects(self, user_id):
-        groups = Members.objects.filter(
-            user_id=user_id, delete_flag=False)
+        groups = Members.objects.filter(user_id=user_id)
 
         project_ids = []
         for group in groups:
@@ -72,13 +68,12 @@ class ProjectManager(object):
 
     def project_total_count(self, user_id):
         project_ids = self.__user_projects(user_id)
-        projects = Projects.objects.filter(
-            id__in=project_ids, delete_flag=False)
+        projects = Projects.objects.filter(id__in=project_ids)
         return projects.count()
 
     # (GET):/projects/:project_id:/
     def get_project(self, project_id, user_id):
-        project = Projects.objects.filter(id=project_id, delete_flag=False).first()
+        project = Projects.objects.filter(id=project_id).first()
         if project is None:
             raise ObjectDoesNotExist()
 

@@ -39,19 +39,16 @@ class StorageSerializer(serializers.ModelSerializer):
             if is_reverse is False:
                 storages = Storage.objects.order_by(sort_key).filter(
                     Q(project_id=project_id),
-                    Q(delete_flag=False),
                     Q(storage_type__contains=search_keyword) | Q(storage_config__contains=search_keyword)
                 )[begin:begin + per_page]
             else:
                 storages = Storage.objects.order_by(sort_key).reverse().filter(
                     Q(project_id=project_id),
-                    Q(delete_flag=False),
                     Q(storage_type__contains=search_keyword) | Q(storage_config__contains=search_keyword)
                 )[begin:begin + per_page]
         except FieldError:
             storages = Storage.objects.order_by("id").filter(
                 Q(project_id=project_id),
-                Q(delete_flag=False),
                 Q(storage_type__contains=search_keyword) | Q(storage_config__contains=search_keyword)
             )[begin:begin + per_page]
         records = []
