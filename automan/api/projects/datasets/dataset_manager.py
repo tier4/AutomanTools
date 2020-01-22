@@ -1,3 +1,5 @@
+import shutil
+from django.db import transaction
 from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist, FieldError
 from api.common import validation_check
@@ -71,6 +73,7 @@ class DatasetManager(object):
             new_candidate.save()
         return new_dataset.id
 
+    @transaction.atomic
     def delete_dataset(self, admin_id, dataset_id):
         dataset = LabelDataset.objects.filter(id=dataset_id).first()
         if dataset is None:
@@ -80,6 +83,8 @@ class DatasetManager(object):
         if not candidate_manager.is_exist_original(dataset.original):
             # delete candidate
             candidate_manager.delete_candidate(dataset.original)
+        # delete dataset files (image, pcd)
+        shutil.rmtree(dataset.file_path)
         dataset.delete()
 
     def get_dataset(self, user_id, dataset_id):
