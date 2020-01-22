@@ -3,23 +3,23 @@ import ReactDOM from 'react-dom';
 
 import Grid from '@material-ui/core/Grid';
 import Button from '@material-ui/core/Button';
+import { compose } from 'redux';
+import { connect } from 'react-redux';
+
+import { setHistory } from './actions/tool_action';
 
 class History extends React.Component {
   // history
-
   constructor(props) {
     super(props);
-    this.annotation = null;
-    this._controls = props.controls;
     this.tmpHist = null;
     this.state = {
       undoHistory: [],
       redoHistory: []
     };
-    props.getRef(this);
+    props.dispatchSetHistory(this);
   }
-  init(annotation) {
-    this.annotation = annotation;
+  init() {
   }
   hasUndo() {
     return this.state.undoHistory.length > 0;
@@ -38,7 +38,7 @@ class History extends React.Component {
     };
     if (hist.type == 'change') {
       ret.objects = hist.objects.map(obj => {
-        const label = this.annotation.getLabel(obj.id);
+        const label = this.props.annotation.getLabel(obj.id);
         return label.toHistory();
       });
     } else if (hist.type === 'create') {
@@ -53,15 +53,15 @@ class History extends React.Component {
   undoHist(hist) {
     if (hist.type === 'change') {
       for (let obj of hist.objects) {
-        const label = this.annotation.getLabel(obj.id);
+        const label = this.props.annotation.getLabel(obj.id);
         label.fromHistory(obj);
       }
-      this._controls.selectLabel(hist.objects[0].id);
+      this.props.controls.selectLabel(hist.objects[0].id);
     } else if (hist.type === 'create') {
-      this.annotation.removeFromHistory(hist.objects);
+      this.props.annotation.removeFromHistory(hist.objects);
     } else if (hist.type === 'delete') {
-      const labels = this.annotation.createFromHistory(hist.objects);
-      this._controls.selectLabel(labels[0]);
+      const labels = this.props.annotation.createFromHistory(hist.objects);
+      this.props.controls.selectLabel(labels[0]);
     } else {
       // error
     }
@@ -166,5 +166,18 @@ class History extends React.Component {
     );
   }
 }
-export default History;
+const mapStateToProps = state => ({
+  labelTool: state.tool.labelTool,
+  controls: state.tool.controls,
+  annotation: state.tool.annotation,
+});
+const mapDispatchToProps = dispatch => ({
+  dispatchSetHistory: target => dispatch(setHistory(target))
+});
+export default compose(
+  connect(
+    mapStateToProps,
+    mapDispatchToProps
+  )
+)(History);
 

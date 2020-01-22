@@ -6,6 +6,7 @@ const BBoxParams = {
     color: 0x008866,
   })
 };
+const ZERO2 = new THREE.Vector2(0, 0);
 const EDIT_OBJ_SIZE = 0.5;
 
 export default class PCDBBox {
@@ -195,6 +196,21 @@ export default class PCDBBox {
     if (this.selected) {
       this.pcdTool.setArrow(this);
     }
+  }
+  rotateFront(n) {
+    const box = this.box;
+    let cnt = n % 4;
+    if (cnt == 0) { return; }
+
+    if (cnt < 0) {
+      cnt = 4 + cnt;
+    }
+    if (cnt & 1) {
+      box.size.set(box.size.y, box.size.x, box.size.z);
+    }
+    box.yaw = (box.yaw + Math.PI / 2 * n) % (Math.PI * 2)
+
+    this.updateParam(true);
   }
 }
 

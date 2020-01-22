@@ -3,25 +3,27 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 
 import Button from '@material-ui/core/Button';
+import { compose } from 'redux';
+import { connect } from 'react-redux';
+
+import { addTool } from './actions/tool_action';
 
 import BoxFrameObject from './pcd_tool/box_frame_object';
 import PCDBBox from './pcd_tool/pcd_bbox';
+import EditBar from './pcd_tool/edit_bar';
 
 // 3d eidt arrow
 const arrowColors = [0xff0000, 0x00ff00, 0x0000ff],
-      hoverColors = [0xffaaaa, 0xaaffaa, 0xaaaaff],
       AXES = [new THREE.Vector3(1,0,0), new THREE.Vector3(0,1,0), new THREE.Vector3(0,0,1)];
 
 const ZERO2 = new THREE.Vector2(0, 0);
 const EDIT_OBJ_SIZE = 0.5;
 
-export default class PCDLabelTool extends React.Component {
+class PCDLabelTool extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
     };
-    this._labelTool = props.labelTool;
-    this._controls = props.controls;
     this._element = React.createRef();
     this._toolButtons = (
       <Button
@@ -31,12 +33,16 @@ export default class PCDLabelTool extends React.Component {
         Set Height
       </Button>
     );
+    props.dispatchAddTool(props.idx, this);
   }
   componentDidMount() {
     this.init();
   }
   getButtons() {
     return this._toolButtons;
+  }
+  getEditor() {
+    return <EditBar candidateId={this.candidateId}/>
   }
   render() {
     return (
@@ -46,7 +52,6 @@ export default class PCDLabelTool extends React.Component {
 
   // private
   _canvasSize = { width: 2, height: 1 };
-  _labelTool = null;
   _wrapper = null;
   _loaded = true;
   _scene = null;
@@ -111,7 +116,7 @@ export default class PCDLabelTool extends React.Component {
   }
   load(frame) {
     this._loaded = false;
-    const url = this._labelTool.getURL('frame_blob', this.candidateId, frame);
+    const url = this.props.labelTool.getURL('frame_blob', this.candidateId, frame);
     this._pointMeshes.forEach(mesh => { mesh.visible = false; });
     // use preloaded pcd mesh
     if (this._pointMeshes[frame] != null) {
@@ -592,7 +597,7 @@ function createModeMethods(pcdTool) {
           }
           this.startParam = startParam;
           pcdTool._modeStatus.busy = true;
-          pcdTool._controls.selectLabel(this.prevHover.bbox.label);
+          pcdTool.props.controls.selectLabel(this.prevHover.bbox.label);
           this.prevHover.bbox.label.createHistory();
           return;
         }
@@ -601,7 +606,7 @@ function createModeMethods(pcdTool) {
           pcdTool._creatingBBox.startPos = pos;
           pcdTool._modeStatus.busy = true;
           this.mode = 'create';
-          pcdTool._controls.selectLabel(null);
+          pcdTool.props.controls.selectLabel(null);
           return;
         }
         this.mode = null;
@@ -987,8 +992,8 @@ function createModeMethods(pcdTool) {
                 'rotation_y': boxYaw,
               });
           // TODO: add branch use selecting label 
-          const label = pcdTool._controls.createLabel(
-            pcdTool._controls.getTargetKlass(),
+          const label = pcdTool.props.controls.createLabel(
+            pcdTool.props.controls.getTargetKlass(),
             {[pcdTool.candidateId]: pcdBBox}
           );
           bbox.box.removeFrom(pcdTool._scene);
@@ -1027,5 +1032,19 @@ function createModeMethods(pcdTool) {
   };
   return modeMethods;
 }
+
+const mapStateToProps = state => ({
+  controls: state.tool.controls,
+  labelTool: state.tool.labelTool
+});
+const mapDispatchToProps = dispatch => ({
+  dispatchAddTool: (idx, target) => dispatch(addTool(idx, target))
+});
+export default compose(
+  connect(
+    mapStateToProps,
+    mapDispatchToProps
+  )
+)(PCDLabelTool);
 
 
