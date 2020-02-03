@@ -1,4 +1,3 @@
-import traceback
 from django.http import HttpResponse
 from django.core.exceptions import ValidationError, ObjectDoesNotExist, PermissionDenied
 from utility.service_log import ServiceLog

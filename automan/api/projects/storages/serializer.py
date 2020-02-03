@@ -77,7 +77,7 @@ class StorageSerializer(serializers.ModelSerializer):
             'storage_config': json.loads(storage.storage_config),
         }
         return record
-    
+
     def get_storages(self, project_id):
         storages = Storage.objects.filter(project_id=project_id)
         records = []

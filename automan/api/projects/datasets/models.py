@@ -2,7 +2,7 @@
 from django.db import models
 from django.utils import timezone
 from projects.models import Projects
-from projects.originals.models import Original, DatasetCandidate
+from projects.originals.models import DatasetCandidate
 
 
 class LabelDataset(models.Model):
