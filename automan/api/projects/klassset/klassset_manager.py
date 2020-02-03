@@ -26,17 +26,15 @@ class KlasssetManager(object):
         return new_klassset.id
 
     def get_klassset(self, project_id):
-        klassset = KlassSet.objects.filter(
-            project_id=project_id, delete_flag=False).first()
+        klassset = KlassSet.objects.filter(project_id=project_id).first()
         return klassset
 
     def get_klassset_info(self, project_id):
         klassset = KlassSet.objects.filter(
-            project_id=project_id, delete_flag=False).first()
+            project_id=project_id).first()
         try:
             klasses = KlassKlassSet.objects.filter(
-                klass_set_id=klassset.id,
-                delete_flag=False)
+                klass_set_id=klassset.id)
         except Exception:
             klasses = []
 

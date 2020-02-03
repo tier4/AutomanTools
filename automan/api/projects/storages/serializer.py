@@ -39,19 +39,16 @@ class StorageSerializer(serializers.ModelSerializer):
             if is_reverse is False:
                 storages = Storage.objects.order_by(sort_key).filter(
                     Q(project_id=project_id),
-                    Q(delete_flag=False),
                     Q(storage_type__contains=search_keyword) | Q(storage_config__contains=search_keyword)
                 )[begin:begin + per_page]
             else:
                 storages = Storage.objects.order_by(sort_key).reverse().filter(
                     Q(project_id=project_id),
-                    Q(delete_flag=False),
                     Q(storage_type__contains=search_keyword) | Q(storage_config__contains=search_keyword)
                 )[begin:begin + per_page]
         except FieldError:
             storages = Storage.objects.order_by("id").filter(
                 Q(project_id=project_id),
-                Q(delete_flag=False),
                 Q(storage_type__contains=search_keyword) | Q(storage_config__contains=search_keyword)
             )[begin:begin + per_page]
         records = []
@@ -80,6 +77,19 @@ class StorageSerializer(serializers.ModelSerializer):
             'storage_config': json.loads(storage.storage_config),
         }
         return record
+    
+    def get_storages(self, project_id):
+        storages = Storage.objects.filter(project_id=project_id)
+        records = []
+        for storage in storages:
+            record = {
+                'id': storage.id,
+                'storage_type': storage.storage_type,
+                'storage_config': json.loads(storage.storage_config),
+            }
+            print(record)
+            records.append(record)
+        return records
 
     @staticmethod
     def get_original_path(storage_type, storage_config, name):

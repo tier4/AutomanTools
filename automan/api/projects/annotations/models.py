@@ -10,7 +10,6 @@ class Annotation(models.Model):
     dataset = models.ForeignKey(LabelDataset, on_delete=models.CASCADE)
     name = models.CharField(max_length=127, default='')
     created_at = models.DateTimeField(default=timezone.now)
-    delete_flag = models.BooleanField(default=False)
     project = models.ForeignKey(Projects, on_delete=models.CASCADE)
 
 
@@ -19,7 +18,6 @@ class ArchivedLabelDataset(models.Model):
     file_name = models.CharField(max_length=255, default='')
     date = models.DateTimeField(default=timezone.now)
     progress = models.IntegerField(default=0)
-    delete_flag = models.BooleanField(default=False)
     annotation = models.ForeignKey(Annotation, on_delete=models.CASCADE)
 
 

@@ -6,14 +6,11 @@ from projects.originals.models import Original, DatasetCandidate
 
 
 class LabelDataset(models.Model):
-    original = models.ForeignKey(
-        Original, null=True,
-        related_name='project_rosbag', on_delete=models.CASCADE)
+    original = models.IntegerField(default=-1)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(default=timezone.now)
     file_path = models.CharField(max_length=255, default='')
     name = models.CharField(max_length=100, default='')
-    delete_flag = models.BooleanField(default=False)
     frame_count = models.IntegerField(default=-1)
     project = models.ForeignKey(Projects, null=True, on_delete=models.CASCADE)
 

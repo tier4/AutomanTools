@@ -13,6 +13,12 @@ import IconButton from '@material-ui/core/IconButton';
 import CloseIcon from '@material-ui/icons/Close';
 import ResizableTable from 'automan/dashboard/components/parts/resizable_table';
 import { mainStyle } from 'automan/assets/main-style';
+import DeleteIcon from '@material-ui/icons/Delete';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+import DialogTitle from '@material-ui/core/DialogTitle';
 
 
 function actionFormatter(cell, row) {
@@ -27,9 +33,26 @@ class OriginalTable extends React.Component {
       total_count: 0,
       data: [],
       error: null,
-      query: RequestClient.createPageQuery()
+      query: RequestClient.createPageQuery(),
+      open: false,
+      row_id: null,
+      row_name: ''
     };
   }
+  handleClickOpen = row => {
+    this.setState({
+      open: true,
+      row_id: row.id,
+      row_name: row.name
+    });
+  };
+  handleOK = () => {
+    this.setState({ open: false });
+    this.props.deleteOrig(this.state.row_id)
+  };
+  handleCancel = () => {
+    this.setState({ open: false });
+  };
   componentDidMount() {
     this.updateData();
   }
@@ -105,7 +128,7 @@ class OriginalTable extends React.Component {
       actions = (
         <div className="text-center">
           <Tooltip title="Analyze">
-            <div style={{display:'inline-block'}}>
+            <div style={{ display: 'inline-block' }}>
               <Button
                 disabled={row.status !== 'uploaded'}
                 classes={{ root: classes.tableActionButton }}
@@ -116,13 +139,23 @@ class OriginalTable extends React.Component {
             </div>
           </Tooltip>
           <Tooltip title="Extract">
-            <div style={{display:'inline-block'}}>
+            <div style={{ display: 'inline-block' }}>
               <Button
                 disabled={row.status !== 'analyzed'}
                 classes={{ root: classes.tableActionButton }}
                 onClick={() => this.props.extractorFormShow(row.id)}
               >
                 <Unarchive fontSize="small" />
+              </Button>
+            </div>
+          </Tooltip>
+          <Tooltip title="Delete">
+            <div style={{ display: 'inline-block' }}>
+              <Button
+                classes={{ root: classes.tableActionButton }}
+                onClick={() => this.handleClickOpen(row)}
+              >
+                <DeleteIcon fontSize="small" />
               </Button>
             </div>
           </Tooltip>
@@ -188,7 +221,7 @@ class OriginalTable extends React.Component {
           <TableHeaderColumn width="20%" dataField="status" dataSort={true}>
             Status
           </TableHeaderColumn>
-          <TableHeaderColumn width="15%" dataField="actions" dataFormat={actionFormatter}>
+          <TableHeaderColumn width="25%" dataField="actions" dataFormat={actionFormatter}>
           </TableHeaderColumn>
         </ResizableTable>
         <Snackbar
@@ -239,6 +272,27 @@ class OriginalTable extends React.Component {
             </IconButton>
           ]}
         />
+        <Dialog
+          open={this.state.open}
+          onClose={this.handleClose}
+          aria-labelledby="alert-dialog-title"
+          aria-describedby="alert-dialog-description"
+        >
+          <DialogTitle id="alert-dialog-title">{"Delete raw data?"}</DialogTitle>
+          <DialogContent>
+            <DialogContentText id="alert-dialog-description">
+              Name: {this.state.row_name}
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={this.handleCancel} color="primary">
+              Canncel
+            </Button>
+            <Button onClick={this.handleOK} color="primary" autoFocus>
+              OK
+            </Button>
+          </DialogActions>
+        </Dialog>
       </div>
     );
   }

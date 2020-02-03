@@ -14,6 +14,12 @@ import CloudDownload from '@material-ui/icons/CloudDownload';
 import Snackbar from '@material-ui/core/Snackbar';
 import IconButton from '@material-ui/core/IconButton';
 import CloseIcon from '@material-ui/icons/Close';
+import DeleteIcon from '@material-ui/icons/Delete';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+import DialogTitle from '@material-ui/core/DialogTitle';
 
 function actionFormatter(cell, row) {
   return row.actions;
@@ -29,6 +35,9 @@ class AnnotationTable extends React.Component {
       error: null,
       query: RequestClient.createPageQuery(),
       snackbar: false,
+      open: false,
+      row_id: null,
+      row_name: '',
     };
   }
   show = () => {
@@ -37,14 +46,30 @@ class AnnotationTable extends React.Component {
   hide = () => {
     this.setState({ snackbar: false });
   };
+  handleDialogOpen = row => {
+    this.setState({
+      open: true,
+      row_id: row.id,
+      row_name: row.name
+    });
+  };
+  handleOK = () => {
+    this.setState({ open: false });
+    this.props.deleteAnnotation(this.state.row_id);
+  };
+  handleCancel = () => {
+    this.setState({ open: false });
+  };
   componentDidMount() {
     this.updatePage();
   }
   componentDidUpdate(prevProps, prevState) {
     if (
       prevProps.currentProject == null ||
-      this.props.currentProject.id !== prevProps.currentProject.id
+      this.props.currentProject.id !== prevProps.currentProject.id ||
+      this.props.needUpdate
     ) {
+      this.props.handleUpdate();
       this.updatePage();
     }
   }
@@ -90,14 +115,14 @@ class AnnotationTable extends React.Component {
     RequestClient.get(
       url,
       this.state.query.getData(),
-      function(res) {
+      function (res) {
         that.setState({
           total_count: res.count,
           data: res.records,
           is_loading: false
         });
       },
-      function(mes) {
+      function (mes) {
         that.setState({
           is_loading: false,
           error: mes.message
@@ -146,7 +171,7 @@ class AnnotationTable extends React.Component {
     );
   }
   render() {
-    if ( this.state.error ) {
+    if (this.state.error) {
       return (
         <div> {this.state.error} </div>
       );
@@ -156,7 +181,7 @@ class AnnotationTable extends React.Component {
     let rows = [];
     if (!this.state.is_loading) {
       rows = this.state.data.map(
-        function(row, index) {
+        function (row, index) {
           let actions;
           if (
             row.archive_url != null && // TODO: tmp check
@@ -166,26 +191,36 @@ class AnnotationTable extends React.Component {
               <div className="text-center">
                 <Tooltip title="Archive">
                   <Button
-                    classes={{root: classes.tableActionButton}}
+                    classes={{ root: classes.tableActionButton }}
                     onClick={e => this.handleArchive(row)}
                     className={classes.button}>
-                    <Archive fontSize="small"/>
+                    <Archive fontSize="small" />
                   </Button>
                 </Tooltip>
                 <Tooltip title="Download">
                   <Button
-                    classes={{root: classes.tableActionButton}}
-                    onClick={()=>{
+                    classes={{ root: classes.tableActionButton }}
+                    onClick={() => {
                       RequestClient.getBinaryAsURL(row.archive_url, (url) => {
                         let a = document.createElement('a');
                         a.download = row.file_name;
                         a.href = url;
                         a.click();
-                      }, () => {});
+                      }, () => { });
                     }}
                     className={classes.button}>
-                    <CloudDownload fontSize="small"/>
+                    <CloudDownload fontSize="small" />
                   </Button>
+                </Tooltip>
+                <Tooltip title="Delete">
+                  <div style={{ display: 'inline-block' }}>
+                    <Button
+                      classes={{ root: classes.tableActionButton }}
+                      onClick={() => this.handleDialogOpen(row)}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </Button>
+                  </div>
                 </Tooltip>
               </div>
             );
@@ -195,18 +230,28 @@ class AnnotationTable extends React.Component {
                 <span>
                   <Tooltip title="Archive">
                     <Button
-                      classes={{root: classes.tableActionButton}}
+                      classes={{ root: classes.tableActionButton }}
                       onClick={e => this.handleArchive(row)}
                       className={classes.button}>
-                      <Archive fontSize="small"/>
+                      <Archive fontSize="small" />
                     </Button>
                   </Tooltip>
                   <Button
                     disabled
-                    classes={{root: classes.tableActionButton}}
+                    classes={{ root: classes.tableActionButton }}
                     className={classes.button}>
-                    <CloudDownload fontSize="small"/>
+                    <CloudDownload fontSize="small" />
                   </Button>
+                  <Tooltip title="Delete">
+                    <div style={{ display: 'inline-block' }}>
+                      <Button
+                        classes={{ root: classes.tableActionButton }}
+                        onClick={() => this.handleDialogOpen(row)}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </Button>
+                    </div>
+                  </Tooltip>
                 </span>
               </div>
             );
@@ -304,6 +349,27 @@ class AnnotationTable extends React.Component {
             </IconButton>
           ]}
         />
+        <Dialog
+          open={this.state.open}
+          onClose={this.handleClose}
+          aria-labelledby="alert-dialog-title"
+          aria-describedby="alert-dialog-description"
+        >
+          <DialogTitle id="alert-dialog-title">{"Delete Annotation"}</DialogTitle>
+          <DialogContent>
+            <DialogContentText id="alert-dialog-description">
+              Name: {this.state.row_name}
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={this.handleCancel} color="primary">
+              Canncel
+            </Button>
+            <Button onClick={this.handleOK} color="primary" autoFocus>
+              OK
+            </Button>
+          </DialogActions>
+        </Dialog>
       </div>
     );
   }

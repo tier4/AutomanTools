@@ -1,5 +1,6 @@
 import copy
 import json
+import shutil
 import os
 from datetime import datetime
 from django.core.exceptions import ObjectDoesNotExist, FieldError, ValidationError
@@ -8,6 +9,7 @@ from django.db.models import Q
 from django.utils import timezone
 from projects.originals.models import Original, FileType, RelatedFile, DatasetCandidate
 from projects.storages.serializer import StorageSerializer
+from projects.datasets.dataset_manager import DatasetManager
 from api.common import validation_check
 from api.settings import SORT_KEY, PER_PAGE
 from automan_website.settings import STORAGE_CONFIG
@@ -25,8 +27,7 @@ class OriginalManager(object):
             user_id=user_id,
             file_type=file_type,
             size=size,
-            storage_id=storage_id,
-            delete_flag=False)
+            storage_id=storage_id)
         new_original.save()
         storage_config = copy.deepcopy(STORAGE_CONFIG)
         storage_config.update({'blob': name})
@@ -46,7 +47,7 @@ class OriginalManager(object):
             original.analyzed_at = timezone.datetime.now()
             for candidate in dataset_candidates:
                 new_dataset_candidate = DatasetCandidate(
-                    original=original,
+                    original=original.id,
                     frame_count=candidate['frame_count'],
                     data_type=candidate['data_type'],
                     analyzed_info=json.dumps(candidate['analyzed_info'])
@@ -60,10 +61,10 @@ class OriginalManager(object):
     def get_original(self, project_id, original_id, status=None):
         if status:
             original = Original.objects.filter(
-                id=original_id, delete_flag=False, status=status).first()
+                id=original_id, status=status).first()
         else:
             original = Original.objects.filter(
-                id=original_id, delete_flag=False).first()
+                id=original_id).first()
         if original is None:
             raise ObjectDoesNotExist()
         content = {
@@ -77,12 +78,11 @@ class OriginalManager(object):
             'uploaded_at': str(original.uploaded_at),
             'analyzed_at': str(original.analyzed_at),
             'canceled_at': str(original.canceled_at),
-            'delete_flag': original.delete_flag,
             'project_id': original.project.id,
             'status': original.status,
         }
         return content
-
+    
     def get_originals(
             self, project_id, sort_key=SORT_KEY, is_reverse=False, per_page=PER_PAGE, page=1,
             search_keyword="", status=""):
@@ -92,19 +92,16 @@ class OriginalManager(object):
             if is_reverse is False:
                 originals = Original.objects.order_by(sort_key).filter(
                     Q(project_id=project_id),
-                    Q(delete_flag=False),
                     Q(name__contains=search_keyword),
                     Q(status__contains=status))[begin:begin + per_page]
             else:
                 originals = Original.objects.order_by(sort_key).reverse().filter(
                     Q(project_id=project_id),
-                    Q(delete_flag=False),
                     Q(name__contains=search_keyword),
                     Q(status__contains=status))[begin:begin + per_page]
         except FieldError:
             originals = Original.objects.order_by("id").filter(
                 Q(project_id=project_id),
-                Q(delete_flag=False),
                 Q(name__contains=search_keyword),
                 Q(status__contains=status))[begin:begin + per_page]
         records = []
@@ -128,13 +125,13 @@ class OriginalManager(object):
 
     def get_dataset_candidates(self, project_id, original_id, data_type=""):
         dataset_candidates = DatasetCandidate.objects.filter(
-            Q(original_id=original_id),
+            Q(original=original_id),
             Q(data_type__contains=data_type))
         records = []
         for dataset_candidate in dataset_candidates:
             record = {}
             record['candidate_id'] = dataset_candidate.id
-            record['original_id'] = dataset_candidate.original.id
+            record['original_id'] = dataset_candidate.original
             record['data_type'] = dataset_candidate.data_type
             record['analyzed_info'] = dataset_candidate.analyzed_info
             record['frame_count'] = dataset_candidate.frame_count
@@ -147,14 +144,14 @@ class OriginalManager(object):
             raise ObjectDoesNotExist()
 
         record = {}
-        record['original_id'] = dataset_candidate.original.id
+        record['original_id'] = dataset_candidate.original
         record['data_type'] = dataset_candidate.data_type
         record['analyzed_info'] = dataset_candidate.analyzed_info
         record['frame_count'] = dataset_candidate.frame_count
         return record
 
     def original_total_count(self, project_id):
-        originals = Original.objects.filter(project_id=project_id, delete_flag=False)
+        originals = Original.objects.filter(project_id=project_id)
         return originals.count()
 
     def save_file(self, project_id, original_id, file):
@@ -199,10 +196,22 @@ class OriginalManager(object):
             file_name=name, file_path=file_path)
         return related_file
 
-    def delete_rosbag(self, project_id, user_id, rosbag_id):
-        rosbag = Original.objects.filter(project_id=project_id, id=rosbag_id).first()
+    def delete_rosbag(self, project_id, user_id, original_id):
+        rosbag = Original.objects.filter(project_id=project_id, id=original_id).first()
         if rosbag is None:
             raise ObjectDoesNotExist()
-        rosbag.delete_flag = True
-        rosbag.save()
+        
+        storage = StorageSerializer().get_storage(project_id, rosbag.storage_id)
+        dir_path = (storage['storage_config']['mount_path']
+                    + storage['storage_config']['base_dir']
+                    + '/' + rosbag.name + '/')
+
+        dataset_manager = DatasetManager()
+        if dataset_manager.get_datasets_count_by_original(original_id) == 0:
+            candidates = DatasetCandidate.objects.filter(original=original_id)
+            for candidate in candidates:
+                candidate.delete()
+
+        rosbag.delete()
+        shutil.rmtree(dir_path)
         return True
