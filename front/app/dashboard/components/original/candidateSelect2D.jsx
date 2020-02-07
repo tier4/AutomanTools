@@ -44,6 +44,7 @@ class CandidateSelect2D extends React.Component {
     }
     this.setState({ candidates: candidates });
     this.props.handleSetJobConfig('candidates', candidates);
+    this.props.handleSelect(candidates.length != 0);
   };
   render() {
     const { classes } = this.props;

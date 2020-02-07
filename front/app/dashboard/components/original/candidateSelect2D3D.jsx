@@ -55,6 +55,14 @@ class CandidateSelect2D3D extends React.Component {
     }
     this.setState({ candidates: candidates });
     this.props.handleSetJobConfig('candidates', candidates);
+
+    let is_2d_selected = (this.state.candidates_2d.map((x) => {
+      return candidates.includes(x.candidate_id)
+    })).includes(true);
+    let is_3d_selected = (this.state.candidates_3d.map((x) => {
+      return candidates.includes(x.candidate_id)
+    })).includes(true);
+    this.props.handleSelect(is_2d_selected && is_3d_selected);
   };
   render() {
     const { classes } = this.props;

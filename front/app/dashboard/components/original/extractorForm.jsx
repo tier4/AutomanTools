@@ -28,7 +28,8 @@ class ExtractorForm extends React.Component {
       query: RequestClient.createPageQuery(),
       jobType: 'EXTRACTOR',
       jobConfig: {},
-      activeStep: 0
+      activeStep: 0,
+      selected: false
     };
   }
   componentDidUpdate(prevProps) {
@@ -97,6 +98,7 @@ class ExtractorForm extends React.Component {
               original_id={this.props.original_id}
               handleSetJobConfig={this.handleSetJobConfig}
               handleGetJobConfig={this.handleGetJobConfig}
+              handleSelect={this.handleSelect}
             />
           );
         } else if (this.props.currentProject.label_type === 'BB2D3D') {
@@ -105,6 +107,7 @@ class ExtractorForm extends React.Component {
               original_id={this.props.original_id}
               handleSetJobConfig={this.handleSetJobConfig}
               handleGetJobConfig={this.handleGetJobConfig}
+              handleSelect={this.handleSelect}
             />
           );
         }
