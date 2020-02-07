@@ -1,12 +1,3 @@
-import copy
-import json
-import shutil
-import os
-from datetime import datetime
-from django.core.exceptions import ObjectDoesNotExist, FieldError, ValidationError
-from django.db import transaction
-from django.db.models import Q
-from django.utils import timezone
 from projects.originals.models import Original, DatasetCandidate
 
 

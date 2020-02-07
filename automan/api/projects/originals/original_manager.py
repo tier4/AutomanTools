@@ -82,7 +82,7 @@ class OriginalManager(object):
             'status': original.status,
         }
         return content
-    
+
     def get_originals(
             self, project_id, sort_key=SORT_KEY, is_reverse=False, per_page=PER_PAGE, page=1,
             search_keyword="", status=""):
@@ -200,7 +200,7 @@ class OriginalManager(object):
         rosbag = Original.objects.filter(project_id=project_id, id=original_id).first()
         if rosbag is None:
             raise ObjectDoesNotExist()
-        
+
         storage = StorageSerializer().get_storage(project_id, rosbag.storage_id)
         dir_path = (storage['storage_config']['mount_path']
                     + storage['storage_config']['base_dir']

@@ -129,7 +129,7 @@ class AnnotationManager(object):
             record['object_id'] = object.id
             record['name'] = label.name
             record['content'] = json.loads(label.content)
-            record['instance_id'] = str(object.instance) if object.instance != None else None
+            record['instance_id'] = str(object.instance) if object.instance is not None else None
             records.append(record)
             count += 1
         labels = {}
@@ -237,14 +237,14 @@ class AnnotationManager(object):
         return archive_path
 
     def get_instances(self, annotation_id):
-            objects = DatasetObject.objects.filter(annotation_id=annotation_id)
-            records = []
-            for object in objects:
-                records.append(str(object.instance))
-            labels = {}
-            labels['records'] = list(set(records))
-            labels['count'] = len(labels['records'])
-            return labels
+        objects = DatasetObject.objects.filter(annotation_id=annotation_id)
+        records = []
+        for object in objects:
+            records.append(str(object.instance))
+        labels = {}
+        labels['records'] = list(set(records))
+        labels['count'] = len(labels['records'])
+        return labels
 
     def get_instance(self, annotation_id, instance_id):
         if self.is_valid_uuid4(instance_id) is not True:
