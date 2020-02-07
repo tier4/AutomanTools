@@ -20,7 +20,7 @@ class CandidateSelect2D extends React.Component {
   }
   componentDidMount() {
     const original_id = this.props.original_id;
-    this.props.handleSetJobConfig({original_id: this.props.original_id});
+    this.props.handleSetJobConfig({ original_id: this.props.original_id });
     const candidates = this.props.handleGetJobConfig('candidates');
     this.setState({ candidates: candidates });
     let url =
@@ -32,7 +32,7 @@ class CandidateSelect2D extends React.Component {
       data => {
         this.setState({ candidates_2d: data.records });
       },
-      () => {}
+      () => { }
     );
   }
   handleChangeCandidate = e => {
