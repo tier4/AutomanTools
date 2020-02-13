@@ -28,11 +28,12 @@ class ExtractorForm extends React.Component {
       query: RequestClient.createPageQuery(),
       jobType: 'EXTRACTOR',
       jobConfig: {},
-      activeStep: 0
+      activeStep: 0,
+      selected: false
     };
   }
   componentDidUpdate(prevProps) {
-    if ( prevProps.original_id !== this.props.original_id ) {
+    if (prevProps.original_id !== this.props.original_id) {
       this.setState({
         activeStep: 0,
         jobConfig: {}
@@ -83,11 +84,14 @@ class ExtractorForm extends React.Component {
     let step = this.state.activeStep - 1;
     this.setState({ activeStep: step });
   };
+  handleSelect = (is_selected) => {
+    this.setState({ selected: is_selected })
+  }
   isLastStep() {
     return this.state.activeStep === this.totalSteps() - 1;
   }
   getStepContent(step) {
-    if(this.props.original_id === 0)
+    if (this.props.original_id === 0)
       return 'Unknown type'
     switch (step) {
       case 0:
@@ -97,6 +101,7 @@ class ExtractorForm extends React.Component {
               original_id={this.props.original_id}
               handleSetJobConfig={this.handleSetJobConfig}
               handleGetJobConfig={this.handleGetJobConfig}
+              handleSelect={this.handleSelect}
             />
           );
         } else if (this.props.currentProject.label_type === 'BB2D3D') {
@@ -105,6 +110,7 @@ class ExtractorForm extends React.Component {
               original_id={this.props.original_id}
               handleSetJobConfig={this.handleSetJobConfig}
               handleGetJobConfig={this.handleGetJobConfig}
+              handleSelect={this.handleSelect}
             />
           );
         }
@@ -173,15 +179,16 @@ class ExtractorForm extends React.Component {
                       <Send /> Submit
                     </Button>
                   ) : (
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      onClick={this.handleNext}
-                      className={classes.button}
-                    >
-                      Next
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        disabled={!this.state.selected}
+                        onClick={this.handleNext}
+                        className={classes.button}
+                      >
+                        Next
                     </Button>
-                  )}
+                    )}
                 </div>
               </div>
             </div>
