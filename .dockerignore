@@ -1,4 +1,8 @@
+# front
+front/node_modules/
+front/webpack-stats.json
+front/dist/
+
 .git/
-.venv/
-node_modules/
 setup/
+__pycache__
