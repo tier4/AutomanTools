@@ -7,8 +7,8 @@ ENV LANG "C.UTF-8"
 ENV APP_PATH /opt/automan
 
 # install python
-RUN apt update && \
-    apt install -y --no-install-recommends \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
     apt-transport-https \
     default-libmysqlclient-dev \
     ca-certificates \
@@ -30,26 +30,29 @@ RUN apt update && \
     wget \
     xz-utils \
     zlib1g-dev && \
-    apt clean && \
-    rm -rf /var/lib/apt/lists/* && \
     pip install --no-cache-dir pipenv && \
     curl -sL https://deb.nodesource.com/setup_10.x | bash - && \
-    apt install -y nodejs && \
+    apt-get install -y nodejs && \
     curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
     echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list && \
-    apt update && apt install -y yarn
+    apt-get update && \
+    apt-get install -y yarn && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# FIXME COPY -> RUN git clone
-# cd automan
-# docker build -t automan-labeling-app -f Dockerfile .
+# setup pipenv
 COPY automan/Pipfile* /tmp/automan/
 WORKDIR /tmp/automan
 RUN pipenv install --system --deploy
 
+# setup yarn packages
+COPY front/package.json $APP_PATH/front/
+WORKDIR $APP_PATH/front
+RUN yarn install
+
 COPY . $APP_PATH/
 # setup frontend environment
-WORKDIR $APP_PATH/front
-RUN yarn install && yarn build
+RUN yarn build
 
 WORKDIR $APP_PATH/
 ENTRYPOINT ["./bin/docker-entrypoint.sh"]
