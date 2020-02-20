@@ -11,4 +11,3 @@ class Storage(models.Model):
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(default=timezone.now)
     project = models.ForeignKey(Projects, on_delete=models.CASCADE)
-    delete_flag = models.BooleanField(default=False)

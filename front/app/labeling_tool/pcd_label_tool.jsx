@@ -302,10 +302,15 @@ class PCDLabelTool extends React.Component {
   }
   // button actions
   setHeight = () => {
-    const bboxes = Array.from(this.pcdBBoxes);
+    let bboxes;
+    const tgt = this._controls.getTargetLabel();
+    if (tgt !== null) {
+      bboxes = [tgt.bbox[this.candidateId]];
+    } else {
+      bboxes = Array.from(this.pcdBBoxes);
+    }
     const posArray = this._currentPointMesh.geometry.getAttribute('position').array;
     let changedLabel = null;
-    let existIncludePoint = false;
     for (let i=0; i<bboxes.length; ++i) {
       const bbox = bboxes[i];
       let maxZ = -Infinity, minZ = Infinity;
@@ -320,13 +325,12 @@ class PCDLabelTool extends React.Component {
         const x = Math.abs( dx*Math.cos(yaw) + dy*Math.sin(yaw)),
               y = Math.abs(-dx*Math.sin(yaw) + dy*Math.cos(yaw));
         if (2*x < boxsx && 2*y < boxsy) {
-          existIncludePoint = true;
           const z = posArray[j+2];
           maxZ = Math.max(maxZ, z);
           minZ = Math.min(minZ, z);
         }
       }
-      if (!existIncludePoint) {
+      if (maxZ <= minZ) {
         continue;
       }
 

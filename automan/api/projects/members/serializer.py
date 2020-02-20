@@ -10,8 +10,7 @@ class MemberSerializer(serializers.ModelSerializer):
 
     @classmethod
     def list(self, project_id):
-        members = Members.objects.filter(
-            project_id=project_id, delete_flag=False)
+        members = Members.objects.filter(project_id=project_id)
         if members is None:
             raise ObjectDoesNotExist()
 
@@ -31,12 +30,12 @@ class MemberSerializer(serializers.ModelSerializer):
     def destroy(cls, project_id, user_id, group_id):
         member = Members.objects.filter(
             project_id=project_id, user_id=user_id, group_id=group_id).first()
-        member.delete_flag = True
-        member.save()
-        return member.id
+        id = member.id
+        member.delete()
+        return id
 
     @classmethod
     def get_group(cls, project_id, user_id):
         member = Members.objects.filter(
-            project_id=project_id, user_id=user_id, delete_flag=False).first()
+            project_id=project_id, user_id=user_id).first()
         return member.group.name

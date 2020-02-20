@@ -8,7 +8,6 @@ class Members(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     group = models.ForeignKey(Groups, on_delete=models.CASCADE)
     project = models.ForeignKey(Projects, on_delete=models.CASCADE)
-    delete_flag = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'members'

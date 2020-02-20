@@ -22,7 +22,7 @@ class CandidateSelect2D3D extends React.Component {
   }
   componentDidMount() {
     const original_id = this.props.original_id;
-    this.props.handleSetJobConfig({original_id: this.props.original_id});
+    this.props.handleSetJobConfig({ original_id: this.props.original_id });
     const candidates = this.props.handleGetJobConfig('candidates');
     this.setState({ candidates: candidates });
     let urlBase =
@@ -35,7 +35,7 @@ class CandidateSelect2D3D extends React.Component {
       data => {
         this.setState({ candidates_2d: data.records });
       },
-      () => {}
+      () => { }
     );
     RequestClient.get(
       pcdUrl,
@@ -43,7 +43,7 @@ class CandidateSelect2D3D extends React.Component {
       data => {
         this.setState({ candidates_3d: data.records });
       },
-      () => {}
+      () => { }
     );
   }
   handleChangeCandidate = e => {
@@ -55,6 +55,12 @@ class CandidateSelect2D3D extends React.Component {
     }
     this.setState({ candidates: candidates });
     this.props.handleSetJobConfig('candidates', candidates);
+
+    let is_2d_selected = this.state.candidates_2d.some(
+      x => candidates.includes(x.candidate_id));
+    let is_3d_selected = this.state.candidates_3d.some(
+      x => candidates.includes(x.candidate_id));
+    this.props.handleSelect(is_2d_selected && is_3d_selected);
   };
   render() {
     const { classes } = this.props;
