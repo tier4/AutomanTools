@@ -302,7 +302,8 @@ class Controls extends React.Component {
       .then(
         () => {
         },
-        () => {
+        (err) => {
+          console.error(err);
         }
       );
     return true;

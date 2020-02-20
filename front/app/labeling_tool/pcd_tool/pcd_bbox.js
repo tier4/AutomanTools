@@ -64,6 +64,9 @@ export default class PCDBBox {
   updateSelected(selected) {
     this.selected = selected;
     this.cube.meshFrame.setStatus(selected, false);
+    this.cube.meshFrame.setBold(selected);
+    const box = this.box;
+    this.cube.meshFrame.setParam(box.pos, box.size, box.yaw);
   }
   hover(isInto) {
     this.cube.meshFrame.setStatus(this.selected, isInto);
@@ -92,6 +95,21 @@ export default class PCDBBox {
     obj['height_3d'] = this.box.size.y;
     obj['length_3d'] = this.box.size.z;
     obj['rotation_y'] = this.box.yaw;
+  }
+  static fromContentToObj(content) {
+    const ret = {
+      pos: new THREE.Vector3(),
+      size: new THREE.Vector3(),
+      yaw: 0
+    };
+    ret.pos.x  = +content['x_3d'];
+    ret.pos.y  = +content['y_3d'];
+    ret.pos.z  = +content['z_3d'];
+    ret.size.x = +content['width_3d'];
+    ret.size.y = +content['height_3d'];
+    ret.size.z = +content['length_3d'];
+    ret.yaw    = +content['rotation_y'];
+    return ret;
   }
   fromContent(content) {
     this.box.pos.x  = +content['x_3d'];

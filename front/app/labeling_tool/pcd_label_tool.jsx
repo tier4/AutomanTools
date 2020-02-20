@@ -24,7 +24,9 @@ class PCDLabelTool extends React.Component {
     super(props);
     this.state = {
     };
-    this._element = React.createRef();
+    this._wrapperElement = React.createRef();
+    this._mainElement = React.createRef();
+    this._wipeElement = React.createRef();
     this._toolButtons = (
       <Button
         key={0}
@@ -46,13 +48,43 @@ class PCDLabelTool extends React.Component {
   }
   render() {
     return (
-      <div ref={this._element} />
+      <div
+        ref={this._wrapperElement}
+        style={{position: 'relative'}}
+      >
+        <div ref={this._mainElement} />
+        <div
+          ref={this._wipeElement}
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            borderTop: 'solid 2px #fff',
+            borderRight: 'solid 2px #fff'
+          }}
+          onClick={() => this.props.controls.previousFrame()}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              backgroundColor: '#fff',
+              padding: '0px 7px'
+            }}
+          >
+            Prev
+          </div>
+        </div>
+      </div>
     );
   }
 
   // private
   _canvasSize = { width: 2, height: 1 };
   _wrapper = null;
+  _main = null;
+  _wipe = null;
   _loaded = true;
   _scene = null;
   _renderer = null;
@@ -62,6 +94,8 @@ class PCDLabelTool extends React.Component {
   // PCD objects
   _pcdLoader = null;
   _pointMeshes = [];
+  _wipePointMeshes = [];
+  _currentWipePointMesh = null;
   _currentPointMesh = null;
   // to mouse position
   _groundPlane = null;
@@ -114,32 +148,77 @@ class PCDLabelTool extends React.Component {
 
     this._animate();
   }
-  load(frame) {
-    this._loaded = false;
-    const url = this.props.labelTool.getURL('frame_blob', this.candidateId, frame);
-    this._pointMeshes.forEach(mesh => { mesh.visible = false; });
-    // use preloaded pcd mesh
-    if (this._pointMeshes[frame] != null) {
-      this._pointMeshes[frame].visible =true;
-      this._currentPointMesh = this._pointMeshes[frame];
-      this._redrawFlag = true;
-      this._loaded = true;
-      return Promise.resolve();
+  isLoadedFrame(frame) {
+    return this._pointMeshes[frame] != null;
+  }
+  setVisibleTo(mesh, val) {
+    if (mesh != null) {
+      mesh.visible = val;
     }
-    // load new pcd file
+  }
+  setPointMesh(frame, mesh) {
+    this._pointMeshes[frame] = mesh;
+    mesh.visible = false;
+    this._scene.add(mesh);
+    const wipeMesh = mesh.clone();
+    this._wipePointMeshes[frame] = wipeMesh;
+    this._wipeScene.add(wipeMesh);
+    return wipeMesh;
+  }
+  pcdLoad(frame) {
+    if (this.isLoadedFrame(frame)) {
+      return Promise.resolve({
+        mesh: this._pointMeshes[frame],
+        wipeMesh: this._wipePointMeshes[frame]
+      });
+    }
+    const url = this.props.labelTool.getURL('frame_blob', this.candidateId, frame);
     return new Promise((resolve, reject) => {
-      this._pcdLoader.load(url, (mesh) => {
-        this._pointMeshes[frame] = mesh;
-        this._currentPointMesh = mesh;
-        this._scene.add(mesh);
-        this._redrawFlag = true;
-        this._loaded = true;
-        resolve();
+      this._pcdLoader.load(url, mesh => {
+        const wipeMesh = this.setPointMesh(frame, mesh);
+        resolve({
+          mesh,
+          wipeMesh
+        });
       }, () => { // in progress
       }, (e) => { // error
-        this._loaded = true;
         reject(e);
       });
+    });
+  }
+  loadWipe(frame) {
+    this.setVisibleTo(this._currentWipePointMesh, false);
+    this._currentWipePointMesh = null;
+    const wipeFrame = frame - 1;
+    if (wipeFrame < 0) {
+      return Promise.resolve();
+    }
+    return this.pcdLoad(wipeFrame).then(({ wipeMesh }) => {
+      this._currentWipePointMesh = wipeMesh;
+      wipeMesh.visible = true;
+    });
+  }
+  loadMain(frame) {
+    this.setVisibleTo(this._currentPointMesh, false);
+    return this.pcdLoad(frame).then(({ mesh }) => {
+      this._currentPointMesh = mesh;
+      mesh.visible = true;
+    });
+  }
+  load(frame) {
+    this._loaded = false;
+
+    return Promise.all([
+      this.loadWipe(frame),
+      this.loadMain(frame)
+    ]).finally(() => {
+      if (this._currentWipePointMesh != null) {
+        this._wipe.show();
+      } else {
+        this._wipe.hide();
+      }
+      this._redrawFlag = true;
+      this._loaded = true;
     });
   }
   handles = {
@@ -155,6 +234,8 @@ class PCDLabelTool extends React.Component {
       }
       camera.updateProjectionMatrix();
       this._renderer.setSize(size.width, size.height);
+      const wipeScale = 0.32;
+      this._wipeRenderer.setSize(size.width * wipeScale, size.height * wipeScale);
       this._redrawFlag = true;
     },
     keydown: (e) => {
@@ -178,8 +259,29 @@ class PCDLabelTool extends React.Component {
       this._wrapper.hide();
     }
   }
+  createWipeBBox(content, klass) {
+    const box = PCDBBox.fromContentToObj(content);
+    const meshFrame = new BoxFrameObject();
+    meshFrame.setParam(box.pos, box.size, box.yaw);
+    meshFrame.setColor(klass.getColor());
+    meshFrame.addTo(this._wipeScene);
+    // TODO: add class
+    return {
+      box: box,
+      meshFrame: meshFrame,
+      select(flag) {
+        this.meshFrame.setStatus(flag, false);
+        this.meshFrame.setBold(flag);
+        this.meshFrame.setParam(this.box.pos, this.box.size, this.box.yaw);
+      }
+    };
+  }
   createBBox(content) {
     return new PCDBBox(this, content);
+  }
+  disposeWipeBBox(bbox) {
+    bbox.meshFrame.removeFrom(this._wipeScene);
+    this.redrawRequest();
   }
   disposeBBox(bbox) {
     bbox.remove();
@@ -258,12 +360,6 @@ class PCDLabelTool extends React.Component {
   }
   _initThree() {
     const scene = new THREE.Scene();
-    /*
-    const axisHelper = new THREE.AxisHelper(0.1);
-    axisHelper.position.set(0, 0, 0);
-    scene.add(axisHelper);
-    */
-
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setClearColor(0x000000);
     renderer.setPixelRatio(window.devicePixelRatio);
@@ -284,6 +380,16 @@ class PCDLabelTool extends React.Component {
 
     const pcdLoader = new THREE.PCDLoader();
     this._pcdLoader = pcdLoader;
+
+
+    // wipe
+    const wipeScene = new THREE.Scene();
+    const wipeRenderer = new THREE.WebGLRenderer({ antialias: true });
+    wipeRenderer.setClearColor(0x000000);
+    wipeRenderer.setPixelRatio(window.devicePixelRatio);
+    wipeRenderer.setSize(this._canvasSize.width*0.22, this._canvasSize.height*0.22);
+    this._wipeRenderer = wipeRenderer;
+    this._wipeScene = wipeScene;
   }
   _initCamera() {
     // TODO: read YAML and set camera?
@@ -323,11 +429,17 @@ class PCDLabelTool extends React.Component {
     this._cameraControls = controls;
   }
   _initDom() {
-    //const wrapper = $('#canvas3d'); // change dom id
-    const wrapper = $(this._element.current);
-    wrapper.append(this._renderer.domElement);
+    const wrapper = $(this._wrapperElement.current);
     this._wrapper = wrapper;
     wrapper.hide();
+
+    const main = $(this._mainElement.current);
+    main.append(this._renderer.domElement);
+    this._main = main;
+
+    const wipe = $(this._wipeElement.current);
+    wipe.append(this._wipeRenderer.domElement);
+    this._wipe = wipe;
   }
   _initEvent() {
     const modeStatus = this._modeStatus;
@@ -348,7 +460,7 @@ class PCDLabelTool extends React.Component {
 
     
     // mouse events
-    this._wrapper.contextmenu((e) => {
+    this._main.contextmenu((e) => {
       e.preventDefault();
     }).mousedown((e) => {
       if (e.button !== 0) { return; } // not left click
@@ -407,6 +519,9 @@ class PCDLabelTool extends React.Component {
         this._renderer.render(
             this._scene,
             this._camera);
+        this._wipeRenderer.render(
+            this._wipeScene,
+            this._camera);
       } catch(e) {
         console.error(e);
         window.cancelAnimationFrame(id);
@@ -430,10 +545,10 @@ class PCDLabelTool extends React.Component {
     }
   }
   setMouseType(name) {
-    this._wrapper.css('cursor', name);
+    this._main.css('cursor', name);
   }
   resetMouseType() {
-    this._wrapper.css('cursor', 'crosshair');
+    this._main.css('cursor', 'crosshair');
   }
   
 
@@ -465,7 +580,7 @@ class PCDLabelTool extends React.Component {
 
   // 3d geo methods
   getMousePos(e) {
-    const offset = this._wrapper.offset();
+    const offset = this._main.offset();
     const size = this._renderer.getSize();
     return new THREE.Vector2(
        (e.clientX - offset.left) / size.width * 2 - 1,
@@ -1006,7 +1121,7 @@ function createModeMethods(pcdTool) {
       changeFrom: function() {
       },
       changeTo: function() {
-        //pcdTool._wrapper.css('cursor', 'crosshair');
+        //pcdTool._main.css('cursor', 'crosshair');
       },
     },
     'view': {
@@ -1026,7 +1141,7 @@ function createModeMethods(pcdTool) {
       },
       changeTo: function() {
         pcdTool._cameraControls.enabled = true;
-        //pcdTool._wrapper.css('cursor', 'all-scroll');
+        //pcdTool._main.css('cursor', 'all-scroll');
       },
     },
   };

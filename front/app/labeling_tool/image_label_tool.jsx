@@ -16,6 +16,8 @@ class ImageLabelTool extends React.Component {
       scale: 1.0
     };
     this._element = React.createRef();
+    this._wipeElement = React.createRef();
+    this._wrapperElement = React.createRef();
     props.dispatchAddTool(props.idx, this);
   }
   componentDidMount() {
@@ -28,26 +30,69 @@ class ImageLabelTool extends React.Component {
     return null; 
   }
   render() {
-    const wrapperStyle = {
+    const mainStyle = {
       transform: `scale(${this.state.scale})`,
       transformOrigin: 'left top'
     };
+    const wipeScale = this.state.scale * 0.32;
+    const wipeStyle = {
+      position: 'absolute',
+      transform: `scale(${wipeScale})`,
+      transformOrigin: 'left bottom',
+      bottom: 0,
+      left: 0,
+      borderTop: 'solid 2px #fff',
+      borderRight: 'solid 2px #fff'
+    };
+    const wipeTextStyle = {
+      transform: `scale(${1 / wipeScale})`,
+      transformOrigin: 'left top',
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      backgroundColor: '#fff',
+      padding: '0px 7px'
+    }
     return (
       <div
-        ref={this._element}
-        style={wrapperStyle}
-      />
+        ref={this._wrapperElement}
+        style={{
+          position: 'relative',
+          height: '100%'
+        }}
+      >
+        <div
+          ref={this._element}
+          style={mainStyle}
+        />
+        <div
+          ref={this._wipeElement}
+          style={wipeStyle}
+          onClick={() => this.props.controls.previousFrame()}
+        >
+          <div
+            style={wipeTextStyle}
+          >
+            Prev
+          </div>
+        </div>
+      </div>
     );
   }
 
   // private
   _decoration = null;
   // DOM
+  _wrapperElement = null;
   _element = null;
+  _wipeElement = null;
+  _wrapper = null;
   _container = null;
   _paper = null;
+  _wipePaper = null;
   _loaded = true;
   _image = null;
+  _wipeImage = null;
   _imageSize = {
     width: 0,
     height: 0
@@ -74,7 +119,11 @@ class ImageLabelTool extends React.Component {
     this._paper = Raphael(container);
     this._container = $(container);
     this._decoration = new Decorations(this._paper);
-    this._container.hide();
+    const wipe = this._wipeElement.current;
+    this._wipePaper = Raphael(wipe);
+    const wrapper = $(this._wrapperElement.current);
+    wrapper.hide();
+    this._wrapper = wrapper;
   }
   load(frame) {
     this._loaded = false;
@@ -82,6 +131,12 @@ class ImageLabelTool extends React.Component {
     // TODO: use getURL
     const imgURL = this.props.labelTool.getURL('frame_blob', this.candidateId, frame);
     this._initImage(imgURL);
+    if (frame >= 1) {
+      const wipeImgURL = this.props.labelTool.getURL('frame_blob', this.candidateId, frame - 1);
+      this._initWipeImage(wipeImgURL);
+    } else {
+      this._initWipeImage(null);
+    }
     this._decoration.hide();
 
     return new Promise((resolve, reject) => {
@@ -101,16 +156,36 @@ class ImageLabelTool extends React.Component {
   };
   setActive(isActive) {
     if ( isActive ) {
-      this._container.show();
+      this._wrapper.show();
     } else {
-      this._container.hide();
+      this._wrapper.hide();
     }
-    // set canvas size
-    
-    // over?
+  }
+  createWipeBBox(content, klass) {
+    // TODO: add class
+    const box = ImageBBox.fromContentToObj(content).box;
+    const size = box.getSize();
+    const rect = this._wipePaper.rect(
+      box.min.x, box.min.y,
+      size.x, size.y
+    ).attr({
+      'stroke-width': 1,
+      'stroke': klass.getColor()
+    });
+    return {
+      rect: rect,
+      select(flag) {
+        this.rect.attr({
+          'stroke-width': flag ? 5 : 2
+        });
+      }
+    };
   }
   createBBox(content) {
     return new ImageBBox(this, content);
+  }
+  disposeWipeBBox(bbox) {
+    bbox.rect.remove();
   }
   disposeBBox(bbox) {
     bbox.remove();
@@ -137,16 +212,36 @@ class ImageLabelTool extends React.Component {
 
   _resize() {
     const paper = this._paper;
+    const wipePaper = this._wipePaper;
 
     let scale = Math.min(
       this._wrapperSize.width / this._imageSize.width,
       this._wrapperSize.height / this._imageSize.height
     );
     paper.setSize(
-      this._imageSize.width, 
+      this._imageSize.width,
+      this._imageSize.height
+    );
+    wipePaper.setSize(
+      this._imageSize.width,
       this._imageSize.height
     );
     this.setState({ scale: scale });
+  }
+  _initWipeImage(url) {
+    if (this._wipeImage != null) {
+      this._wipeImage.remove();
+      this._wipeImage = null;
+    }
+    if (url == null) {
+      this._wipeElement.current.style.display = 'none';
+      return;
+    }
+    this._wipeElement.current.style.display = '';
+    const paper = this._wipePaper;
+    const image = paper.image(url, 0, 0, "100%", "100%");
+    image.toBack();
+    this._wipeImage = image;
   }
   _initImage(url) {
     if (this._image != null) {
@@ -170,7 +265,6 @@ class ImageLabelTool extends React.Component {
     image.attr({
       'cursor': 'crosshair'
     });
-    image.toBack();
     image.drag(
       this._imageDragMove,
       this._imageDragStart,

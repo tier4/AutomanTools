@@ -26,6 +26,7 @@ class Annotation extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
+      prevInstanceIds: null,
       instanceIds: null,
       labels: null
     };
@@ -40,6 +41,52 @@ class Annotation extends React.Component {
   isLoaded() {
     return this._loaded;
   }
+  loadPrevFrame(frameNumber) {
+    if (frameNumber == 0) {
+      return Promise.resolve();
+    }
+    return new Promise((resolve, reject) => {
+      RequestClient.get(
+        this.props.labelTool.getURL('frame_labels', frameNumber - 1),
+        {try_lock: false},
+        res => {
+          const instanceIds = new Map();
+          res.records.forEach(obj => {
+            if (obj.instance_id == null) {
+              return;
+            }
+            let klass = this.props.klassSet.getByName(obj.name);
+            let bboxes = {};
+            this.getTools().forEach(tool => {
+              const id = tool.candidateId;
+              if (obj.content[id] != null && tool.createWipeBBox) {
+                bboxes[id] = tool.createWipeBBox(obj.content[id], klass);
+              }
+            });
+            // TODO: add class
+            let label = {
+              //obj.object_id,
+              instanceId: obj.instance_id,
+              klass: klass,
+              bbox: bboxes,
+              select(flag) {
+                for(let id in this.bbox) {
+                  this.bbox[id].select(flag);
+                }
+              }
+            };
+            instanceIds.set(label.instanceId, label);
+          });
+          this.setState({ prevInstanceIds: instanceIds }, () => {
+            resolve();
+          });
+        },
+        err => {
+          reject(err);
+        }
+      );
+    });
+  }
   load(frameNumber) {
     if (!this._loaded) {
       return Promise.reject();
@@ -47,46 +94,47 @@ class Annotation extends React.Component {
     this._removeAll();
     this._nextId = -1;
     this.props.history.resetHistory();
-    return new Promise((resolve, reject) => {
-      this._deleted = [];
+    return this.loadPrevFrame(frameNumber)
+      .then(() => new Promise((resolve, reject) => {
+        this._deleted = [];
 
-      RequestClient.get(
-        this.props.labelTool.getURL('frame_labels', frameNumber),
-        {try_lock: true},
-        res => {
-          const labels = new Map(), instanceIds = new Map();
-          const isLocked = res.is_locked,
-                expiresAt = res.expires_at;
-          res.records.forEach(obj => {
-            let klass = this.props.klassSet.getByName(obj.name);
-            let bboxes = {};
-            this.getTools().forEach(tool => {
-              const id = tool.candidateId;
-              if (obj.content[id] != null) {
-                bboxes[id] = tool.createBBox(obj.content[id]);
+        RequestClient.get(
+          this.props.labelTool.getURL('frame_labels', frameNumber),
+          {try_lock: true},
+          res => {
+            const labels = new Map(), instanceIds = new Map();
+            const isLocked = res.is_locked,
+                  expiresAt = res.expires_at;
+            res.records.forEach(obj => {
+              let klass = this.props.klassSet.getByName(obj.name);
+              let bboxes = {};
+              this.getTools().forEach(tool => {
+                const id = tool.candidateId;
+                if (obj.content[id] != null) {
+                  bboxes[id] = tool.createBBox(obj.content[id]);
+                }
+              });
+              let label = new Label(this, obj.object_id, obj.instance_id, klass, bboxes);
+              labels.set(label.id, label);
+              if (label.instanceId != null) {
+                instanceIds.set(label.instanceId, label);
               }
             });
-            let label = new Label(this, obj.object_id, obj.instance_id, klass, bboxes);
-            labels.set(label.id, label);
-            if (label.instanceId != null) {
-              instanceIds.set(label.instanceId, label);
+            this.setState({ labels, instanceIds }, () => {
+              this._loaded = true;
+              resolve();
+            });
+
+            if (!isLocked) {
+              window.alert('This frame is locked.');
             }
-          });
-          this.setState({ labels, instanceIds }, () => {
-            this._loaded = true;
-            resolve();
-          });
-
-          if (!isLocked) {
-            window.alert('This frame is locked.');
+          },
+          err => {
+            reject(err);
           }
-        },
-        err => {
-          reject(err);
-        }
-      );
+        );
 
-    });
+      }));
   }
   isChanged() {
     if (this.state.labels == null) {
@@ -302,7 +350,7 @@ class Annotation extends React.Component {
       for (let label of labelList) {
         labels.set(label.id, label);
         if (label.instanceId != null) {
-          instanceIds.set(label.instanceId);
+          instanceIds.set(label.instanceId, label);
         }
       }
       return { labels, instanceIds };
@@ -413,8 +461,22 @@ class Annotation extends React.Component {
       });
       label.dispose();
     });
+    if (this.state.prevInstanceIds != null) {
+      this.state.prevInstanceIds.forEach(label => {
+        this.getTools().forEach(tool => {
+          const id = tool.candidateId;
+          if (label.bbox[id] != null) {
+            tool.disposeWipeBBox(label.bbox[id]);
+          }
+        });
+      });
+    }
     this.props.dispatchSetTargetLabel(null);
-    this.setState({labels: null, instanceIds: null});
+    this.setState({
+      labels: null,
+      instanceIds: null,
+      prevInstanceIds: null
+    });
   }
   renderList(classes) {
     if (this.state.labels === null) {
@@ -521,6 +583,10 @@ class Label {
     this._annotationTool = annotationTool;
     this.id = id;
     this.instanceId = instanceId;
+    if (this.instanceId && annotationTool.state.prevInstanceIds) {
+      this.prevLabel =
+        annotationTool.state.prevInstanceIds.get(this.instanceId)
+    }
     this.isChanged = this.id < 0;
     this.isTarget = false;
     this.klass = klass;
@@ -571,6 +637,9 @@ class Label {
     this.isTarget = val;
     if (this.labelItem != null) {
       this.labelItem.updateTarget();
+    }
+    if (this.prevLabel) {
+      this.prevLabel.select(val);
     }
   }
   toIDString() {

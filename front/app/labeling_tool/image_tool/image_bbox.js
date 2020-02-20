@@ -74,11 +74,28 @@ export default class ImageBBox {
     obj['max_x_2d'] = this.box.max.x;
     obj['max_y_2d'] = this.box.max.y;
   }
+  static fromContentToObj(content) {
+    const ret = {
+      box: new THREE.Box2(
+        new THREE.Vector2(
+          +content['min_x_2d'],
+          +content['min_y_2d']
+        ),
+        new THREE.Vector2(
+          +content['max_x_2d'],
+          +content['max_y_2d']
+        )
+      )
+    };
+    return ret;
+  }
   fromContent(content) {
-    this.box.set(new THREE.Vector2(
+    this.box.set(
+      new THREE.Vector2(
         +content['min_x_2d'],
         +content['min_y_2d']
-      ), new THREE.Vector2(
+      ),
+      new THREE.Vector2(
         +content['max_x_2d'],
         +content['max_y_2d']
       )
