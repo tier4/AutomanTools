@@ -122,3 +122,4 @@ static/files/
 logs/
 setup/**/*.zip
 .vagrant/
+automan-secret.yaml

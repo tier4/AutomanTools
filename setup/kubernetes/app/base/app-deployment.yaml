@@ -81,6 +81,16 @@ spec:
               value: app-persistent-storage
             - name: CLAIM_NAME
               value: app-pv-claim
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: automan-secret
+                  key: aws_access
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: automan-secret
+                  key: aws_secret
             - name: AZURE_STORAGE_ACCOUNT
               value: ""
             - name: AZURE_STORAGE_KEY
