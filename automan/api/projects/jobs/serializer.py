@@ -191,7 +191,8 @@ class JobSerializer(serializers.ModelSerializer):
             storage['storage_type'], storage['storage_config'], original['name'])
         storage_config.update({'path': original_path})
         automan_config = cls.__get_automan_config(user_id)
-        automan_config.update({'path': '/projects/' + project_id + '/originals/' + str(original_id) + '/', 'label_type': label_type})
+        automan_config.update({'path': '/projects/' + project_id + '/originals/' + str(original_id) + '/',
+                               'label_type': label_type})
         job_config = {
             'storage_type': storage['storage_type'],
             'storage_config': storage_config,
