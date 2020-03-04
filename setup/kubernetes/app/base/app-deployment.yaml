@@ -91,6 +91,16 @@ spec:
                 secretKeyRef:
                   name: automan-secret
                   key: aws_secret
+            - name: AWS_ARN
+              valueFrom:
+                secretKeyRef:
+                  name: automan-secret
+                  key: aws_arn
+            - name: AWS_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: automan-secret
+                  key: aws_region
             - name: AZURE_STORAGE_ACCOUNT
               value: ""
             - name: AZURE_STORAGE_KEY

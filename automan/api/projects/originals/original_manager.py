@@ -9,6 +9,7 @@ from django.db.models import Q
 from django.utils import timezone
 from projects.originals.models import Original, FileType, RelatedFile, DatasetCandidate
 from projects.storages.serializer import StorageSerializer
+from projects.storages.aws_s3 import AwsS3Client
 from projects.datasets.dataset_manager import DatasetManager
 from api.common import validation_check
 from api.settings import SORT_KEY, PER_PAGE
@@ -32,6 +33,10 @@ class OriginalManager(object):
         storage_config = copy.deepcopy(STORAGE_CONFIG)
         storage_config.update({'blob': name})
         original = self.get_original(project_id, new_original.id)
+
+        storage = StorageSerializer().get_storage(project_id, original['storage_id'])
+        if storage['storage_type'] == 'AWS_S3':
+            original['post_url'] = AwsS3Client().get_s3_post_url(storage['storage_config'], 'raws', name)
         return original
 
     @transaction.atomic

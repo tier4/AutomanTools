@@ -140,7 +140,11 @@ const request = (url, data, method, successCB, failCB, options) => {
       }
     }
   };
-  originalOptions.beforeSend = beforeSend;
+  if (method == 'S3PUT') {
+    originalOptions.method = 'PUT';
+  } else {
+    originalOptions.beforeSend = beforeSend;
+  }
   if (method === 'GET') {
     originalOptions.dataType = 'json';
   } else {
@@ -170,7 +174,10 @@ const RequestClient = {
   put: function(url, data, successCB, failCB, opt) {
     return request(url, data, 'PUT', successCB, failCB, opt);
   },
-  delete: function(url, data, successCB, failCB, opt) {
+  s3put: function (url, data, successCB, failCB, opt) {
+    return request(url, data, 'S3PUT', successCB, failCB, opt);
+  },
+  delete: function (url, data, successCB, failCB, opt) {
     return request(url, data, 'DELETE', successCB, failCB, opt);
   },
   getBinaryAsURL: function(url, successCB, failCB) {

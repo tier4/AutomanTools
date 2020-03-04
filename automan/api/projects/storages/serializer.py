@@ -22,6 +22,9 @@ class StorageSerializer(serializers.ModelSerializer):
                 storage_config = self.__local_storage_config(validated_data.get('project').id)
             else:
                 raise Exception  # FIXME
+        elif validated_data.get('storage_type') == 'AWS_S3':
+            storage_config = self.__aws_s3_config(
+                storage_config, validated_data.get('project').id)
         else:
             raise NotImplementedError  # FIXME
 
@@ -95,6 +98,8 @@ class StorageSerializer(serializers.ModelSerializer):
     def get_original_path(storage_type, storage_config, name):
         if storage_type == 'LOCAL_NFS':
             return storage_config['mount_path'] + storage_config['base_dir'] + '/' + name + '/raw/' + name
+        elif storage_type == 'AWS_S3':
+            return storage_config['base_dir'] + '/raws/' + name
         else:
             raise NotImplementedError  # FIXME
 
@@ -113,5 +118,12 @@ class StorageSerializer(serializers.ModelSerializer):
             'mount_path': MOUNT_PATH,
             'volume_name': VOLUME_NAME,
             'claim_name': CLAIM_NAME,
+            'base_dir': '/' + str(project_id),
+        })
+
+    def __aws_s3_config(self, storage_config_json, project_id):
+        config = json.loads(storage_config_json)
+        return json.dumps({
+            'bucket': config['bucket'],
             'base_dir': '/' + str(project_id),
         })
