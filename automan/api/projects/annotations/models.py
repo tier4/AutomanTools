@@ -10,6 +10,7 @@ class Annotation(models.Model):
     name = models.CharField(max_length=127, default='')
     created_at = models.DateTimeField(default=timezone.now)
     project = models.ForeignKey(Projects, on_delete=models.CASCADE)
+    frame = models.IntegerField(default=0)
 
 
 class ArchivedLabelDataset(models.Model):

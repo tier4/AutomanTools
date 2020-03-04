@@ -20,7 +20,11 @@ import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
+import LinearProgress from "@material-ui/core/LinearProgress";
 
+function progressFormatter(cell, row) {
+  return row.progress;
+}
 function actionFormatter(cell, row) {
   return row.actions;
 }
@@ -178,11 +182,16 @@ class AnnotationTable extends React.Component {
     }
 
     const { classes } = this.props;
+    const BorderLinearProgress = withStyles({
+      root: {
+        height: 10,
+      },
+    })(LinearProgress);
     let rows = [];
     if (!this.state.is_loading) {
       rows = this.state.data.map(
         function (row, index) {
-          let actions;
+          let actions, progress;
           if (
             row.archive_url != null && // TODO: tmp check
             row.archive_url.length > 0
@@ -232,7 +241,8 @@ class AnnotationTable extends React.Component {
                     <Button
                       classes={{ root: classes.tableActionButton }}
                       onClick={e => this.handleArchive(row)}
-                      className={classes.button}>
+                      className={classes.button}
+                      color={row.progress == 100 ? "primary" : "default"}>
                       <Archive fontSize="small" />
                     </Button>
                   </Tooltip>
@@ -256,11 +266,28 @@ class AnnotationTable extends React.Component {
               </div>
             );
           }
+          progress = (
+            <div>
+              <BorderLinearProgress
+                classes={{ root: classes.tableProgress }}
+                className={classes.margin}
+                variant="determinate"
+                value={row.progress}
+              />
+              <Typography
+                classes={{ root: classes.tableProgressStr }}
+                variant="body2"
+                align="right"
+              >
+                {row.status} - {row.progress}%
+              </Typography>
+            </div>);
           return {
             index: index,
             id: row.id,
             name: row.name,
             dataset_id: row.dataset_id,
+            progress: progress,
             actions: actions
           };
         }.bind(this)
@@ -322,7 +349,10 @@ class AnnotationTable extends React.Component {
           <TableHeaderColumn width="10%" dataField="dataset_id">
             Dataset ID
           </TableHeaderColumn>
-          <TableHeaderColumn width="15%" dataField="actions" dataFormat={actionFormatter}>
+          <TableHeaderColumn width="20%" dataField="progress" dataFormat={progressFormatter}>
+            Progress
+          </TableHeaderColumn>
+          <TableHeaderColumn width="25%" dataField="actions" dataFormat={actionFormatter}>
           </TableHeaderColumn>
         </ResizableTable>
         <Snackbar
