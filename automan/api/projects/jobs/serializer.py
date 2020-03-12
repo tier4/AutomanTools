@@ -149,12 +149,16 @@ class JobSerializer(serializers.ModelSerializer):
         storage_config = copy.deepcopy(storage['storage_config'])
         original_path = StorageSerializer.get_original_path(
             storage['storage_type'], storage['storage_config'], original['name'])
-        storage_config.update({'path': original_path})
         output_dir = StorageSerializer.get_dataset_output_dir(
             storage['storage_type'], storage['storage_config'], original['name'], candidates)
-        storage_config.update({'output_dir': output_dir})
+        storage_config.update({
+            'path': original_path,
+            'output_dir': output_dir,
+            'storage_id': original['storage_id']})
         automan_config = cls.__get_automan_config(user_id)
-        automan_config.update({'path': '/projects/' + project_id + '/datasets/'})
+        automan_config.update({
+            'path': '/projects/' + project_id + '/datasets/',
+            'presigned': '/projects/' + project_id + '/storages/put_s3/'})
         raw_data_config = cls.__get_raw_data_config(project_id, original_id, candidates)
         job_config = {
             'storage_type': storage['storage_type'],

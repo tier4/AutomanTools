@@ -25,9 +25,9 @@ class AwsS3Client(object):
             region_name=self.AWS_REGION)
         return session.client('s3')
 
-    def get_s3_post_url(self, config, dir, name):
-        bucket = config['bucket']
-        key = (config['base_dir'] + '/' + dir + '/' + name).lstrip('/')
+    def get_s3_post_url(self, bucket, key):
+        key = key.lstrip('/')
+        print(bucket + ', ' + key)
 
         s3 = self.__make_s3_session()
         url = s3.generate_presigned_url(

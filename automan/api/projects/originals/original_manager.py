@@ -36,7 +36,9 @@ class OriginalManager(object):
 
         storage = StorageSerializer().get_storage(project_id, original['storage_id'])
         if storage['storage_type'] == 'AWS_S3':
-            original['post_url'] = AwsS3Client().get_s3_post_url(storage['storage_config'], 'raws', name)
+            config = storage['storage_config']
+            key = (config['base_dir'] + '/' + 'raws' + '/' + name)
+            original['post_url'] = AwsS3Client().get_s3_post_url(config['bucket'], key)
         return original
 
     @transaction.atomic

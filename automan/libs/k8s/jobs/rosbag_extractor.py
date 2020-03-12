@@ -1,11 +1,12 @@
 import json
 from kubernetes import client
 from libs.k8s.jobs import BaseJob
+from projects.storages.aws_s3 import AwsS3Client
 
 
 class RosbagExtractor(BaseJob):
     IMAGE_NAME = 'automan-rosbag-extractor'
-    MEMORY = '128Mi'
+    MEMORY = '512Mi'
 
     # TODO: automan_server_info
     def __init__(
@@ -21,6 +22,15 @@ class RosbagExtractor(BaseJob):
             self.storage_info = json.dumps({
                 'path': storage_config['path'],
                 'output_dir': storage_config['output_dir'],
+            }, separators=(',', ':'))
+            self.automan_info = json.dumps(automan_config, separators=(',', ':'))
+            self.raw_data_info = json.dumps(raw_data_config, separators=(',', ':'))
+        elif storage_type == 'AWS_S3':
+            self.storage_info = json.dumps({
+                'path': storage_config['path'],
+                'output_dir': storage_config['output_dir'],
+                'storage_id': storage_config['storage_id'],
+                'target_url': AwsS3Client().get_s3_down_url(storage_config['bucket'], storage_config['path']),
             }, separators=(',', ':'))
             self.automan_info = json.dumps(automan_config, separators=(',', ':'))
             self.raw_data_info = json.dumps(raw_data_config, separators=(',', ':'))
@@ -45,14 +55,23 @@ class RosbagExtractor(BaseJob):
         )
 
     def __get_pod(self):
-        pod_template_spec = client.models.V1PodTemplateSpec(
-            spec=client.models.V1PodSpec(
-                restart_policy='Never',
-                containers=self.__get_containers(),
-                volumes=self.__get_volumes()
+        if self.storage_type == 'LOCAL_NFS':
+            return client.models.V1PodTemplateSpec(
+                spec=client.models.V1PodSpec(
+                    restart_policy='Never',
+                    containers=self.__get_containers(),
+                    volumes=self.__get_volumes()
+                )
             )
-        )
-        return pod_template_spec
+        elif self.storage_type == 'AWS_S3':
+            return client.models.V1PodTemplateSpec(
+                spec=client.models.V1PodSpec(
+                    restart_policy='Never',
+                    containers=self.__get_containers(),
+                )
+            )
+        else:
+            raise NotImplementedError
 
     def __get_containers(self):
         command = ["/app/bin/docker-entrypoint.bash"]
@@ -62,18 +81,32 @@ class RosbagExtractor(BaseJob):
                 '--automan_info', self.automan_info,
                 '--raw_data_info', self.raw_data_info]
         system_usage = {'memory': self.MEMORY}
-        containers = [
-            client.models.V1Container(
-                command=command,
-                args=args,
-                image=self.IMAGE_NAME,
-                image_pull_policy='IfNotPresent',
-                name=self.IMAGE_NAME,
-                # env=[access_key_env, secret_key_env],
-                volume_mounts=[client.models.V1VolumeMount(mount_path=self.mount_path, name=self.volume_name)],
-                resources=client.models.V1ResourceRequirements(limits=system_usage, requests=system_usage),
-            )
-        ]
+        if self.storage_type == 'LOCAL_NFS':
+            containers = [
+                client.models.V1Container(
+                    command=command,
+                    args=args,
+                    image=self.IMAGE_NAME,
+                    image_pull_policy='IfNotPresent',
+                    name=self.IMAGE_NAME,
+                    # env=[access_key_env, secret_key_env],
+                    volume_mounts=[client.models.V1VolumeMount(mount_path=self.mount_path, name=self.volume_name)],
+                    resources=client.models.V1ResourceRequirements(limits=system_usage, requests=system_usage),
+                )
+            ]
+        elif self.storage_type == 'AWS_S3':
+            containers = [
+                client.models.V1Container(
+                    command=command,
+                    args=args,
+                    image=self.IMAGE_NAME,
+                    image_pull_policy='IfNotPresent',
+                    name=self.IMAGE_NAME,
+                    resources=client.models.V1ResourceRequirements(limits=system_usage, requests=system_usage),
+                )
+            ]  
+        else:
+            raise NotImplementedError
         return containers
 
     def __get_volumes(self):
