@@ -8,8 +8,11 @@ from .dataset_manager import DatasetManager
 from .serializer import DatasetSerializer
 from api.settings import PER_PAGE, SORT_KEY
 from api.permissions import Permission
+from api.errors import UnknownStorageTypeError
 from accounts.account_manager import AccountManager
 from projects.originals.original_manager import OriginalManager
+from projects.storages.serializer import StorageSerializer
+from projects.storages.aws_s3 import AwsS3Client
 
 
 class DatasetViewSet(viewsets.ModelViewSet):
@@ -74,14 +77,35 @@ class DatasetViewSet(viewsets.ModelViewSet):
         return HttpResponse(status=204)
 
 
+def __get_extension(candidate_id):
+    candidate = OriginalManager().get_dataset_candidate(candidate_id)
+    msg_type = json.loads(candidate['analyzed_info'])['msg_type']
+    if msg_type == 'sensor_msgs/PointCloud2':
+        return '.pcd'
+    return '.jpg'
+
+
 @api_view(['GET'])
 def download_link(request, project_id, dataset_id, candidate_id, frame):
     username = request.user
     user_id = AccountManager.get_id_by_username(username)
     if not Permission.hasPermission(user_id, 'get_annotationwork', project_id):
         raise PermissionDenied
-    # TODO ckeck storage type
-    content = request.build_absolute_uri(request.path) + 'image/'
+
+    dataset = DatasetManager().get_dataset(user_id, dataset_id)
+    original = OriginalManager().get_original(project_id, dataset['original_id'])
+    storage = StorageSerializer().get_storage(project_id, original['storage_id'])
+
+    if storage['storage_type'] == 'LOCAL_NFS':
+        content = request.build_absolute_uri(request.path) + 'image/'
+    elif storage['storage_type'] == 'AWS_S3':
+        ext = __get_extension(candidate_id)
+        key = (dataset['file_path']
+               + candidate_id + '_' + str(frame).zfill(6) + ext)
+        content = AwsS3Client().get_s3_down_url(
+            storage['storage_config']['bucket'], key)
+    else:
+        raise UnknownStorageTypeError
     return HttpResponse(status=200, content=json.dumps(content), content_type='text/plain')
 
 
@@ -91,21 +115,12 @@ def download_local_nfs_image(request, project_id, dataset_id, candidate_id, fram
     user_id = AccountManager.get_id_by_username(username)
     if not Permission.hasPermission(user_id, 'get_annotationwork', project_id):
         raise PermissionDenied
-    dataset_manager = DatasetManager()
-    dataset_dir = dataset_manager.get_dataset_file_path(user_id, dataset_id)
 
-    original_manager = OriginalManager()
-    candidate = original_manager.get_dataset_candidate(candidate_id)
-    analyzed_info = json.loads(candidate['analyzed_info'])
-    msg_type = analyzed_info['msg_type']
-    if msg_type == 'sensor_msgs/PointCloud2':
-        extension = '.pcd'
-    else:
-        extension = '.jpg'
-
-    file_path = dataset_dir + candidate_id + '_' + str(frame).zfill(6) + extension
+    dataset_dir = DatasetManager().get_dataset_file_path(user_id, dataset_id)
+    ext = __get_extension(candidate_id)
+    file_path = dataset_dir + candidate_id + '_' + str(frame).zfill(6) + ext
     image = open(file_path, "rb").read()
 
-    if msg_type == 'sensor_msgs/PointCloud2':
+    if ext == '.pcd':
         return HttpResponse(image, content_type="application/octet-stream")
     return HttpResponse(image, content_type="image/jpeg")

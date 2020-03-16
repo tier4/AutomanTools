@@ -56,7 +56,7 @@ class StorageViewSet(viewsets.ModelViewSet):
         serializer = StorageSerializer()
         storage = serializer.get_storage(project_id, storage_id)
         bucket = storage['storage_config']['bucket']
-        url = serializer.get_s3_presigned_url(bucket, key)
-        return HttpResponse(content=url,
+        res = serializer.get_s3_presigned_url(bucket, key)
+        return HttpResponse(content=res,
                             status=200,
-                            content_type='text/plain')
+                            content_type='application/json')

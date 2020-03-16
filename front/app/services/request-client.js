@@ -140,11 +140,10 @@ const request = (url, data, method, successCB, failCB, options) => {
       }
     }
   };
-  if (method == 'S3PUT') {
+  if (method == 'S3PUT')
     originalOptions.method = 'PUT';
-  } else {
+  if (url.indexOf('/') === 0)
     originalOptions.beforeSend = beforeSend;
-  }
   if (method === 'GET') {
     originalOptions.dataType = 'json';
   } else {
@@ -187,7 +186,8 @@ const RequestClient = {
       successCB(URL.createObjectURL(blob));
     };
     xhr.open('GET', url);
-    beforeSend(xhr);
+    if (url.indexOf('/') === 0)
+      beforeSend(xhr);
     xhr.responseType = 'blob';
     xhr.send();
   },

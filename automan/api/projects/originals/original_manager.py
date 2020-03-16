@@ -38,7 +38,7 @@ class OriginalManager(object):
         if storage['storage_type'] == 'AWS_S3':
             config = storage['storage_config']
             key = (config['base_dir'] + '/' + 'raws' + '/' + name)
-            original['post_url'] = AwsS3Client().get_s3_post_url(config['bucket'], key)
+            original['post_url'] = AwsS3Client().get_s3_put_url(config['bucket'], key)
         return original
 
     @transaction.atomic

@@ -1,5 +1,6 @@
 import boto3
 import os
+import json
 
 
 class AwsS3Client(object):
@@ -25,9 +26,8 @@ class AwsS3Client(object):
             region_name=self.AWS_REGION)
         return session.client('s3')
 
-    def get_s3_post_url(self, bucket, key):
+    def get_s3_put_url(self, bucket, key):
         key = key.lstrip('/')
-        print(bucket + ', ' + key)
 
         s3 = self.__make_s3_session()
         url = s3.generate_presigned_url(
@@ -38,6 +38,16 @@ class AwsS3Client(object):
             ExpiresIn=1800,
             HttpMethod='PUT')
         return url
+    
+    def get_s3_post_url(self, bucket, key):
+        key = key.lstrip('/')
+
+        s3 = self.__make_s3_session()
+        res = s3.generate_presigned_post(
+            bucket,
+            key,
+            ExpiresIn=1800)
+        return json.dumps(res)
 
     def get_s3_down_url(self, bucket, key):
         key = key.lstrip('/')
