@@ -3,24 +3,30 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 
 import Button from '@material-ui/core/Button';
+import { compose } from 'redux';
+import { connect } from 'react-redux';
 
+import { addTool } from './actions/tool_action';
+
+import BoxFrameObject from './pcd_tool/box_frame_object';
+import PCDBBox from './pcd_tool/pcd_bbox';
+import EditBar from './pcd_tool/edit_bar';
 
 // 3d eidt arrow
 const arrowColors = [0xff0000, 0x00ff00, 0x0000ff],
-      hoverColors = [0xffaaaa, 0xaaffaa, 0xaaaaff],
       AXES = [new THREE.Vector3(1,0,0), new THREE.Vector3(0,1,0), new THREE.Vector3(0,0,1)];
 
 const ZERO2 = new THREE.Vector2(0, 0);
 const EDIT_OBJ_SIZE = 0.5;
 
-export default class PCDLabelTool extends React.Component {
+class PCDLabelTool extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
     };
-    this._labelTool = props.labelTool;
-    this._controls = props.controls;
-    this._element = React.createRef();
+    this._wrapperElement = React.createRef();
+    this._mainElement = React.createRef();
+    this._wipeElement = React.createRef();
     this._toolButtons = (
       <Button
         key={0}
@@ -29,6 +35,7 @@ export default class PCDLabelTool extends React.Component {
         Set Height
       </Button>
     );
+    props.dispatchAddTool(props.idx, this);
   }
   componentDidMount() {
     this.init();
@@ -36,16 +43,48 @@ export default class PCDLabelTool extends React.Component {
   getButtons() {
     return this._toolButtons;
   }
+  getEditor() {
+    return <EditBar candidateId={this.candidateId}/>
+  }
   render() {
     return (
-      <div ref={this._element} />
+      <div
+        ref={this._wrapperElement}
+        style={{position: 'relative'}}
+      >
+        <div ref={this._mainElement} />
+        <div
+          ref={this._wipeElement}
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            borderTop: 'solid 2px #fff',
+            borderRight: 'solid 2px #fff'
+          }}
+          onClick={() => this.props.controls.previousFrame()}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              backgroundColor: '#fff',
+              padding: '0px 7px'
+            }}
+          >
+            Prev
+          </div>
+        </div>
+      </div>
     );
   }
 
   // private
   _canvasSize = { width: 2, height: 1 };
-  _labelTool = null;
   _wrapper = null;
+  _main = null;
+  _wipe = null;
   _loaded = true;
   _scene = null;
   _renderer = null;
@@ -55,6 +94,8 @@ export default class PCDLabelTool extends React.Component {
   // PCD objects
   _pcdLoader = null;
   _pointMeshes = [];
+  _wipePointMeshes = [];
+  _currentWipePointMesh = null;
   _currentPointMesh = null;
   // to mouse position
   _groundPlane = null;
@@ -107,32 +148,77 @@ export default class PCDLabelTool extends React.Component {
 
     this._animate();
   }
-  load(frame) {
-    this._loaded = false;
-    const url = this._labelTool.getURL('frame_blob', this.candidateId, frame);
-    this._pointMeshes.forEach(mesh => { mesh.visible = false; });
-    // use preloaded pcd mesh
-    if (this._pointMeshes[frame] != null) {
-      this._pointMeshes[frame].visible =true;
-      this._currentPointMesh = this._pointMeshes[frame];
-      this._redrawFlag = true;
-      this._loaded = true;
-      return Promise.resolve();
+  isLoadedFrame(frame) {
+    return this._pointMeshes[frame] != null;
+  }
+  setVisibleTo(mesh, val) {
+    if (mesh != null) {
+      mesh.visible = val;
     }
-    // load new pcd file
+  }
+  setPointMesh(frame, mesh) {
+    this._pointMeshes[frame] = mesh;
+    mesh.visible = false;
+    this._scene.add(mesh);
+    const wipeMesh = mesh.clone();
+    this._wipePointMeshes[frame] = wipeMesh;
+    this._wipeScene.add(wipeMesh);
+    return wipeMesh;
+  }
+  pcdLoad(frame) {
+    if (this.isLoadedFrame(frame)) {
+      return Promise.resolve({
+        mesh: this._pointMeshes[frame],
+        wipeMesh: this._wipePointMeshes[frame]
+      });
+    }
+    const url = this.props.labelTool.getURL('frame_blob', this.candidateId, frame);
     return new Promise((resolve, reject) => {
-      this._pcdLoader.load(url, (mesh) => {
-        this._pointMeshes[frame] = mesh;
-        this._currentPointMesh = mesh;
-        this._scene.add(mesh);
-        this._redrawFlag = true;
-        this._loaded = true;
-        resolve();
+      this._pcdLoader.load(url, mesh => {
+        const wipeMesh = this.setPointMesh(frame, mesh);
+        resolve({
+          mesh,
+          wipeMesh
+        });
       }, () => { // in progress
       }, (e) => { // error
-        this._loaded = true;
         reject(e);
       });
+    });
+  }
+  loadWipe(frame) {
+    this.setVisibleTo(this._currentWipePointMesh, false);
+    this._currentWipePointMesh = null;
+    const wipeFrame = frame - 1;
+    if (wipeFrame < 0) {
+      return Promise.resolve();
+    }
+    return this.pcdLoad(wipeFrame).then(({ wipeMesh }) => {
+      this._currentWipePointMesh = wipeMesh;
+      wipeMesh.visible = true;
+    });
+  }
+  loadMain(frame) {
+    this.setVisibleTo(this._currentPointMesh, false);
+    return this.pcdLoad(frame).then(({ mesh }) => {
+      this._currentPointMesh = mesh;
+      mesh.visible = true;
+    });
+  }
+  load(frame) {
+    this._loaded = false;
+
+    return Promise.all([
+      this.loadWipe(frame),
+      this.loadMain(frame)
+    ]).finally(() => {
+      if (this._currentWipePointMesh != null) {
+        this._wipe.show();
+      } else {
+        this._wipe.hide();
+      }
+      this._redrawFlag = true;
+      this._loaded = true;
     });
   }
   handles = {
@@ -148,6 +234,8 @@ export default class PCDLabelTool extends React.Component {
       }
       camera.updateProjectionMatrix();
       this._renderer.setSize(size.width, size.height);
+      const wipeScale = 0.32;
+      this._wipeRenderer.setSize(size.width * wipeScale, size.height * wipeScale);
       this._redrawFlag = true;
     },
     keydown: (e) => {
@@ -171,8 +259,29 @@ export default class PCDLabelTool extends React.Component {
       this._wrapper.hide();
     }
   }
+  createWipeBBox(content, klass) {
+    const box = PCDBBox.fromContentToObj(content);
+    const meshFrame = new BoxFrameObject();
+    meshFrame.setParam(box.pos, box.size, box.yaw);
+    meshFrame.setColor(klass.getColor());
+    meshFrame.addTo(this._wipeScene);
+    // TODO: add class
+    return {
+      box: box,
+      meshFrame: meshFrame,
+      select(flag) {
+        this.meshFrame.setStatus(flag, false);
+        this.meshFrame.setBold(flag);
+        this.meshFrame.setParam(this.box.pos, this.box.size, this.box.yaw);
+      }
+    };
+  }
   createBBox(content) {
     return new PCDBBox(this, content);
+  }
+  disposeWipeBBox(bbox) {
+    bbox.meshFrame.removeFrom(this._wipeScene);
+    this.redrawRequest();
   }
   disposeBBox(bbox) {
     bbox.remove();
@@ -194,7 +303,7 @@ export default class PCDLabelTool extends React.Component {
   // button actions
   setHeight = () => {
     let bboxes;
-    const tgt = this._controls.getTargetLabel();
+    const tgt = this.props.controls.getTargetLabel();
     if (tgt !== null) {
       bboxes = [tgt.bbox[this.candidateId]];
     } else {
@@ -255,12 +364,6 @@ export default class PCDLabelTool extends React.Component {
   }
   _initThree() {
     const scene = new THREE.Scene();
-    /*
-    const axisHelper = new THREE.AxisHelper(0.1);
-    axisHelper.position.set(0, 0, 0);
-    scene.add(axisHelper);
-    */
-
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setClearColor(0x000000);
     renderer.setPixelRatio(window.devicePixelRatio);
@@ -281,6 +384,16 @@ export default class PCDLabelTool extends React.Component {
 
     const pcdLoader = new THREE.PCDLoader();
     this._pcdLoader = pcdLoader;
+
+
+    // wipe
+    const wipeScene = new THREE.Scene();
+    const wipeRenderer = new THREE.WebGLRenderer({ antialias: true });
+    wipeRenderer.setClearColor(0x000000);
+    wipeRenderer.setPixelRatio(window.devicePixelRatio);
+    wipeRenderer.setSize(this._canvasSize.width*0.22, this._canvasSize.height*0.22);
+    this._wipeRenderer = wipeRenderer;
+    this._wipeScene = wipeScene;
   }
   _initCamera() {
     // TODO: read YAML and set camera?
@@ -320,11 +433,17 @@ export default class PCDLabelTool extends React.Component {
     this._cameraControls = controls;
   }
   _initDom() {
-    //const wrapper = $('#canvas3d'); // change dom id
-    const wrapper = $(this._element.current);
-    wrapper.append(this._renderer.domElement);
+    const wrapper = $(this._wrapperElement.current);
     this._wrapper = wrapper;
     wrapper.hide();
+
+    const main = $(this._mainElement.current);
+    main.append(this._renderer.domElement);
+    this._main = main;
+
+    const wipe = $(this._wipeElement.current);
+    wipe.append(this._wipeRenderer.domElement);
+    this._wipe = wipe;
   }
   _initEvent() {
     const modeStatus = this._modeStatus;
@@ -345,7 +464,7 @@ export default class PCDLabelTool extends React.Component {
 
     
     // mouse events
-    this._wrapper.contextmenu((e) => {
+    this._main.contextmenu((e) => {
       e.preventDefault();
     }).mousedown((e) => {
       if (e.button !== 0) { return; } // not left click
@@ -404,6 +523,9 @@ export default class PCDLabelTool extends React.Component {
         this._renderer.render(
             this._scene,
             this._camera);
+        this._wipeRenderer.render(
+            this._wipeScene,
+            this._camera);
       } catch(e) {
         console.error(e);
         window.cancelAnimationFrame(id);
@@ -412,21 +534,25 @@ export default class PCDLabelTool extends React.Component {
       this._redrawFlag = false;
     }
   }
-  setArrow(bbox) {
+  setArrow(bbox, direction) {
     if (bbox == null) {
       this._editArrowGroup.visible = false;
     } else {
-      const pos = bbox.box.pos;
+      let pos = bbox, dir = direction;
+      if (bbox instanceof PCDBBox) {
+        pos = bbox.box.pos;
+        dir = bbox.box.yaw;
+      }
       this._editArrowGroup.visible = true;
       this._editArrowGroup.position.set(pos.x, pos.y, pos.z);
-      this._editArrowGroup.rotation.z = bbox.box.yaw;
+      this._editArrowGroup.rotation.z = dir;
     }
   }
   setMouseType(name) {
-    this._wrapper.css('cursor', name);
+    this._main.css('cursor', name);
   }
   resetMouseType() {
-    this._wrapper.css('cursor', 'crosshair');
+    this._main.css('cursor', 'crosshair');
   }
   
 
@@ -458,7 +584,7 @@ export default class PCDLabelTool extends React.Component {
 
   // 3d geo methods
   getMousePos(e) {
-    const offset = this._wrapper.offset();
+    const offset = this._main.offset();
     const size = this._renderer.getSize();
     return new THREE.Vector2(
        (e.clientX - offset.left) / size.width * 2 - 1,
@@ -508,223 +634,36 @@ export default class PCDLabelTool extends React.Component {
           ep = data.endPos;
     const cx = (sp.x + ep.x) / 2,
           cy = (sp.y + ep.y) / 2,
-          w = sp.x - ep.x,
-          h = sp.y - ep.y;
-    const phi = this._camera.rotation.z,
-          rx = Math.cos(phi),
+          dx = sp.x - ep.x,
+          dy = sp.y - ep.y;
+    let phi = this._camera.rotation.z;
+    const rx = Math.cos(phi),
           ry = Math.sin(phi);
-    data.box.position.set(cx, cy, -0.5);
-    data.box.rotation.z = phi;
-    data.box.scale.set(
-        Math.abs(w*rx + h*ry),
-        Math.abs(w*ry - h*rx),
-        1.0);
-  }
-
-};
-
-const BBoxParams = {
-  geometry: new THREE.CubeGeometry(1.0, 1.0, 1.0),
-  material: new THREE.MeshBasicMaterial({
-    color: 0x008866,
-    wireframe: true
-  }),
-  selectingMaterial: new THREE.MeshBasicMaterial({
-    color: 0xff0000,
-    wireframe: true
-  }),
-  hoverMaterial: new THREE.MeshBasicMaterial({
-    color: 0xffff00,
-    wireframe: true
-  })
-
-};
-class PCDBBox {
-  constructor(pcdTool, content) {
-    this.pcdTool = pcdTool;
-    this.label = null;
-    this.selected = false;
-    this.box = {
-      pos: new THREE.Vector3(0,0,0),
-      size: new THREE.Vector3(0,0,0),
-      yaw: 0
-    };
-    if (content != null) {
-      // init parameters
-      this.fromContent(content);
-    }
-    this.initCube();
-    this.pcdTool.pcdBBoxes.add(this);
-    this.pcdTool.redrawRequest();
-  }
-  setSize2(x, y) {
-    const res = this.setSize(x, y, this.box.size.z);
-    return new THREE.Vector2(res.x, res.y);
-  }
-  setSize2d(x, y) {
-    const prev = this.box.size.clone();
-    const res = this.setSize(x, y, this.box.size.z);
-    const ret = new THREE.Vector2(res.x-prev.x, res.y-prev.y)
-      .rotateAround(ZERO2, this.box.yaw);
-    return ret;
-  }
-  setSizeZ(z) {
-    const prev = this.box.size.clone();
-    const res = this.setSize(prev.x, prev.y, z);
-    return res.z - prev.z;
-  }
-  setSize(x, y, z) {
-    const minSize = new THREE.Vector3(0.1, 0.1, 0.1);
-    this.box.size.set(x, y, z).max(minSize);
-    return this.box.size.clone();
-  }
-  setZ(center, height) {
-    const h = Math.max(height, 0.1); // use min size
-    this.box.size.z = h;
-    this.box.pos.z = center;
-  }
-  setLabel(label) {
-    if (this.label != null) {
-      // TODO: control error
-      throw "Label already set";
-    }
-    this.label = label;
-  }
-  updateSelected(selected) {
-    this.selected = selected;
-    if (selected) {
-      this.cube.mesh.material = BBoxParams.selectingMaterial;
+    let w = dx*rx + dy*ry,
+        h = dx*ry - dy*rx;
+    if (Math.abs(w) > Math.abs(h)) {
+      h = Math.abs(h);
+      if (w < 0) {
+        phi = (phi + Math.PI) % (Math.PI * 2);
+        w = -w;
+      }
     } else {
-      this.cube.mesh.material = BBoxParams.material;
+      w = Math.abs(w);
+      if (h < 0) {
+        phi = (phi + Math.PI / 2) % (Math.PI * 2);
+        h = -h;
+      } else {
+        phi = (phi + Math.PI * 3 / 2) % (Math.PI * 2);
+      }
+      [w, h] = [h, w];
     }
+    const pos = new THREE.Vector3(cx, cy, -0.5),
+          size = new THREE.Vector3(w, h, 1.0);
+    data.box.setParam(pos, size, phi);
+    this.setArrow(pos, phi);
   }
-  updateKlass() {
-  }
-  updateParam() {
-    this.updateCube(true);
-    this.pcdTool.redrawRequest();
-  }
-  remove() {
-    // TODO: remove meshes
-    //this.labelItem.remove();
-    const mesh = this.cube.mesh;
-    this.pcdTool._scene.remove(mesh);
-    const group = this.cube.editGroup;
-    this.pcdTool._scene.remove(group);
-    this.pcdTool.redrawRequest();
-    this.pcdTool.pcdBBoxes.delete(this);
-  }
-  toContent(obj) {
-    // make object values by parameters
-    obj['x_3d'] = this.box.pos.x;
-    obj['y_3d'] = this.box.pos.y;
-    obj['z_3d'] = this.box.pos.z;
-    obj['width_3d'] = this.box.size.x;
-    obj['height_3d'] = this.box.size.y;
-    obj['length_3d'] = this.box.size.z;
-    obj['rotation_y'] = this.box.yaw;
-  }
-  fromContent(content) {
-    this.box.pos.x  = +content['x_3d'];
-    this.box.pos.y  = +content['y_3d'];
-    this.box.pos.z  = +content['z_3d'];
-    this.box.size.x = +content['width_3d'];
-    this.box.size.y = +content['height_3d'];
-    this.box.size.z = +content['length_3d'];
-    this.box.yaw    = +content['rotation_y'];
-  }
-  initCube() {
-    const mesh = new THREE.Mesh(
-        BBoxParams.geometry, BBoxParams.material);
-    const box = this.box;
-    this.pcdTool._scene.add(mesh);
-    
-    const group = new THREE.Group();
-    const corners = [
-      new THREE.Mesh(
-        BBoxParams.geometry, BBoxParams.material),
-      new THREE.Mesh(
-        BBoxParams.geometry, BBoxParams.material),
-      new THREE.Mesh(
-        BBoxParams.geometry, BBoxParams.material),
-      new THREE.Mesh(
-        BBoxParams.geometry, BBoxParams.material),
-    ];
-    corners.forEach(m => group.add(m));
-    const edges = [
-      new THREE.Mesh(
-        BBoxParams.geometry, BBoxParams.material),
-      new THREE.Mesh(
-        BBoxParams.geometry, BBoxParams.material),
-      new THREE.Mesh(
-        BBoxParams.geometry, BBoxParams.material),
-      new THREE.Mesh(
-        BBoxParams.geometry, BBoxParams.material),
-    ];
-    edges.forEach(m => group.add(m));
-    const zFace = [
-      new THREE.Mesh(
-        BBoxParams.geometry, BBoxParams.material),
-      new THREE.Mesh(
-        BBoxParams.geometry, BBoxParams.material),
-    ];
-    zFace.forEach(m => group.add(m));
-    group.visible = false;
-    this.pcdTool._scene.add(group);
 
-    this.cube = {
-      mesh: mesh,
-      corners: corners,
-      edges: edges,
-      zFace: zFace,
-      editGroup: group
-    };
-    this.updateCube(false);
-  }
-  updateCube(changed) {
-    const mesh = this.cube.mesh;
-    const box = this.box;
-    // TODO: check change flag
-    // TODO: clamp() all
-    mesh.position.set(box.pos.x, box.pos.y, box.pos.z);
-    mesh.scale.set(box.size.x, box.size.y, box.size.z);
-    mesh.rotation.z = box.yaw;
-    const group = this.cube.editGroup;
-    group.position.set(box.pos.x, box.pos.y, box.pos.z);
-    group.rotation.z = box.yaw;
-    const w = EDIT_OBJ_SIZE;
-    const corners = this.cube.corners;
-    corners[0].position.set(box.size.x/2+w/2, 0, 0);
-    corners[0].scale.set(w, box.size.y, box.size.z+w);
-    corners[1].position.set(0, box.size.y/2+w/2, 0);
-    corners[1].scale.set(box.size.x, w, box.size.z+w);
-    corners[2].position.set(-box.size.x/2-w/2, 0, 0);
-    corners[2].scale.set(w, box.size.y, box.size.z+w);
-    corners[3].position.set(0, -box.size.y/2-w/2, 0);
-    corners[3].scale.set(box.size.x, w, box.size.z+w);
-    const edges = this.cube.edges;
-    edges[0].position.set(box.size.x/2+w/2, box.size.y/2+w/2, 0);
-    edges[0].scale.set(w, w, box.size.z+w);
-    edges[1].position.set(-box.size.x/2-w/2, box.size.y/2+w/2, 0);
-    edges[1].scale.set(w, w, box.size.z+w);
-    edges[2].position.set(box.size.x/2+w/2, -box.size.y/2-w/2, 0);
-    edges[2].scale.set(w, w, box.size.z+w);
-    edges[3].position.set(-box.size.x/2-w/2, -box.size.y/2-w/2, 0);
-    edges[3].scale.set(w, w, box.size.z+w);
-    const zFace = this.cube.zFace;
-    zFace[0].position.set(0, 0, box.size.z/2+w/2);
-    zFace[0].scale.set(box.size.x, box.size.y, w);
-    zFace[1].position.set(0, 0, -box.size.z/2-w/2);
-    zFace[1].scale.set(box.size.x, box.size.y, w);
-    if ( changed ) {
-      this.label.isChanged = true;
-    }
-    if (this.selected) {
-      this.pcdTool.setArrow(this);
-    }
-  }
-}
-
+};
 
 
 const modeNames = [
@@ -777,7 +716,7 @@ function createModeMethods(pcdTool) {
           }
           this.startParam = startParam;
           pcdTool._modeStatus.busy = true;
-          pcdTool._controls.selectLabel(this.prevHover.bbox.label);
+          pcdTool.props.controls.selectLabel(this.prevHover.bbox.label);
           this.prevHover.bbox.label.createHistory();
           return;
         }
@@ -786,7 +725,7 @@ function createModeMethods(pcdTool) {
           pcdTool._creatingBBox.startPos = pos;
           pcdTool._modeStatus.busy = true;
           this.mode = 'create';
-          pcdTool._controls.selectLabel(null);
+          pcdTool.props.controls.selectLabel(null);
           return;
         }
         this.mode = null;
@@ -865,11 +804,7 @@ function createModeMethods(pcdTool) {
           return;
         }
         const bbox = this.prevHover.bbox;
-        if ( bbox.selected ) {
-          bbox.cube.mesh.material = BBoxParams.selectingMaterial;
-        } else {
-          bbox.cube.mesh.material = BBoxParams.material;
-        }
+        bbox.hover(false);
         pcdTool.redrawRequest();
         this.prevHover = null;
       },
@@ -983,7 +918,7 @@ function createModeMethods(pcdTool) {
                 this.prevHover.type === 'box' &&
                 this.prevHover.bbox === bbox) { return true; }
             this.resetHover();
-            bbox.cube.mesh.material = BBoxParams.hoverMaterial;
+            bbox.hover(true);
             pcdTool.setMouseType('all-scroll');
             this.prevHover = {
               type: 'box',
@@ -1107,9 +1042,9 @@ function createModeMethods(pcdTool) {
           bbox.endPos = pos;
           const dist = bbox.endPos.distanceTo(bbox.startPos);
           if (bbox.box == null && dist > 0.01) {
-            bbox.box =  new THREE.Mesh(
-              BBoxParams.geometry, BBoxParams.material);
-            pcdTool._scene.add(bbox.box);
+            bbox.box = new BoxFrameObject();
+            bbox.box.addTo(pcdTool._scene);
+            bbox.box.setColor('#fff');
           }
           if (bbox.box != null) {
             pcdTool.creatingBoxUpdate();
@@ -1163,21 +1098,24 @@ function createModeMethods(pcdTool) {
             bbox.endPos = pos;
           }
           pcdTool.creatingBoxUpdate();
+          const boxPos = bbox.box.getPos();
+          const boxSize = bbox.box.getSize();
+          const boxYaw = bbox.box.getYaw();
           const pcdBBox = new PCDBBox(pcdTool, {
-                'x_3d': bbox.box.position.x,
-                'y_3d': bbox.box.position.y,
+                'x_3d': boxPos.x,
+                'y_3d': boxPos.y,
                 'z_3d': -0.5,
-                'width_3d': bbox.box.scale.x,
-                'height_3d': bbox.box.scale.y,
-                'length_3d': bbox.box.scale.z,
-                'rotation_y': bbox.box.rotation.z,
+                'width_3d': boxSize.x,
+                'height_3d': boxSize.y,
+                'length_3d': boxSize.z,
+                'rotation_y': boxYaw,
               });
           // TODO: add branch use selecting label 
-          const label = pcdTool._controls.createLabel(
-            pcdTool._controls.getTargetKlass(),
+          const label = pcdTool.props.controls.createLabel(
+            pcdTool.props.controls.getTargetKlass(),
             {[pcdTool.candidateId]: pcdBBox}
           );
-          pcdTool._scene.remove(bbox.box);
+          bbox.box.removeFrom(pcdTool._scene);
           pcdTool.redrawRequest();
           bbox.startPos = null;
           bbox.endPos = null;
@@ -1187,7 +1125,7 @@ function createModeMethods(pcdTool) {
       changeFrom: function() {
       },
       changeTo: function() {
-        //pcdTool._wrapper.css('cursor', 'crosshair');
+        //pcdTool._main.css('cursor', 'crosshair');
       },
     },
     'view': {
@@ -1207,11 +1145,25 @@ function createModeMethods(pcdTool) {
       },
       changeTo: function() {
         pcdTool._cameraControls.enabled = true;
-        //pcdTool._wrapper.css('cursor', 'all-scroll');
+        //pcdTool._main.css('cursor', 'all-scroll');
       },
     },
   };
   return modeMethods;
 }
+
+const mapStateToProps = state => ({
+  controls: state.tool.controls,
+  labelTool: state.tool.labelTool
+});
+const mapDispatchToProps = dispatch => ({
+  dispatchAddTool: (idx, target) => dispatch(addTool(idx, target))
+});
+export default compose(
+  connect(
+    mapStateToProps,
+    mapDispatchToProps
+  )
+)(PCDLabelTool);
 
 

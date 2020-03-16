@@ -2,16 +2,14 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { withStyles } from '@material-ui/core/styles';
 
-//import List from '@material-ui/core/List';
-//import ListItem from '@material-ui/core/ListItem';
-//import ListItemIcon from '@material-ui/core/ListItemIcon';
-//import ListItemText from '@material-ui/core/ListItemText';
-//import ListSubheader from '@material-ui/core/ListSubheader';
-
 import Tabs from '@material-ui/core/Tabs';
 import Tab from '@material-ui/core/Tab';
+import { compose } from 'redux';
+import { connect } from 'react-redux';
 
 import classNames from 'classnames';
+
+import { setKlassSet } from './actions/tool_action';
 
 const KlassTab = withStyles(theme => ({
   root: {
@@ -22,8 +20,6 @@ const KlassTab = withStyles(theme => ({
 }))(props => <Tab {...props}/>);
 
 class KlassSet extends React.Component {
-  _labelTool = null;
-  _controls = null;
   // data
   _klasses = new Map();
   _klassList = [];
@@ -32,17 +28,15 @@ class KlassSet extends React.Component {
 
   constructor(props) {
     super(props);
-    this._labelTool = props.labelTool;
-    this._controls = props.controls;
     this.state = {
       targetKlass: null,
       targetIndex: -1
     };
-    props.getRef(this);
+    props.dispatchSetKlassSet(this);
   }
   init() {
     return new Promise((resolve, reject) => {
-      let klassset = this._labelTool.getProjectInfo().klassset;
+      let klassset = this.props.labelTool.getProjectInfo().klassset;
 
       klassset.records.forEach((klass) => {
         let config = JSON.parse(klass.config);
@@ -101,29 +95,6 @@ class KlassSet extends React.Component {
     }
     return null;
   }
-  /*
-  renderList(classes) {
-    let list = [];
-    for (let [_, klass] of this._klasses) {
-      const isSelected = klass === this.state.targetKlass;
-      list.push(
-        <ListItem
-          key={klass.id}
-          className={classNames(classes.listItem, isSelected && classes.selectedListItem)}
-          onClick={() => this._controls.selectKlass(klass)}
-          button
-        >
-          <div
-            className={classes.colorPane}
-            style={{ backgroundColor: klass.color }}
-          />
-          <ListItemText primary={klass.name} />
-        </ListItem>
-      );
-    }
-    return list;
-  }
-  */
   renderTabs(classes) {
     let list = [];
     for (let klass of this._klassList) {
@@ -146,7 +117,7 @@ class KlassSet extends React.Component {
     return list;
   }
   handleTabChange = (e, newVal) => {
-    this._controls.selectKlass(this._klassList[newVal]);
+    this.props.controls.selectKlass(this._klassList[newVal]);
     this.setState({ targetIndex: newVal });
   };
   render() {
@@ -177,7 +148,19 @@ class KlassSet extends React.Component {
     */
   }
 };
-export default KlassSet;
+const mapStateToProps = state => ({
+  labelTool: state.tool.labelTool,
+  controls: state.tool.controls,
+});
+const mapDispatchToProps = dispatch => ({
+  dispatchSetKlassSet: target => dispatch(setKlassSet(target))
+});
+export default compose(
+  connect(
+    mapStateToProps,
+    mapDispatchToProps
+  )
+)(KlassSet);
 
 class Klass {
   constructor(klassSet, id, name, color, size) {

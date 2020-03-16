@@ -1,252 +1,16 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 
+import { compose } from 'redux';
+import { connect } from 'react-redux';
+
 import Controls from 'automan/labeling_tool/controls';
 
 import RequestClient from 'automan/services/request-client';
-
-let annotation, imageLabelTool, pcdLabelTool, controls, klassSet;
-
-const toolStatus = {
-};
-const innerStatus = {
-  loaded: true
-};
-
-// base-labeltool public methods
-const LabelTool = {
-  isEditable() {
-    return LabelTool.isLoaded();
-  },
-  loadFrame(num) {
-    let promise = new Promise((resolve, reject) => {
-      savePromise
-        .then(() => {
-          toolStatus.frameNumber = num;
-          toolStatus.pageBox[0].placeholder =
-            (num + 1) + '/' + toolStatus.frameLength;
-          toolStatus.pageBox.val('');
-
-          // load something (image, pcd)
-          return Promise.all(
-            toolStatus.tools.map(
-              tool =>
-                new Promise((resolve, reject) => {
-                  const candidateId = tool.candidateId;
-                  const fname = toolStatus.filenames[candidateId][num];
-                  if (typeof fname === 'string') {
-                    resolve();
-                    return;
-                  }
-                  RequestClient.get(
-                    LabelTool.getURL('image_url', candidateId),
-                    null,
-                    res => {
-                      RequestClient.getBinaryAsURL(
-                        res,
-                        blobUrl => {
-                          toolStatus.filenames[candidateId][num] = blobUrl;
-                          resolve();
-                        },
-                        e => {
-                          reject(e);
-                        }
-                      );
-                    },
-                    e => {
-                      reject(e);
-                    }
-                  );
-                })
-            )
-          );
-        })
-        .then(() => {
-          // load annotation
-          let promises = toolStatus.tools.map(tool => tool.load());
-          promises.push(annotation.load(num));
-          return Promise.all(promises);
-        })
-        .then(
-          () => {
-            // all loaded
-            controls.update();
-            innerStatus.loaded = true;
-            resolve();
-          },
-          e => {
-            // check annotation load error
-            controls.error(e);
-            innerStatus.loaded = true;
-            reject(e);
-          }
-        );
-    });
-    return promise;
-  },
-  reloadFrame() {
-    // load annotation
-    LabelTool.selectLabel(null);
-
-    innerStatus.loaded = false;
-    return annotation.load(toolStatus.frameNumber).then(
-      () => {
-        // annotation loaded
-        controls.update();
-        innerStatus.loaded = true;
-      },
-      e => {
-        // check annotation load error
-        controls.error(e);
-        innerStatus.loaded = true;
-        return Promise.reject(e);
-      }
-    );
-  },
-  saveFrame() {
-    // promise function!!
-    if (!LabelTool.isLoaded()) {
-      return Promise.reject('Duplicate save');
-    }
-    return LabelTool.saveStatus()
-      .then(() => annotation.save())
-      .then(() => LabelTool.reloadFrame());
-  },
-  saveStatus() {
-    // promise function!!
-    if (!LabelTool.isLoaded()) {
-      return Promise.reject('Duplicate save status');
-    }
-    return new Promise((resolve, reject) => {
-      // save frameNumber
-      resolve();
-    });
-  },
-  nextFrame: function(count) {
-    if (count == undefined) {
-      count = toolStatus.skipFrameCount;
-    }
-    LabelTool.moveFrame(count);
-  },
-  previousFrame: function(count) {
-    if (count == undefined) {
-      count = toolStatus.skipFrameCount;
-    }
-    LabelTool.moveFrame(-count);
-  },
-  moveFrame(cnt) {
-    // TODO: check type of'cnt'
-    let newFrame = toolStatus.frameNumber + cnt;
-    newFrame = Math.max(newFrame, 0);
-    newFrame = Math.min(toolStatus.frameLength - 1, newFrame);
-    if (isFinite(newFrame)) {
-      return LabelTool.setFrame(newFrame);
-    }
-    return false;
-  },
-  resetBBoxes() {
-    LabelTool.setFrame(toolStatus.frameNumber);
-  },
-  setFrame(num) {
-    if (!LabelTool.isLoaded()) {
-      return false;
-    }
-    // TODO: num check
-    if (toolStatus.frameNumber !== num) {
-      num = parseInt(num);
-      if (isNaN(num) || num < 0 || toolStatus.frameLength <= num) {
-        return false;
-      }
-      this.loadFrame(num).catch(e => {
-        controls.error(e);
-      });
-    }
-    return true;
-  },
-};
-
-// base-labeltool internal functions
-const initializeAll = function() {
-  klassSet = new KlassSet(LabelTool);
-  annotation = new Annotation(LabelTool);
-  imageLabelTool = new ImageLabelTool(LabelTool);
-  pcdLabelTool = new PCDLabelTool(LabelTool);
-  controls = new Controls(LabelTool, imageLabelTool, pcdLabelTool);
-  LabelTool.controls = controls;
-
-  initializeBase()
-    .then(() => {
-      return Promise.all([klassSet.init(), annotation.init()]);
-    })
-    .then(
-      () => {
-        controls.init();
-        toolStatus.tools.forEach(tool => {
-          tool.init();
-        });
-        toolStatus.tools[toolStatus.activeTool].setActive(true);
-
-        initializeEvent();
-
-        LabelTool.loadFrame(0).then(() => {
-          // TODO: some check
-        });
-      },
-      e => {
-        controls.error(e);
-      }
-    );
-};
-const initializeBase = function() {
-  // promise function!!
-  const pathItems = window.location.pathname.split('/');
-  toolStatus.projectId = parseInt(pathItems[2]);
-  toolStatus.annotationId = parseInt(pathItems[4]);
-
-  toolStatus.pageBox = $('#page_num');
-  toolStatus.nextFrameButton = $('#next-frame-button');
-  toolStatus.prevFrameButton = $('#previous-frame-button');
-  toolStatus.frameSkipText = $('#frame-skip');
-
-  return new Promise((resolve, reject) => {
-    RequestClient.get(
-      LabelTool.getURL('project'),
-      null,
-      res => {
-        toolStatus.projectInfo = res;
-
-        // load labeling tools
-        const LABEL_TYPES = {
-          BB2D: {
-            tools: [imageLabelTool, pcdLabelTool]
-          },
-          BB2D3D: {
-            tools: [imageLabelTool, pcdLabelTool]
-          }
-        };
-        const type = LABEL_TYPES[res.label_type];
-        if (type == null) {
-          reject('Tool type error [' + res.label_type + ']');
-          return;
-        }
-        toolStatus.labelType = type;
-        toolStatus.tools = type.tools;
-
-        resolve();
-      },
-      err => {
-        reject(err);
-      }
-    );
-  })
-    
-};
+import { setLabelTool } from './actions/tool_action';
 
 
-// init all when dom loaded
-//$(initializeAll);
-
-export default class LabelTool_ extends React.Component {
+class LabelTool extends React.Component {
   // components
   controls = null;
   // informations
@@ -447,26 +211,32 @@ export default class LabelTool_ extends React.Component {
       isLoaded: false,
       isInitialized: false
     };
-    //this.klassSet = new KlassSet(this);
-    //this.annotation = new Annotation(this, this.klassSet);
-    //this.controls = React.createRef();
-    
-    this.initializeBase().then(() => {
-      return new Promise((resolve, reject) => {
-        this.mountHandle = () => {
-          resolve();
-        };
-        this.setState({isInitialized: true});
-      });
-    }).then(() => {
-      this.initializeEvent();
 
-      return this.controls.loadFrame(0);
-    }).catch(e => {
-      this.errorMessage = e;
-      console.error(e);
-      // ******
-    });
+    props.dispatchSetLabelTool(this);
+
+    const pathItems = window.location.pathname.split('/');
+    this.projectId = parseInt(pathItems[2]);
+    this.annotationId = parseInt(pathItems[4]);
+
+    this.initializeBase()
+      .then(() => {
+        return new Promise((resolve, reject) => {
+          this.mountHandle = () => {
+            resolve();
+          };
+          this.setState({isInitialized: true});
+        });
+      })
+      .then(() => {
+        this.initializeEvent();
+
+        return this.controls.loadFrame(0);
+      })
+      .catch(e => {
+        this.errorMessage = e;
+        console.error(e);
+        // ******
+      });
   }
 
   // get project information
@@ -537,9 +307,6 @@ export default class LabelTool_ extends React.Component {
     });
   }
   initializeBase() {
-    const pathItems = window.location.pathname.split('/');
-    this.projectId = parseInt(pathItems[2]);
-    this.annotationId = parseInt(pathItems[4]);
     return this.initProject()
       .then(() => this.initAnnotation())
       .then(() => this.initDataset())
@@ -579,4 +346,17 @@ export default class LabelTool_ extends React.Component {
     );
   }
 };
+
+const mapStateToProps = state => ({
+  labelTool: state.tool.labelTool
+});
+const mapDispatchToProps = dispatch => ({
+  dispatchSetLabelTool: target => dispatch(setLabelTool(target))
+});
+export default compose(
+  connect(
+    mapStateToProps,
+    mapDispatchToProps
+  )
+)(LabelTool);
 
