@@ -245,13 +245,3 @@ const setRectPos = function(elem, x, y, w, h) {
   elem.attr({x:x, y:y, width:w, height:h});
 };
 
-
-
-
-
-
-
-
-
-
-

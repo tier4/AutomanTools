@@ -303,7 +303,7 @@ class PCDLabelTool extends React.Component {
   // button actions
   setHeight = () => {
     let bboxes;
-    const tgt = this._controls.getTargetLabel();
+    const tgt = this.props.controls.getTargetLabel();
     if (tgt !== null) {
       bboxes = [tgt.bbox[this.candidateId]];
     } else {
