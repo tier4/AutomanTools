@@ -5,6 +5,10 @@ const beforeSend = function(xhr, settings) {
   const jwt = getJWT('automan_jwt');
   xhr.setRequestHeader("Authorization", `JWT ${jwt}`);
 }
+const isLocalDomain = function(url) {
+  const urlObj = new URL(url, location.href);
+  return urlObj.hostname === location.hostname;
+};
 let requests = [];
 let pageQueries = [];
 const abortXhr = (xhr) => {
@@ -140,7 +144,9 @@ const request = (url, data, method, successCB, failCB, options) => {
       }
     }
   };
-  originalOptions.beforeSend = beforeSend;
+  if (isLocalDomain(url)) {
+    originalOptions.beforeSend = beforeSend;
+  }
   if (method === 'GET') {
     originalOptions.dataType = 'json';
   } else {
