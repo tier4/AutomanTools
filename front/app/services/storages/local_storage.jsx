@@ -1,28 +1,22 @@
-import { beforeSend } from 'automan/services/request-client'
+import RequestClient from 'automan/services/request-client'
 
 export default class LocalStorageClient {
   static upload(requestPath, file, progressCallback, completeCallback, index) {
-    let fd = new FormData();
-    let options = {
-      type: "post",
-      async: true,
-      data: fd,
-      contentType: false,
-      processData: false,
-      xhr : function() {
-        var XHR = $.ajaxSettings.xhr();
-        if(XHR.upload){
-          XHR.upload.addEventListener('progress', function(e){
-            var progress = parseInt(e.loaded/e.total*100);
-            progressCallback(progress)
-          }, false);
-        }
-        return XHR;
-      },
-    }
+    const fd = new FormData();
     fd.append('file', file);
-    let successCB = function(data) { completeCallback(index + 1) }
-    let errorCB = function(data) { alert("Error occurred during file upload.") }
-    RequestClient.post(requestPath, fd, successCB, errorCB, options)
+
+    const options = {
+      handleProgress: e => {
+        const progress = parseInt(e.loaded / e.total * 100);
+        progressCallback(progress);
+      }
+    };
+
+    RequestClient.post(requestPath, fd, options)
+      .then((data) => {
+        completeCallback(index + 1);
+      }, (err) => {
+        alert("Error occurred during file upload.");
+      });
   }
 }
