@@ -4,9 +4,14 @@ from django.http import HttpResponse
 from django.core.exceptions import PermissionDenied
 from rest_framework.decorators import api_view
 from .annotation_manager import AnnotationManager
+from projects.datasets.dataset_manager import DatasetManager
+from projects.originals.original_manager import OriginalManager
+from projects.storages.serializer import StorageSerializer
+from projects.storages.aws_s3 import AwsS3Client
 from api.permissions import Permission
 from api.settings import PER_PAGE, SORT_KEY
 from accounts.account_manager import AccountManager
+from api.errors import UnknownStorageTypeError
 
 
 @api_view(['GET', 'POST'])
@@ -88,7 +93,26 @@ def frame(request, project_id, annotation_id, frame):
 
 
 @api_view(['GET'])
-def download_archived_annotation(request, project_id, annotation_id):
+def download_archived_link(request, project_id, annotation_id):
+    username = request.user
+    user_id = AccountManager.get_id_by_username(username)
+    annotation_manager = AnnotationManager()
+    dataset_id = annotation_manager.get_annotation(annotation_id)['dataset_id']
+    original_id = DatasetManager().get_dataset(user_id, dataset_id)['original_id']
+    storage_id = OriginalManager().get_original(project_id, original_id)['storage_id']
+    storage = StorageSerializer().get_storage(project_id, storage_id)
+    if storage['storage_type'] == 'LOCAL_NFS':
+        content = request.build_absolute_uri(request.path) + 'local/'
+    elif storage['storage_type'] == 'AWS_S3':
+        archive_path = annotation_manager.get_archive_path(annotation_id)
+        content = AwsS3Client().get_s3_down_url(
+            storage['storage_config']['bucket'], archive_path)
+    else:
+        raise UnknownStorageTypeError
+    return HttpResponse(status=200, content=json.dumps(content), content_type='text/plain')
+
+@api_view(['GET'])
+def download_local_nfs_archive(request, project_id, annotation_id):
     username = request.user
     user_id = AccountManager.get_id_by_username(username)
     if not Permission.hasPermission(user_id, 'get_label', project_id):

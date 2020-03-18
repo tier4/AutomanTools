@@ -233,7 +233,7 @@ class AnnotationManager(object):
     def get_archive_path(self, annotation_id):
         archive = ArchivedLabelDataset.objects.filter(
             annotation_id=annotation_id).order_by('-date').first()
-        archive_path = archive.file_path + '/' + archive.file_name
+        archive_path = archive.file_path.rstrip('/') + '/' + archive.file_name
         return archive_path
 
     def get_instances(self, annotation_id):

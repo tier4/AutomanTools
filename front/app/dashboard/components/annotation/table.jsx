@@ -200,14 +200,21 @@ class AnnotationTable extends React.Component {
                 <Tooltip title="Download">
                   <Button
                     classes={{ root: classes.tableActionButton }}
-                    onClick={() => {
-                      RequestClient.getBinaryAsURL(row.archive_url, (url) => {
-                        let a = document.createElement('a');
-                        a.download = row.file_name;
-                        a.href = url;
-                        a.click();
-                      }, () => { });
-                    }}
+                    onClick={() => RequestClient.get(
+                      row.archive_url,
+                      null,
+                      res => {
+                        RequestClient.getBinaryAsURL(res, (url) => {
+                          let a = document.createElement('a');
+                          a.download = row.file_name;
+                          a.href = url;
+                          a.click();
+                        }, () => { });
+                      },
+                      e => {
+                        reject(e);
+                      }
+                    )}
                     className={classes.button}>
                     <CloudDownload fontSize="small" />
                   </Button>
