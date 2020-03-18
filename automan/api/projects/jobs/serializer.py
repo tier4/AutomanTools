@@ -105,10 +105,18 @@ class JobSerializer(serializers.ModelSerializer):
         original = OriginalManager().get_original(project_id, original_id, status='analyzed')
         storage = StorageSerializer().get_storage(project_id, original['storage_id'])
         storage_config = copy.deepcopy(storage['storage_config'])
-
+        original_path = StorageSerializer.get_original_path(
+            storage['storage_type'], storage['storage_config'], original['name'])
+        storage_config.update({
+            'path': original_path,
+            'storage_id': original['storage_id']})
         automan_config = cls.__get_automan_config(user_id)
-        automan_config.update({'path': '/projects/' + str(project_id) + '/annotations/' + str(annotation_id) + '/'})
-        archive_config = cls.__get_archive_info(user_id, project_id, dataset_id, annotation_id, original_id)
+        automan_config.update({
+            'path': '/projects/' + str(project_id) + '/annotations/' + str(annotation_id) + '/',
+            'presigned': '/projects/' + str(project_id) + '/storages/put_s3/'})
+
+        archive_config = cls.__get_archive_info(
+            storage['storage_type'], user_id, project_id, dataset_id, annotation_id, original_id)
         job_config = {
             'storage_type': storage['storage_type'],
             'storage_config': storage_config,
@@ -127,16 +135,19 @@ class JobSerializer(serializers.ModelSerializer):
         res = job.run()
         return res
 
-    def __get_archive_info(user_id, project_id, dataset_id, annotation_id, original_id):
+    def __get_archive_info(storage_type, user_id, project_id, dataset_id, annotation_id, original_id):
         dataset = DatasetManager().get_dataset(user_id, dataset_id)
         file_path = dataset['file_path'].rsplit('/', 2)
         archive_name = file_path[1] + '_' + datetime.now().strftime('%s')
+        archive_dir = file_path[0]
+        if storage_type == 'AWS_S3':
+            archive_dir = dataset['file_path'].replace('datasets', 'archives')
         archive_config = {
             'project_id': project_id,
             'dataset_id': dataset_id,
             'annotation_id': annotation_id,
             'original_id': original_id,
-            'archive_dir': file_path[0],
+            'archive_dir': archive_dir,
             'archive_name': archive_name,
         }
         return archive_config
