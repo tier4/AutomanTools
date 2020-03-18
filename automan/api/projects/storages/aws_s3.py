@@ -38,7 +38,7 @@ class AwsS3Client(object):
             ExpiresIn=1800,
             HttpMethod='PUT')
         return url
-    
+
     def get_s3_post_url(self, bucket, key):
         key = key.lstrip('/')
 

@@ -104,7 +104,7 @@ class RosbagExtractor(BaseJob):
                     name=self.IMAGE_NAME,
                     resources=client.models.V1ResourceRequirements(limits=system_usage, requests=system_usage),
                 )
-            ]  
+            ]
         else:
             raise NotImplementedError
         return containers

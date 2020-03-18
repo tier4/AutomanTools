@@ -48,7 +48,7 @@ class StorageViewSet(viewsets.ModelViewSet):
                             status=200,
                             content_type='application/json')
 
-    @action (methods=['get'], detail=False)
+    @action(methods=['get'], detail=False)
     def put_s3(self, request, project_id):
         # TODO s3 validation
         storage_id = int(request.GET.get(key='storage_id'))
