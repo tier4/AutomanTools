@@ -9,7 +9,7 @@ class DatasetFrameManager():
     @classmethod
     def list_dataset_frames(cls, project_id, dataset_id):
         dataset = LabelDataset.objects.filter(
-            id=dataset_id, project_id=project_id, delete_flag=False).first()
+            id=dataset_id, project_id=project_id).first()
         if dataset is None:
             raise ObjectDoesNotExist()
 
@@ -29,7 +29,7 @@ class DatasetFrameManager():
     @classmethod
     def get_dataset_frame(cls, project_id, dataset_id, frame):
         dataset = LabelDataset.objects.filter(
-            id=dataset_id, project_id=project_id, delete_flag=False).first()
+            id=dataset_id, project_id=project_id).first()
         if dataset is None:
             raise ObjectDoesNotExist()
 

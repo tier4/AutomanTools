@@ -1,10 +1,13 @@
+import shutil
 from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist, FieldError
 from projects.models import Projects
 from projects.members.models import Members
+from projects.storages.serializer import StorageSerializer
 from projects.klassset.klassset_manager import KlasssetManager
 from api.common import validation_check
 from api.settings import SORT_KEY, PER_PAGE, SUPPORT_LABEL_TYPES
+from api.permissions import Permission
 
 
 class ProjectManager(object):
@@ -18,17 +21,14 @@ class ProjectManager(object):
             if is_reverse is False:
                 projects = Projects.objects.order_by(sort_key).filter(
                     Q(id__in=project_ids),
-                    Q(delete_flag=False),
                     Q(name__contains=search_keyword) | Q(description__contains=search_keyword))[begin:begin + per_page]
             else:
                 projects = Projects.objects.order_by(sort_key).reverse().filter(
                     Q(id__in=project_ids),
-                    Q(delete_flag=False),
                     Q(name__contains=search_keyword) | Q(description__contains=search_keyword))[begin:begin + per_page]
         except FieldError:
             projects = Projects.objects.order_by("id").filter(
                 Q(id__in=project_ids),
-                Q(delete_flag=False),
                 Q(name__contains=search_keyword) | Q(description__contains=search_keyword))[begin:begin + per_page]
 
         records = []
@@ -39,6 +39,7 @@ class ProjectManager(object):
             record['description'] = project.description
             record['label_type'] = project.label_type
             record['created_at'] = str(project.created_at)
+            record['can_delete'] = Permission.hasPermission(user_id, 'delete_project', project.id)
             records.append(record)
             try:
                 klassset_manager = KlasssetManager()
@@ -46,7 +47,7 @@ class ProjectManager(object):
                 record['klassset_name'] = klassset.name
                 record['klassset_id'] = klassset.id
             except Exception:
-                record['klassset_name'] = ' '
+                record['klassset_name'] = ''
                 record['klassset_id'] = 0
         contents = {}
         contents['count'] = self.project_total_count(user_id)
@@ -58,8 +59,7 @@ class ProjectManager(object):
 
     @classmethod
     def __user_projects(self, user_id):
-        groups = Members.objects.filter(
-            user_id=user_id, delete_flag=False)
+        groups = Members.objects.filter(user_id=user_id)
 
         project_ids = []
         for group in groups:
@@ -68,13 +68,12 @@ class ProjectManager(object):
 
     def project_total_count(self, user_id):
         project_ids = self.__user_projects(user_id)
-        projects = Projects.objects.filter(
-            id__in=project_ids, delete_flag=False)
+        projects = Projects.objects.filter(id__in=project_ids)
         return projects.count()
 
     # (GET):/projects/:project_id:/
     def get_project(self, project_id, user_id):
-        project = Projects.objects.filter(id=project_id, delete_flag=False).first()
+        project = Projects.objects.filter(id=project_id).first()
         if project is None:
             raise ObjectDoesNotExist()
 
@@ -96,11 +95,15 @@ class ProjectManager(object):
         return project.id
 
     def delete_project(self, project_id, user_id):
-        content = Projects.objects.filter(id=project_id, delete_flag=False).first()
+        content = Projects.objects.filter(id=project_id).first()
         if content is None:
             raise ObjectDoesNotExist()
-        content.delete_flag = True
-        content.save()
+        storages = StorageSerializer().get_storages(project_id)
+        for storage in storages:
+            dir_path = (storage['storage_config']['mount_path']
+                        + storage['storage_config']['base_dir'])
+            shutil.rmtree(dir_path)
+        content.delete()
 
     def __is_support_label_type(self, label_type):
         return label_type in SUPPORT_LABEL_TYPES

@@ -86,8 +86,20 @@ export const mainStyle = theme => ({
     marginTop: -10,
     marginBottom: -10,
     marginLeft: 1,
-    marginRight:1,
+    marginRight: 1,
     minHeight: '30px',
+    padding: '0 0px'
+  },
+  tableProgress: {
+    marginTop: -4,
+    marginBottom: 0,
+    minHeight: '10px',
+    padding: '0 0px'
+  },
+  tableProgressStr: {
+    marginTop: 0,
+    marginBottom: -6,
+    minHeight: '10px',
     padding: '0 0px'
   },
   fab: {

@@ -1,4 +1,4 @@
-FROM python:3.7-slim
+FROM python:3.8.1-slim
 
 SHELL ["/bin/bash", "-c"]
 ENV DEBIAN_FRONTEND=noninteractive
@@ -7,8 +7,8 @@ ENV LANG "C.UTF-8"
 ENV APP_PATH /opt/automan
 
 # install python
-RUN apt update && \
-    apt install -y --no-install-recommends \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
     apt-transport-https \
     default-libmysqlclient-dev \
     ca-certificates \
@@ -30,27 +30,32 @@ RUN apt update && \
     wget \
     xz-utils \
     zlib1g-dev && \
-    apt clean && \
-    rm -rf /var/lib/apt/lists/* && \
     pip install --no-cache-dir pipenv && \
     curl -sL https://deb.nodesource.com/setup_10.x | bash - && \
-    apt install -y nodejs && \
+    apt-get install -y nodejs && \
     curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
     echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list && \
-    apt update && apt install -y yarn
+    apt-get update && \
+    apt-get install -y yarn && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# FIXME COPY -> RUN git clone
-# cd automan
-# docker build -t automan-labeling-app -f Dockerfile .
+# setup pipenv
 COPY automan/Pipfile* /tmp/automan/
 WORKDIR /tmp/automan
 RUN pipenv install --system --deploy
 
-COPY . $APP_PATH/
-# setup frontend environment
+# setup yarn packages
+COPY front/package.json $APP_PATH/front/
 WORKDIR $APP_PATH/front
-RUN yarn install && yarn build
+RUN yarn install
 
+# setup frontend environment
+COPY front/ $APP_PATH/front/
+RUN yarn build
+
+COPY automan/ $APP_PATH/automan/
+COPY bin/ $APP_PATH/bin/
 WORKDIR $APP_PATH/
 ENTRYPOINT ["./bin/docker-entrypoint.sh"]
 CMD ["uwsgi", "--ini", "conf/app.ini"]

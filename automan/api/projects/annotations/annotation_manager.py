@@ -1,13 +1,17 @@
 import json
 import uuid
+import os
 from uuid import UUID
+from datetime import datetime, timedelta, timezone
 from django.db import transaction
 from django.db.models import Q
-from django.core.exceptions import ValidationError, ObjectDoesNotExist, FieldError
+from django.core.exceptions import (
+    ValidationError, ObjectDoesNotExist, PermissionDenied, FieldError)
 from projects.annotations.models import DatasetObject, DatasetObjectAnnotation, AnnotationProgress
 from projects.annotations.helpers.label_types.bb2d import BB2D
 from projects.annotations.helpers.label_types.bb2d3d import BB2D3D
-from .models import Annotation, ArchivedLabelDataset
+from .models import Annotation, ArchivedLabelDataset, FrameLock
+from projects.datasets.models import LabelDataset
 from projects.models import Projects
 from api.settings import PER_PAGE, SORT_KEY
 from api.common import validation_check
@@ -17,7 +21,9 @@ from api.errors import UnknownLabelTypeError
 class AnnotationManager(object):
 
     def create_annotation(self, user_id, project_id, name, dataset_id):
-        new_annotation = Annotation(name=name, dataset_id=dataset_id, project_id=project_id)
+        dataset = LabelDataset.objects.filter(id=dataset_id).first()
+        new_annotation = Annotation(
+            name=name, dataset_id=dataset_id, project_id=project_id, frame=dataset.frame_count)
         new_annotation.save()
 
         # FIXME: state
@@ -29,8 +35,7 @@ class AnnotationManager(object):
         return new_annotation.id
 
     def get_annotation(self, annotation_id):
-        annotation = Annotation.objects.filter(id=annotation_id, delete_flag=False).first()
-
+        annotation = Annotation.objects.filter(id=annotation_id).first()
         if annotation is None:
             raise ObjectDoesNotExist()
         contents = {}
@@ -41,7 +46,7 @@ class AnnotationManager(object):
         return contents
 
     def annotation_total_count(self, project_id):
-        annotations = Annotation.objects.filter(project_id=project_id, delete_flag=False)
+        annotations = Annotation.objects.filter(project_id=project_id)
         return annotations.count()
 
     def list_annotations(
@@ -54,19 +59,15 @@ class AnnotationManager(object):
             if is_reverse is False:
                 annotations = Annotation.objects.order_by(sort_key).filter(
                     Q(project_id=project_id),
-                    Q(delete_flag=False),
                     Q(name__contains=search_keyword))[begin:begin + per_page]
             else:
                 annotations = Annotation.objects.order_by(sort_key).reverse().filter(
                     Q(project_id=project_id),
-                    Q(delete_flag=False),
                     Q(name__contains=search_keyword))[begin:begin + per_page]
         except FieldError:
             annotations = Annotation.objects.order_by("id").filter(
                 Q(project_id=project_id),
-                Q(delete_flag=False),
                 Q(name__contains=search_keyword))[begin:begin + per_page]
-
         records = []
         for annotation in annotations:
             record = {}
@@ -75,6 +76,9 @@ class AnnotationManager(object):
             record['created_at'] = str(annotation.created_at)
             record['dataset_id'] = annotation.dataset_id
             record['archive_url'], record['file_name'] = self.get_archive_url(project_id, annotation.id)
+            annotation_progress = self.get_newest_annotation(annotation.id)
+            record['progress'] = annotation_progress.progress
+            record['status'] = annotation_progress.state
             records.append(record)
         contents = {}
         contents['count'] = self.annotation_total_count(project_id)
@@ -99,17 +103,25 @@ class AnnotationManager(object):
         return newest_annotation
 
     def delete_annotation(self, annotation_id):
+        archives = ArchivedLabelDataset.objects.filter(annotation_id=annotation_id)
+        for archive in archives:
+            path = archive.file_path + '/' + archive.file_name
+            os.remove(path)
         annotation = Annotation.objects.filter(id=annotation_id).first()
-        if annotation.delete_flag is True:
-            raise ObjectDoesNotExist()
-        annotation.delete_flag = True
-        annotation.save()
+        annotation.delete()
 
-    def get_frame_labels(self, project_id, annotation_id, frame):
+    def delete_annotations(self, dataset_id):
+        annotations = Annotation.objects.filter(dataset_id=dataset_id)
+        for annotation in annotations:
+            self.delete_annotation(annotation.id)
+
+    def get_frame_labels(self, project_id, user_id, try_lock, annotation_id, frame):
         objects = DatasetObject.objects.filter(
             annotation_id=annotation_id, frame=frame)
         if objects is None:
             raise ObjectDoesNotExist()
+        if try_lock:
+            self.release_lock(user_id, annotation_id)
 
         records = []
         count = 0
@@ -122,12 +134,14 @@ class AnnotationManager(object):
             record['object_id'] = object.id
             record['name'] = label.name
             record['content'] = json.loads(label.content)
-            record['instance_id'] = str(object.instance) if object.instance != None else None
+            record['instance_id'] = str(object.instance) if object.instance is not None else None
             records.append(record)
             count += 1
         labels = {}
         labels['count'] = count
         labels['records'] = records
+        labels['is_locked'], labels['expires_at'] = self.get_lock(
+            try_lock, user_id, annotation_id, frame)
         return labels
 
     @transaction.atomic
@@ -141,6 +155,9 @@ class AnnotationManager(object):
             LabelClass = BB2D3D
         else:
             raise UnknownLabelTypeError  # TODO: BB3D
+
+        if not self.has_valid_lock(user_id, annotation_id, frame):
+            raise PermissionDenied
 
         # TODO: bulk insert (try to use bulk_create method)
         for label in created_list:
@@ -180,12 +197,21 @@ class AnnotationManager(object):
                 delete_flag=True)
             deleted_label.save()
 
-        # FIXME: state, progress
+        annotation = Annotation.objects.filter(id=annotation_id).first()
+        objects = DatasetObject.objects.filter(annotation_id=annotation_id)
+        frames = []
+        for object in objects:
+            frames.append(object.frame)
+        try:
+            progress = len(set(frames)) / annotation.frame * 100
+        except ZeroDivisionError:
+            progress = -1
+        state = 'editing' if progress < 100 else 'finished'
         new_progress = AnnotationProgress(
             annotation_id=annotation_id,
             user=user_id,
-            state='editing',
-            progress=0,
+            state=state,
+            progress=progress,
             frame_progress=frame)
         new_progress.save()
 
@@ -210,6 +236,15 @@ class AnnotationManager(object):
             file_name=file_name)
         new_archive.save()
 
+        old = self.get_newest_annotation(annotation_id)
+        new_progress = AnnotationProgress(
+            annotation_id=annotation_id,
+            user=old.user,
+            state='archived',
+            progress=old.progress,
+            frame_progress=old.frame_progress)
+        new_progress.save()
+
     def get_archive_url(self, project_id, annotation_id):
         archive = ArchivedLabelDataset.objects.filter(
             annotation_id=annotation_id).order_by('-date').first()
@@ -225,14 +260,14 @@ class AnnotationManager(object):
         return archive_path
 
     def get_instances(self, annotation_id):
-            objects = DatasetObject.objects.filter(annotation_id=annotation_id)
-            records = []
-            for object in objects:
-                records.append(str(object.instance))
-            labels = {}
-            labels['records'] = list(set(records))
-            labels['count'] = len(labels['records'])
-            return labels
+        objects = DatasetObject.objects.filter(annotation_id=annotation_id)
+        records = []
+        for object in objects:
+            records.append(str(object.instance))
+        labels = {}
+        labels['records'] = list(set(records))
+        labels['count'] = len(labels['records'])
+        return labels
 
     def get_instance(self, annotation_id, instance_id):
         if self.is_valid_uuid4(instance_id) is not True:
@@ -265,3 +300,48 @@ class AnnotationManager(object):
             return True
         except:
             return False
+
+    def get_lock(self, try_lock, user_id, annotation_id, frame):
+        if try_lock is not True:
+            return False, None
+        lock = FrameLock.objects.filter(
+            annotation_id=annotation_id, frame=frame
+        ).first()
+        new_expires_at = datetime.now(timezone.utc) + timedelta(minutes=5)
+
+        if lock is None:
+            lock = FrameLock(
+                user=user_id,
+                annotation_id=annotation_id,
+                frame=frame,
+                expires_at=new_expires_at)
+            lock.save()
+        elif lock.expires_at < datetime.now(timezone.utc):
+            lock.user = user_id
+            lock.expires_at = new_expires_at
+            lock.save()
+        else:
+            return False, None
+        return True, int(new_expires_at.timestamp())
+
+    def release_lock(self, user_id, annotation_id):
+        lock = FrameLock.objects.filter(
+            user=user_id,
+            annotation_id=annotation_id
+        ).first()
+        if lock is None:
+            return False
+        lock.delete()
+        return True
+
+    def has_valid_lock(self, user_id, annotation_id, frame):
+        lock = FrameLock.objects.filter(
+            user=user_id,
+            annotation_id=annotation_id,
+            frame=frame
+        ).first()
+        if lock is None:
+            return False
+        lock.expires_at = datetime.now(timezone.utc) + timedelta(minutes=5)
+        lock.save()
+        return True

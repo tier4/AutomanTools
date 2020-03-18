@@ -1,4 +1,7 @@
 import React from 'react';
+import { compose } from 'redux';
+import { connect } from 'react-redux';
+import PropTypes from 'prop-types';
 import { withStyles } from '@material-ui/core/styles';
 import Grid from '@material-ui/core/Grid';
 import Paper from '@material-ui/core/Paper';
@@ -12,7 +15,8 @@ class DatasetPage extends React.Component {
     super(props);
     this.state = {
       dataset_id: null,
-      formOpen: false
+      formOpen: false,
+      needUpdate: false
     };
   }
   show = (dataset_id) => {
@@ -24,6 +28,19 @@ class DatasetPage extends React.Component {
   hide = () => {
     this.setState({ formOpen: false });
   };
+  deleteDataset = (dataset_id) => {
+    RequestClient.delete(
+      '/projects/' + this.props.currentProject.id
+      + '/datasets/' + dataset_id + '/',
+      null,
+      res => {
+        this.setState({ needUpdate: true });
+      }
+    );
+  };
+  handleUpdate = () => {
+    this.setState({ needUpdate: false });
+  }
   render() {
     const { classes } = this.props;
     return (
@@ -35,7 +52,12 @@ class DatasetPage extends React.Component {
         />
         <Grid item xs={12}>
           <Paper className={classes.root}>
-            <DatasetTable show={this.show}/>
+            <DatasetTable
+              show={this.show}
+              deleteDataset={this.deleteDataset}
+              needUpdate={this.state.needUpdate}
+              handleUpdate={this.handleUpdate}
+            />
           </Paper>
         </Grid>
       </Grid>
@@ -43,4 +65,18 @@ class DatasetPage extends React.Component {
   }
 }
 
-export default withStyles(mainStyle)(DatasetPage);
+DatasetPage.propTypes = {
+  classes: PropTypes.object.isRequired
+};
+const mapStateToProps = state => {
+  return {
+    currentProject: state.projectReducer.currentProject
+  };
+};
+export default compose(
+  withStyles(mainStyle, { name: 'DatasetPage' }),
+  connect(
+    mapStateToProps,
+    null
+  )
+)(DatasetPage);

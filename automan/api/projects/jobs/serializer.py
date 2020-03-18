@@ -55,7 +55,7 @@ class JobSerializer(serializers.ModelSerializer):
                 status, start_time, completion_time = cls.__get_job_status(job.id, job.job_type)
                 if job.status != STATUS_MAP['unknown'] and status == STATUS_MAP['unknown']:
                     job.unknown_started_at = datetime.now(timezone.utc)
-                job.status = status
+                job.status = status if status else STATUS_MAP['unknown']
                 job.started_at = start_time
                 job.completed_at = completion_time
                 if job.status == STATUS_MAP['unknown'] and cls.__is_unknown_time_limit(job.unknown_started_at):
