@@ -136,7 +136,7 @@ class OriginalDataForm extends React.Component {
       '/projects/' + that.props.currentProject.id + '/originals/',
       registerInfo,
       data => {
-        storageInfo = JSON.parse(data);
+        storageInfo = data;
         this.updateFileStateKeyValue(index, 'id', storageInfo.id);
       },
       () => {}

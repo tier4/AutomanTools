@@ -1,18 +1,16 @@
-function getJWT(itemName) {
-  return localStorage.getItem(itemName)
-}
-const beforeSend = function(xhr, settings) {
-  const jwt = getJWT('automan_jwt');
-  xhr.setRequestHeader("Authorization", `JWT ${jwt}`);
-}
-let requests = [];
-let pageQueries = [];
-const abortXhr = (xhr) => {
-  const idx = requests.indexOf(xhr);
-  if (idx < 0) { return; }
-  xhr.abort();
-  requests.splice(idx, 0);
+const CURRENT_DOMAIN = location.hostname;
+const createURLObj = url => {
+  return new URL(url, location.href);
 };
+const addJWT = (urlObj, headers) => {
+  if (urlObj.hostname !== CURRENT_DOMAIN) {
+    return;
+  }
+  const jwt = localStorage.getItem('automan_jwt');
+  headers.append('Authorization', `JWT ${jwt}`);
+};
+
+let abortableRequests = new Set();
 class PageQuery {
   constructor() {
     this.page = 1;
@@ -20,16 +18,15 @@ class PageQuery {
     this.searchText = null;
     this.sortKey = 'id';
     this.sortReverseFlag = false;
-    pageQueries.push(this);
     this.xhr = null;
-  }
-  setRequest(xhr) {
-    this.xhr = xhr;
   }
   abort() {
-    if (this.xhr === null) { return; }
-    abortXhr(this.xhr);
+    if (this.xhr === null) {
+      return;
+    }
+    this.xhr.abort();
     this.xhr = null;
+    abortableRequests.delete(this);
   }
   getPage() { return this.page; }
   setPage(page) { this.page = Math.max(1, page); }
@@ -42,7 +39,14 @@ class PageQuery {
   getSortRevFlag() { return this.sortReverseFlag; }
   setSortRevFlag(flag) { this.sortReverseFlag = !!flag; }
 
-  getData() {
+  getData(xhr) {
+    if (xhr == null) {
+      return this;
+    }
+    this.abort();
+    this.xhr = xhr;
+    abortableRequests.add(this);
+
     const data = {
       page:   this.getPage(),
       per_page: this.getPerPage()
@@ -61,8 +65,7 @@ class PageQuery {
   }
 }
 
-const createErrorMessage = function(xhr) {
-  var code = xhr.status;
+const createErrorMessage = code => {
   if (200 <= code && code < 300) {
     return 'Server response type error';
   } else if (code === 400) {
@@ -83,114 +86,194 @@ const createErrorMessage = function(xhr) {
   }
   return 'Unknown error';
 };
-const request = (url, data, method, successCB, failCB, options) => {
-  if (typeof(failCB) !== 'function') { failCB = function() { }; }
-  if (typeof(successCB) !== 'function') { successCB = function() { }; }
+const expandData = (urlObj, options, data) => {
+  if (data == null) { return null; }
 
-  let pageQuery = null;
   if (data instanceof PageQuery){
-    pageQuery = data;
-    pageQuery.abort();
-    data = pageQuery.getData();
-  } else if (method == 'POST' || method == 'PUT') {
-    data = JSON.stringify(data)
-  }
-
-  let ret;
-  const originalOptions = {
-    url: url,
-    type: method,
-    data: data,
-    contentType: 'application/json',
-    cache: false,
-    timeout: 20000,
-    success: (res, status, xhr) => {
-      switch(xhr.status) {
-      case 200:
-      case 201:
-        successCB(res);
-        break;
-      case 204:
-        successCB(null);
-        break;
-      default:
-        const mes = {
-          message: createErrorMessage(xhr),
-          code: xhr.status
-        };
-        failCB(mes);
-      }
-    },
-    error: (xhr, type, err) => {
-      const mes = {
-        message: createErrorMessage(xhr),
-        code: xhr.status,
-        info: {
-          type: type,
-          err: err
-        }
-      };
-      failCB(mes);
-    },
-    complete: () => {
-      if ( pageQuery ) {
-        pageQuery.abort();
-      } else {
-        abortXhr(ret);
-      }
-    }
-  };
-  originalOptions.beforeSend = beforeSend;
-  if (method === 'GET') {
-    originalOptions.dataType = 'json';
+    data = data.getData(options.xhr);
   } else {
-    originalOptions.dataType = 'text';
+    abortableRequests.add(options.xhr);
   }
 
-  ret = $.ajax(Object.assign({}, originalOptions , options));
-  if ( pageQuery ) {
-    pageQuery.setRequest(ret);
+  if (options.method == 'GET') {
+    const urlSearch = urlObj.searchParams;
+    for (let key in data) {
+      urlSearch.append(key, data[key]);
+    }
+  } else {
+    if (data instanceof FormData) {
+      return data;
+    } else if (data instanceof Blob) {
+      options.headers.set(
+        'Content-Type', 'application/octet-stream'
+      );
+      return data;
+    } else {
+      options.headers.set(
+        'Content-Type', 'application/json'
+      );
+      return JSON.stringify(data);
+    }
   }
-  requests.push(ret);
+  return null;
+};
+const expandHeaders = (xhr, headers) => {
+  for (let [key, value] of headers) {
+    xhr.setRequestHeader(key, value);
+  }
+};
+
+const applyOptions = (xhr, options) => {
+  if (typeof options.timeout === 'number') {
+    xhr.timeout = options.timeout;
+  }
+};
+
+const getOptionFromArgs = (successCB, failCB, options) => {
+  if (options != null) {
+    return options;
+  }
+  if (failCB != null) {
+    if (typeof failCB === 'object') {
+      return failCB;
+    }
+    return null;
+  }
+  if (successCB != null) {
+    if (typeof successCB === 'object') {
+      return successCB;
+    }
+    return null;
+  }
+  return null;
+};
+const getHandleProgress = options => {
+  if (options.handleProgress == null) {
+    return null;
+  }
+  if (typeof options.handleProgress === 'function') {
+    return options.handleProgress;
+  }
+  return null;
+};
+const request = (url, data, method, successCB, failCB, options) => {
+  const urlObj = createURLObj(url);
+
+  const opt = {
+    method: method
+  };
+
+  const argOpt = getOptionFromArgs(successCB, failCB, options);
+  const realOptions = Object.assign({}, opt, argOpt);
+  const xhr = new XMLHttpRequest();
+  realOptions.xhr = xhr;
+
+  realOptions.headers = new Headers();
+  addJWT(urlObj, realOptions.headers);
+
+  const body = expandData(urlObj, realOptions, data);
+  
+  const handleProgress = getHandleProgress(realOptions);
+
+  xhr.open(realOptions.method, urlObj.toString());
+
+  expandHeaders(xhr, realOptions.headers);
+
+  applyOptions(xhr, realOptions);
+
+  let ret = new Promise((resolve, reject) => {
+    try {
+      if (xhr.upload && handleProgress) {
+        xhr.upload.addEventListener('progress', e => {
+          handleProgress(e);
+        });
+      }
+      xhr.addEventListener('load', () => {
+        abortableRequests.delete(xhr);
+
+        const code = xhr.status;
+        if (code === 200 || code === 201) {
+          resolve(JSON.parse(xhr.response));
+          return;
+        }
+        if (code === 204) {
+          resolve(null);
+          return;
+        }
+
+        return reject({
+          message: createErrorMessage(code),
+          code: code
+        });
+      });
+      xhr.send(body);
+    } catch(err) {
+      reject({
+        message: err.toString()
+      });
+    }
+  });
+
+
+  if (typeof successCB === 'function') {
+    ret = ret.then(successCB);
+  }
+  if (typeof failCB === 'function') {
+    ret = ret.catch(failCB);
+  }
   return ret;
 }
 const RequestClient = {
-  createPageQuery: function(){
+  createPageQuery: () => {
     return new PageQuery();
   },
-  ajax: function(url, data, type, successCB, failCB, opt) {
+  ajax: (url, data, type, successCB, failCB, opt) => {
     return request(url, data, type.toUpperCase(), successCB, failCB, opt);
   },
-  get: function(url, data, successCB, failCB, opt) {
+  get: (url, data, successCB, failCB, opt) => {
     return request(url, data, 'GET', successCB, failCB, opt);
   },
-  post: function(url, data, successCB, failCB, opt) {
+  post: (url, data, successCB, failCB, opt) => {
     return request(url, data, 'POST', successCB, failCB, opt);
   },
-  put: function(url, data, successCB, failCB, opt) {
+  put: (url, data, successCB, failCB, opt) => {
     return request(url, data, 'PUT', successCB, failCB, opt);
   },
-  delete: function(url, data, successCB, failCB, opt) {
+  delete: (url, data, successCB, failCB, opt) => {
     return request(url, data, 'DELETE', successCB, failCB, opt);
   },
-  getBinaryAsURL: function(url, successCB, failCB) {
-    let xhr = new XMLHttpRequest();
-    xhr.onload = function() {
-      const blob = xhr.response;
-      successCB(URL.createObjectURL(blob));
+  getBinaryAsURL: (url, successCB, failCB) => {
+    const urlObj = createURLObj(url);
+
+    const headers = new Headers();
+    addJWT(urlObj, headers);
+
+    const options = {
+      method: 'GET',
+      headers: headers,
+      mode: 'cors',
+      cache: "no-cache",
     };
-    xhr.open('GET', url);
-    beforeSend(xhr);
-    xhr.responseType = 'blob';
-    xhr.send();
+    let ret = fetch(urlObj.toString(), options)
+      .then(res => res.blob())
+      .then(blob => URL.createObjectURL(blob));
+
+    if (typeof successCB === 'function') {
+      ret = ret.then(successCB);
+    }
+    if (typeof failCB === 'function') {
+      ret = ret.catch(failCB);
+    }
+
+    return ret;
   },
-  abortAll: function() {
-    requests.forEach((xhr) => {
-      xhr.abort();
-    });
-    requests = [];
-    pageQueries = [];
+  abortAll: () => {
+    for (let req of abortableRequests) {
+      req.abort();
+    }
+    abortableRequests = new Set();
   }
 };
 
 export default RequestClient;
+
