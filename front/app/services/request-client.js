@@ -103,8 +103,13 @@ const expandData = (urlObj, options, data) => {
   } else {
     if (data instanceof FormData) {
       return data;
+    } else if (data instanceof Blob) {
+      options.headers.set(
+        'Content-Type', 'application/octet-stream'
+      );
+      return data;
     } else {
-      options.headers.append(
+      options.headers.set(
         'Content-Type', 'application/json'
       );
       return JSON.stringify(data);
@@ -115,6 +120,12 @@ const expandData = (urlObj, options, data) => {
 const expandHeaders = (xhr, headers) => {
   for (let [key, value] of headers) {
     xhr.setRequestHeader(key, value);
+  }
+};
+
+const applyOptions = (xhr, options) => {
+  if (typeof options.timeout === 'number') {
+    xhr.timeout = options.timeout;
   }
 };
 
@@ -167,6 +178,8 @@ const request = (url, data, method, successCB, failCB, options) => {
   xhr.open(realOptions.method, urlObj.toString());
 
   expandHeaders(xhr, realOptions.headers);
+
+  applyOptions(xhr, realOptions);
 
   let ret = new Promise((resolve, reject) => {
     try {
