@@ -50,10 +50,12 @@ COPY front/package.json $APP_PATH/front/
 WORKDIR $APP_PATH/front
 RUN yarn install
 
-COPY . $APP_PATH/
 # setup frontend environment
+COPY front/ $APP_PATH/front/
 RUN yarn build
 
+COPY automan/ $APP_PATH/automan/
+COPY bin/ $APP_PATH/bin/
 WORKDIR $APP_PATH/
 ENTRYPOINT ["./bin/docker-entrypoint.sh"]
 CMD ["uwsgi", "--ini", "conf/app.ini"]

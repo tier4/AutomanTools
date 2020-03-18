@@ -11,6 +11,7 @@ from projects.annotations.models import DatasetObject, DatasetObjectAnnotation, 
 from projects.annotations.helpers.label_types.bb2d import BB2D
 from projects.annotations.helpers.label_types.bb2d3d import BB2D3D
 from .models import Annotation, ArchivedLabelDataset, FrameLock
+from projects.datasets.models import LabelDataset
 from projects.models import Projects
 from api.settings import PER_PAGE, SORT_KEY
 from api.common import validation_check
@@ -20,7 +21,9 @@ from api.errors import UnknownLabelTypeError
 class AnnotationManager(object):
 
     def create_annotation(self, user_id, project_id, name, dataset_id):
-        new_annotation = Annotation(name=name, dataset_id=dataset_id, project_id=project_id)
+        dataset = LabelDataset.objects.filter(id=dataset_id).first()
+        new_annotation = Annotation(
+            name=name, dataset_id=dataset_id, project_id=project_id, frame=dataset.frame_count)
         new_annotation.save()
 
         # FIXME: state
@@ -65,7 +68,6 @@ class AnnotationManager(object):
             annotations = Annotation.objects.order_by("id").filter(
                 Q(project_id=project_id),
                 Q(name__contains=search_keyword))[begin:begin + per_page]
-
         records = []
         for annotation in annotations:
             record = {}
@@ -74,6 +76,9 @@ class AnnotationManager(object):
             record['created_at'] = str(annotation.created_at)
             record['dataset_id'] = annotation.dataset_id
             record['archive_url'], record['file_name'] = self.get_archive_url(project_id, annotation.id)
+            annotation_progress = self.get_newest_annotation(annotation.id)
+            record['progress'] = annotation_progress.progress
+            record['status'] = annotation_progress.state
             records.append(record)
         contents = {}
         contents['count'] = self.annotation_total_count(project_id)
@@ -192,12 +197,21 @@ class AnnotationManager(object):
                 delete_flag=True)
             deleted_label.save()
 
-        # FIXME: state, progress
+        annotation = Annotation.objects.filter(id=annotation_id).first()
+        objects = DatasetObject.objects.filter(annotation_id=annotation_id)
+        frames = []
+        for object in objects:
+            frames.append(object.frame)
+        try:
+            progress = len(set(frames)) / annotation.frame * 100
+        except ZeroDivisionError:
+            progress = -1
+        state = 'editing' if progress < 100 else 'finished'
         new_progress = AnnotationProgress(
             annotation_id=annotation_id,
             user=user_id,
-            state='editing',
-            progress=0,
+            state=state,
+            progress=progress,
             frame_progress=frame)
         new_progress.save()
 
@@ -221,6 +235,15 @@ class AnnotationManager(object):
             file_path=file_path,
             file_name=file_name)
         new_archive.save()
+
+        old = self.get_newest_annotation(annotation_id)
+        new_progress = AnnotationProgress(
+            annotation_id=annotation_id,
+            user=old.user,
+            state='archived',
+            progress=old.progress,
+            frame_progress=old.frame_progress)
+        new_progress.save()
 
     def get_archive_url(self, project_id, annotation_id):
         archive = ArchivedLabelDataset.objects.filter(

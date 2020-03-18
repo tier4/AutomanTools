@@ -3,29 +3,30 @@ import ReactDOM from 'react-dom';
 
 import Grid from '@material-ui/core/Grid';
 import Button from '@material-ui/core/Button';
+import { compose } from 'redux';
+import { connect } from 'react-redux';
+
+import { setClipboard } from './actions/tool_action';
 
 class Clipboard extends React.Component {
 
   constructor(props) {
     super(props);
-    this.annotation = null;
-    this._controls = props.controls;
     this.state = {
       copy: null
     };
-    props.getRef(this);
+    props.dispatchSetClipboard(this);
   }
-  init(annotation) {
-    this.annotation = annotation;
+  init() {
   }
   hasCopy() {
     return this.state.copy != null;
   }
   copy(isAll) {
     if (isAll === null) {
-      isAll = this.annotation.getTarget() == null;
+      isAll = this.props.annotation.getTarget() == null;
     }
-    const copy = this.annotation.copyLabels(isAll);
+    const copy = this.props.annotation.copyLabels(isAll);
     if (copy.length === 0) {
       return;
     }
@@ -33,7 +34,7 @@ class Clipboard extends React.Component {
   }
   paste() {
     const copy = this.state.copy;
-    this.annotation.pasteLabels(copy);
+    this.props.annotation.pasteLabels(copy);
   }
 
   render() {
@@ -46,5 +47,18 @@ class Clipboard extends React.Component {
     );
   }
 }
-export default Clipboard;
+const mapStateToProps = state => ({
+  labelTool: state.tool.labelTool,
+  controls: state.tool.controls,
+  annotation: state.tool.annotation,
+});
+const mapDispatchToProps = dispatch => ({
+  dispatchSetClipboard: target => dispatch(setClipboard(target))
+});
+export default compose(
+  connect(
+    mapStateToProps,
+    mapDispatchToProps
+  )
+)(Clipboard);
 

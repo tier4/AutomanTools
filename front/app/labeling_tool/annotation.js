@@ -6,41 +6,86 @@ import ListItem from '@material-ui/core/ListItem';
 import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListItemText from '@material-ui/core/ListItemText';
 import ListSubheader from '@material-ui/core/ListSubheader';
+import { compose } from 'redux';
+import { connect } from 'react-redux';
 
 import classNames from 'classnames';
 
 import RequestClient from 'automan/services/request-client';
+import { setTargetLabel } from './actions/annotation_action';
+import { setAnnotation } from './actions/tool_action';
+
 
 class Annotation extends React.Component {
-  _labelTool = null;
-  _controls = null;
-  _klassSet = null;
   // data
   _deleted = null;
-  _targetLabel = null;
   // status
   _loaded = true;
   _nextId = -1;
 
   constructor(props) {
     super(props);
-    this._labelTool = props.labelTool;
-    this._controls = props.controls;
     this.state = {
+      prevInstanceIds: null,
       instanceIds: null,
       labels: null
     };
-    props.getRef(this);
+    props.dispatchSetAnnotation(this);
   }
-  init(klassSet, history) {
-    this._klassSet = klassSet;
-    this._history = history;
-    return new Promise((resolve, reject) => {
-      resolve();
-    });
+  init() {
+    return Promise.resolve();
+  }
+  getTools() {
+    return this.props.controls.getTools();
   }
   isLoaded() {
     return this._loaded;
+  }
+  loadPrevFrame(frameNumber) {
+    if (frameNumber == 0) {
+      return Promise.resolve();
+    }
+    return new Promise((resolve, reject) => {
+      RequestClient.get(
+        this.props.labelTool.getURL('frame_labels', frameNumber - 1),
+        {try_lock: false},
+        res => {
+          const instanceIds = new Map();
+          res.records.forEach(obj => {
+            if (obj.instance_id == null) {
+              return;
+            }
+            let klass = this.props.klassSet.getByName(obj.name);
+            let bboxes = {};
+            this.getTools().forEach(tool => {
+              const id = tool.candidateId;
+              if (obj.content[id] != null && tool.createWipeBBox) {
+                bboxes[id] = tool.createWipeBBox(obj.content[id], klass);
+              }
+            });
+            // TODO: add class
+            let label = {
+              //obj.object_id,
+              instanceId: obj.instance_id,
+              klass: klass,
+              bbox: bboxes,
+              select(flag) {
+                for(let id in this.bbox) {
+                  this.bbox[id].select(flag);
+                }
+              }
+            };
+            instanceIds.set(label.instanceId, label);
+          });
+          this.setState({ prevInstanceIds: instanceIds }, () => {
+            resolve();
+          });
+        },
+        err => {
+          reject(err);
+        }
+      );
+    });
   }
   load(frameNumber) {
     if (!this._loaded) {
@@ -48,47 +93,48 @@ class Annotation extends React.Component {
     }
     this._removeAll();
     this._nextId = -1;
-    this._history.resetHistory();
-    return new Promise((resolve, reject) => {
-      this._deleted = [];
+    this.props.history.resetHistory();
+    return this.loadPrevFrame(frameNumber)
+      .then(() => new Promise((resolve, reject) => {
+        this._deleted = [];
 
-      RequestClient.get(
-        this._labelTool.getURL('frame_labels', frameNumber),
-        {try_lock: true},
-        res => {
-          const labels = new Map(), instanceIds = new Map();
-          const isLocked = res.is_locked,
-                expiresAt = res.expires_at;
-          res.records.forEach(obj => {
-            let klass = this._klassSet.getByName(obj.name);
-            let bboxes = {};
-            this._controls.getTools().forEach(tool => {
-              const id = tool.candidateId;
-              if (obj.content[id] != null) {
-                bboxes[id] = tool.createBBox(obj.content[id]);
+        RequestClient.get(
+          this.props.labelTool.getURL('frame_labels', frameNumber),
+          {try_lock: true},
+          res => {
+            const labels = new Map(), instanceIds = new Map();
+            const isLocked = res.is_locked,
+                  expiresAt = res.expires_at;
+            res.records.forEach(obj => {
+              let klass = this.props.klassSet.getByName(obj.name);
+              let bboxes = {};
+              this.getTools().forEach(tool => {
+                const id = tool.candidateId;
+                if (obj.content[id] != null) {
+                  bboxes[id] = tool.createBBox(obj.content[id]);
+                }
+              });
+              let label = new Label(this, obj.object_id, obj.instance_id, klass, bboxes);
+              labels.set(label.id, label);
+              if (label.instanceId != null) {
+                instanceIds.set(label.instanceId, label);
               }
             });
-            let label = new Label(this, obj.object_id, obj.instance_id, klass, bboxes);
-            labels.set(label.id, label);
-            if (label.instanceId != null) {
-              instanceIds.set(label.instanceId, label);
+            this.setState({ labels, instanceIds }, () => {
+              this._loaded = true;
+              resolve();
+            });
+
+            if (!isLocked) {
+              window.alert('This frame is locked.');
             }
-          });
-          this.setState({ labels, instanceIds }, () => {
-            this._loaded = true;
-            resolve();
-          });
-
-          if (!isLocked) {
-            window.alert('This frame is locked.');
+          },
+          err => {
+            reject(err);
           }
-        },
-        err => {
-          reject(err);
-        }
-      );
+        );
 
-    });
+      }));
   }
   isChanged() {
     if (this.state.labels == null) {
@@ -97,7 +143,7 @@ class Annotation extends React.Component {
     if (this._deleted.length > 0) {
       return true;
     }
-    if (!this._history.hasUndo()) {
+    if (!this.props.history.hasUndo()) {
       // check by history
       return false;
     }
@@ -129,7 +175,7 @@ class Annotation extends React.Component {
         deleted: deleted
       };
       RequestClient.post(
-        this._labelTool.getURL('frame_labels', this._controls.getFrameNumber()),
+        this.props.labelTool.getURL('frame_labels', this.props.controls.getFrameNumber()),
         data,
         () => {
           resolve();
@@ -141,11 +187,11 @@ class Annotation extends React.Component {
     });
   }
   getTarget() {
-    return this._targetLabel;
+    return this.props.targetLabel;
   }
   setTarget(tgt) {
     let next = this.getLabel(tgt),
-      prev = this._targetLabel;
+      prev = this.props.targetLabel;
     if (prev != null && next != null && next.id === prev.id) {
       return prev;
     }
@@ -155,9 +201,9 @@ class Annotation extends React.Component {
     if (next != null) {
       next.setTarget(true);
     }
-    this._targetLabel = next;
+    this.props.dispatchSetTargetLabel(next);
     // table dom events
-    this._controls.getTools().forEach(tool => {
+    this.getTools().forEach(tool => {
       tool.updateTarget(prev, next);
     });
     return next;
@@ -165,11 +211,11 @@ class Annotation extends React.Component {
   create(klass, bbox) {
     if (klass == null) {
       let txt = 'Label create error: Error Class "' + klass + '"';
-      this._controls.error(txt);
+      this.props.controls.error(txt);
       return null;
     }
     const label = new Label(this, this._nextId--, null, klass, bbox);
-    this._history.addHistory([label], 'create');
+    this.props.history.addHistory([label], 'create');
     this.setState(state => {
       const labels = new Map(state.labels);
       labels.set(label.id, label);
@@ -181,16 +227,16 @@ class Annotation extends React.Component {
     let label = this.getLabel(id);
     if (label == null) {
       let txt = 'Label change Class error: Error selector "' + id + '"';
-      this._controls.error(txt);
+      this.props.controls.error(txt);
       return;
     }
     if (klass == null) {
       let txt = 'Label change Class error: Error Class "' + klass + '"';
-      this._controls.error(txt);
+      this.props.controls.error(txt);
       return;
     }
     label.setKlass(klass);
-    this._controls.getTools().forEach(tool => {
+    this.getTools().forEach(tool => {
       tool.updateBBox(label);
     });
   }
@@ -198,12 +244,12 @@ class Annotation extends React.Component {
     let label = this.getLabel(id);
     if (label == null) {
       let txt = 'Label add BBox error: Error selector "' + id + '"';
-      this._controls.error(txt);
+      this.props.controls.error(txt);
       return;
     }
     if (label.has(candidateId)) {
       let txt = `Label add BBox error: this BBox is already attached in "${id}"`;
-      this._controls.error(txt);
+      this.props.controls.error(txt);
       return;
     }
     label.bbox[candidateId] = bbox;
@@ -213,11 +259,11 @@ class Annotation extends React.Component {
     let label = this.getLabel(id);
     if (label == null) {
       let txt = 'Label remove BBox error: Error selector "' + id + '"';
-      this._controls.error(txt);
+      this.props.controls.error(txt);
       return;
     }
     if (label.has(candidateId)) {
-      const tool = this._controls.getToolFromCandidateId(candidateId);
+      const tool = this.props.controls.getToolFromCandidateId(candidateId);
       tool.disposeBBox(label.bbox[candidateId]);
       label.bbox[candidateId] = null;
       //label.tableItem.addClass('has-image-bbox');
@@ -227,22 +273,22 @@ class Annotation extends React.Component {
     let label = this.getLabel(id);
     if (label == null) {
       let txt = 'Label remove error: Error selector "' + id + '"';
-      this._controls.error(txt);
+      this.props.controls.error(txt);
       return;
     }
 
-    this._history.addHistory([label], 'delete');
+    this.props.history.addHistory([label], 'delete');
 
-    this._controls.getTools().forEach(tool => {
+    this.getTools().forEach(tool => {
       if (label.bbox[tool.candidateId] != null) {
         tool.disposeBBox(label.bbox[tool.candidateId]);
       }
     });
-    const tgt = this._targetLabel;
+    const tgt = this.props.targetLabel;
     if (tgt != null && label.id === tgt.id) {
-      this._targetLabel = null;
+      this.props.dispatchSetTargetLabel(null);
       tgt.setTarget(false);
-      this._controls.getTools().forEach(tool => {
+      this.getTools().forEach(tool => {
         tool.updateTarget(tgt, null);
       });
     }
@@ -273,10 +319,10 @@ class Annotation extends React.Component {
   }
   // methods to history
   createHistory(label, hist = null) {
-    return this._history.createHistory([label], 'change', hist);
+    return this.props.history.createHistory([label], 'change', hist);
   }
   addHistory() {
-    this._history.addHistory(null);
+    this.props.history.addHistory(null);
   }
   createFromHistory(objects) {
     let labelList = [];
@@ -286,7 +332,7 @@ class Annotation extends React.Component {
         continue;
       }
       let bboxes = {};
-      this._controls.getTools().forEach(tool => {
+      this.getTools().forEach(tool => {
         const id = tool.candidateId;
         if (obj.content[id] != null) {
           bboxes[id] = tool.createBBox(obj.content[id]);
@@ -304,7 +350,7 @@ class Annotation extends React.Component {
       for (let label of labelList) {
         labels.set(label.id, label);
         if (label.instanceId != null) {
-          instanceIds.set(label.instanceId);
+          instanceIds.set(label.instanceId, label);
         }
       }
       return { labels, instanceIds };
@@ -312,8 +358,8 @@ class Annotation extends React.Component {
     return labelList.slice();
   }
   removeFromHistory(objects) {
-    const tools = this._controls.getTools();
-    const tgt = this._targetLabel;
+    const tools = this.getTools();
+    const tgt = this.props.targetLabel;
     const removeIds = [], removeInstanceIds = [];
     for (let obj of objects) {
       let label = this.getLabel(obj.id);
@@ -324,9 +370,9 @@ class Annotation extends React.Component {
         }
       });
       if (tgt != null && label.id === tgt.id) {
-        this._targetLabel = null;
+        this.props.dispatchSetTargetLabel(null);
         tgt.setTarget(false);
-        this._controls.getTools().forEach(tool => {
+        this.getTools().forEach(tool => {
           tool.updateTarget(tgt, null);
         });
       }
@@ -357,8 +403,8 @@ class Annotation extends React.Component {
     let target = [];
     if (isAll) {
       target = Array.from(this.state.labels.values());
-    } else if (this._targetLabel != null) {
-      target = [this._targetLabel];
+    } else if (this.props.targetLabel != null) {
+      target = [this.props.targetLabel];
     }
     return target.map(label => label.toObject());
   }
@@ -371,9 +417,9 @@ class Annotation extends React.Component {
       if (instanceId !== null && this.state.instanceIds.has(instanceId)) {
         instanceId = null;
       }
-      let klass = this._klassSet.getByName(obj.name);
+      let klass = this.props.klassSet.getByName(obj.name);
       let bboxes = {};
-      this._controls.getTools().forEach(tool => {
+      this.getTools().forEach(tool => {
         const id = tool.candidateId;
         if (obj.content[id] != null) {
           bboxes[id] = tool.createBBox(obj.content[id]);
@@ -384,7 +430,7 @@ class Annotation extends React.Component {
       pastedLabels.push(label);
     });
 
-    this._history.addHistory(pastedLabels, 'create');
+    this.props.history.addHistory(pastedLabels, 'create');
     this.setState(state => {
       const labels = new Map(state.labels);
       const instanceIds = new Map(state.instanceIds);
@@ -400,14 +446,14 @@ class Annotation extends React.Component {
 
   // private
   _removeAll() {
-    this._controls.selectLabel(null);
+    this.props.controls.selectLabel(null);
     if (this.state.labels == null) {
       return;
     }
     this._loaded = false;
 
     this.state.labels.forEach(label => {
-      this._controls.getTools().forEach(tool => {
+      this.getTools().forEach(tool => {
         const id = tool.candidateId;
         if (label.bbox[id] != null) {
           tool.disposeBBox(label.bbox[id]);
@@ -415,8 +461,22 @@ class Annotation extends React.Component {
       });
       label.dispose();
     });
-    this._targetLabel = null;
-    this.setState({labels: null, instanceIds: null});
+    if (this.state.prevInstanceIds != null) {
+      this.state.prevInstanceIds.forEach(label => {
+        this.getTools().forEach(tool => {
+          const id = tool.candidateId;
+          if (label.bbox[id] != null) {
+            tool.disposeWipeBBox(label.bbox[id]);
+          }
+        });
+      });
+    }
+    this.props.dispatchSetTargetLabel(null);
+    this.setState({
+      labels: null,
+      instanceIds: null,
+      prevInstanceIds: null
+    });
   }
   renderList(classes) {
     if (this.state.labels === null) {
@@ -428,7 +488,7 @@ class Annotation extends React.Component {
         <LabelItem
           key={label.id}
           classes={classes}
-          controls={this._controls}
+          controls={this.props.controls}
           label={label}
         />
       );
@@ -453,7 +513,23 @@ class Annotation extends React.Component {
     );
   }
 }
-export default Annotation;
+const mapStateToProps = state => ({
+  targetLabel: state.annotation.targetLabel,
+  labelTool: state.tool.labelTool,
+  controls: state.tool.controls,
+  klassSet: state.tool.klassSet,
+  history: state.tool.history,
+});
+const mapDispatchToProps = dispatch => ({
+  dispatchSetTargetLabel: target => dispatch(setTargetLabel(target)),
+  dispatchSetAnnotation: target => dispatch(setAnnotation(target))
+});
+export default compose(
+  connect(
+    mapStateToProps,
+    mapDispatchToProps
+  )
+)(Annotation);
 
 class LabelItem extends React.Component {
   constructor(props) {
@@ -507,13 +583,17 @@ class Label {
     this._annotationTool = annotationTool;
     this.id = id;
     this.instanceId = instanceId;
+    if (this.instanceId && annotationTool.state.prevInstanceIds) {
+      this.prevLabel =
+        annotationTool.state.prevInstanceIds.get(this.instanceId)
+    }
     this.isChanged = this.id < 0;
     this.isTarget = false;
     this.klass = klass;
     this.minSize = klass.getMinSize();
     this.bbox = {};
 
-    this._annotationTool._controls.getTools().forEach(tool => {
+    this._annotationTool.getTools().forEach(tool => {
       const id = tool.candidateId;
       if (bbox[id] == null) {
         this.bbox[id] = null;
@@ -558,6 +638,9 @@ class Label {
     if (this.labelItem != null) {
       this.labelItem.updateTarget();
     }
+    if (this.prevLabel) {
+      this.prevLabel.select(val);
+    }
   }
   toIDString() {
     return `#${this.id < 0 ? '___' : this.id}`;
@@ -589,7 +672,7 @@ class Label {
     if (this.instanceId != null) {
       ret.instanceId = this.instanceId;
     }
-    this._annotationTool._controls.getTools().forEach(tool => {
+    this._annotationTool.getTools().forEach(tool => {
       const id = tool.candidateId;
       if (!this.has(id)) {
         return;
@@ -607,7 +690,7 @@ class Label {
       klass: this.klass,
       content: {}
     };
-    this._annotationTool._controls.getTools().forEach(tool => {
+    this._annotationTool.getTools().forEach(tool => {
       const id = tool.candidateId;
       if (!this.has(id)) {
         return;
@@ -624,7 +707,7 @@ class Label {
     }
     this.klass = obj.klass;
     this.instanceId = obj.instanceId;
-    this._annotationTool._controls.getTools().forEach(tool => {
+    this._annotationTool.getTools().forEach(tool => {
       const id = tool.candidateId;
       const content = obj.content[id];
       if (content == null) {

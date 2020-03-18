@@ -9,7 +9,11 @@ import Divider from '@material-ui/core/Divider';
 import Grid from '@material-ui/core/Grid';
 import Button from '@material-ui/core/Button';
 import IconButton from '@material-ui/core/IconButton';
-import {NavigateNext, NavigateBefore, ExitToApp } from '@material-ui/icons';
+import { NavigateNext, NavigateBefore, ExitToApp } from '@material-ui/icons';
+import { compose } from 'redux';
+import { connect } from 'react-redux';
+
+import { setControls } from './actions/tool_action';
 
 import KlassSet from 'automan/labeling_tool/klass_set';
 import Annotation from 'automan/labeling_tool/annotation';
@@ -19,26 +23,16 @@ import Clipboard from 'automan/labeling_tool/clipboard';
 import ImageLabelTool from 'automan/labeling_tool/image_label_tool';
 import PCDLabelTool from 'automan/labeling_tool/pcd_label_tool';
 
+
 import {toolStyle, appBarHeight, drawerWidth} from 'automan/labeling_tool/tool-style';
 
 import RequestClient from 'automan/services/request-client'
 
 
 class Controls extends React.Component {
-  labelTool = null;
-  annotation = null;
-  getAnnotation = (tgt) => { this.annotation = tgt; }
-  klassSet = null;
-  getKlassSet = (tgt) => { this.klassSet = tgt; }
-  history = null;
-  getHistory = (tgt) => { this.history = tgt; }
-  clipboard = null;
-  getClipboard = (tgt) => { this.clipboard = tgt; }
-
   // progress
   frameLength = 0;
   // tool status
-  tools = [];
   toolNames = [];
   toolComponents = [];
 
@@ -49,9 +43,8 @@ class Controls extends React.Component {
       skipFrameCount: 1,
       activeTool: 0
     };
-    this.labelTool = props.labelTool;
 
-    this.frameLength = this.labelTool.frameLength;
+    this.frameLength = props.labelTool.frameLength;
     this.mainContent = React.createRef();
     this.initTools();
   }
@@ -67,35 +60,29 @@ class Controls extends React.Component {
         names: ['2D', '3D']
       }
     };
-    const type = LABEL_TYPES[this.labelTool.labelType];
+    const type = LABEL_TYPES[this.props.labelTool.labelType];
     if (type == null) {
-      console.error('Tool type error [' + this.labelTool.labelType + ']');
+      console.error('Tool type error [' + this.props.labelTool.labelType + ']');
       return;
     }
     this.toolNames = type.names;
-    this.toolComponents = [];
-    this.tools = type.tools.map((tool, idx) => {
-      const ref = React.createRef();
+    this.toolComponents = type.tools.map((tool, idx) => {
       const Component = tool;
       const component = (
         <Component
           key={idx}
-          ref={ref}
-          labelTool={this.labelTool}
-          controls={this}
+          idx={idx}
         />
       );
-      this.toolComponents.push(component);
-      return ref;
+      return component;
     });
   }
   init() {
     return Promise.all([
-      this.annotation.init(this.klassSet, this.history),
-      this.klassSet.init(),
-      this.history.init(this.annotation),
-      this.clipboard.init(this.annotation)
-
+      this.props.annotation.init(),
+      this.props.klassSet.init(),
+      this.props.history.init(),
+      this.props.clipboard.init()
     ]);
   }
   resize() {
@@ -109,8 +96,8 @@ class Controls extends React.Component {
     if (this.mainContent.current != null) {
       this.mainContent.current.style.height = size.height + 'px';
     }
-    this.tools.forEach((tool) => {
-      tool.current.handles.resize(size);
+    this.props.tools.forEach((tool) => {
+      tool.handles.resize(size);
     });
   }
   initEvent() {
@@ -130,20 +117,20 @@ class Controls extends React.Component {
           // Z key
           if (e.ctrlKey) {
             if (e.shiftKey) {
-              this.history.redo();
+              this.props.history.redo();
             } else {
-              this.history.undo();
+              this.props.history.undo();
             }
           }
         } else if (e.keyCode == 67) {
           // C key
           if (e.ctrlKey) {
-            this.clipboard.copy(null);
+            this.props.clipboard.copy(null);
           }
         } else if (e.keyCode == 86) {
           // V key
           if (e.ctrlKey) {
-            this.clipboard.paste();
+            this.props.clipboard.paste();
           }
         } else {
           this.getTool().handles.keydown(e);
@@ -159,14 +146,14 @@ class Controls extends React.Component {
   }
 
   selectKlass(kls) {
-    if (!this.labelTool.isLoaded()) {
+    if (!this.props.labelTool.isLoaded()) {
       return false;
     }
-    let newKls = this.klassSet.setTarget(kls);
+    let newKls = this.props.klassSet.setTarget(kls);
     if (newKls !== null) {
-      const label = this.annotation.getTarget();
+      const label = this.props.annotation.getTarget();
       if (label !== null) {
-        this.annotation.changeKlass(label, newKls);
+        this.props.annotation.changeKlass(label, newKls);
         // update ??
       }
     } else {
@@ -176,20 +163,20 @@ class Controls extends React.Component {
     // *********
   }
   getTargetKlass() {
-    return this.klassSet.getTarget();
+    return this.props.klassSet.getTarget();
   }
   getKlass(name) {
-    return this.klassSet.getByName(name);
+    return this.props.klassSet.getByName(name);
   }
   selectLabel(label) {
-    if (!this.labelTool.isLoaded()) {
+    if (!this.props.labelTool.isLoaded()) {
       return false;
     }
-    const oldLabel = this.annotation.getTarget()
+    const oldLabel = this.props.annotation.getTarget()
     let newLabel;
-    newLabel = this.annotation.setTarget(label);
+    newLabel = this.props.annotation.setTarget(label);
     if (newLabel !== null) {
-      this.klassSet.setTarget(newLabel.klass);
+      this.props.klassSet.setTarget(newLabel.klass);
     }
     //update
     this.getTool().updateTarget(oldLabel, newLabel);
@@ -197,32 +184,32 @@ class Controls extends React.Component {
     // *********
   }
   getTargetLabel() {
-    return this.annotation.getTarget();
+    return this.props.annotation.getTarget();
   }
   createLabel(klass, param) {
-    if (!this.labelTool.isLoaded()) {
+    if (!this.props.labelTool.isLoaded()) {
       return null;
     }
     let newLabel = null;
     try {
-      newLabel = this.annotation.create(klass, param);
+      newLabel = this.props.annotation.create(klass, param);
     } catch (e) {
       // error
       console.log(e);
       return null;
     }
-    this.annotation.setTarget(newLabel);
-    this.klassSet.setTarget(newLabel.klass);
+    this.props.annotation.setTarget(newLabel);
+    this.props.klassSet.setTarget(newLabel.klass);
     // update ??
     return newLabel;
     // *********
   }
   removeLabel(label) {
-    if (!this.labelTool.isLoaded()) {
+    if (!this.props.labelTool.isLoaded()) {
       return false;
     }
     try {
-      this.annotation.remove(label);
+      this.props.annotation.remove(label);
     } catch (e) {
       // error
       return false;
@@ -233,15 +220,15 @@ class Controls extends React.Component {
   }
 
   getTools() {
-    return this.tools.map(ref => ref.current);
+    return this.props.tools;
   }
   setTool(idx) {
     const activeTool = this.state.activeTool
     if (activeTool === idx) {
       return;
     }
-    const prevTool = this.tools[activeTool].current;
-    const nextTool = this.tools[idx].current;
+    const prevTool = this.props.tools[activeTool];
+    const nextTool = this.props.tools[idx];
     this.setState({activeTool: idx});
     prevTool.setActive(false);
     nextTool.setActive(true);
@@ -249,7 +236,7 @@ class Controls extends React.Component {
     // *********
   }
   getTool() {
-    return this.tools[this.state.activeTool].current;
+    return this.props.tools[this.state.activeTool];
   }
   getToolFromCandidateId(id) {
     const filtered = this.getTools().filter(tool =>
@@ -296,11 +283,11 @@ class Controls extends React.Component {
     }
 
     let savePromise;
-    if (this.annotation.isChanged()) {
+    if (this.props.annotation.isChanged()) {
       const TEXT_SAVE = 'Do you want to save?';
       const TEXT_MOVE = 'Do you want to move frame WITHOUT saving?';
       if ( window.confirm(TEXT_SAVE) ) {
-        savePromise = this.annotation.save();
+        savePromise = this.props.annotation.save();
       } else if ( window.confirm(TEXT_MOVE) ) {
         savePromise = Promise.resolve();
       } else {
@@ -315,14 +302,15 @@ class Controls extends React.Component {
       .then(
         () => {
         },
-        () => {
+        (err) => {
+          console.error(err);
         }
       );
     return true;
   }
   
   saveFrame() {
-    return this.annotation.save()
+    return this.props.annotation.save()
       .then(() => this.reloadFrame());
   }
   reloadFrame() {
@@ -339,9 +327,9 @@ class Controls extends React.Component {
     }
 
     this.isLoading = true;
-    return this.labelTool.loadBlobURL(num)
+    return this.props.labelTool.loadBlobURL(num)
       .then(() => {
-        return this.annotation.load(num);
+        return this.props.annotation.load(num);
       })
       .then(() => {
         return Promise.all(
@@ -360,33 +348,57 @@ class Controls extends React.Component {
   }
   
 
-  componentDidMount() {
-    this.labelTool.candidateInfo.forEach(info => {
-      this.getTools().forEach(tool => {
-        if (tool.dataType === info.data_type) {
-          if (tool.candidateId >= 0) {
-            return;
+  initialized = false;
+  isAllComponentsReady() {
+    return !this.initialized &&
+      this.props.controls != null &&
+      this.props.annotation != null &&
+      this.props.klassSet != null &&
+      this.props.history != null &&
+      this.props.clipboard != null;
+  }
+  toolInitialized = false;
+  isToolReady() {
+    return !this.toolInitialized &&
+      this.props.controls == null &&
+      this.props.toolsCnt == this.toolComponents.length;
+  }
+  componentDidMount() { }
+  componentDidUpdate(prevProps, prevState) {
+    if (this.isToolReady()) {
+      this.props.labelTool.candidateInfo.forEach(info => {
+        this.getTools().forEach(tool => {
+          if (tool.dataType === info.data_type) {
+            if (tool.candidateId >= 0) {
+              return;
+            }
+            tool.candidateId = info.candidate_id; // TODO: multi candidate_id
+            this.props.labelTool.filenames[tool.candidateId] = [];
           }
-          tool.candidateId = info.candidate_id; // TODO: multi candidate_id
-          this.labelTool.filenames[tool.candidateId] = [];
-        }
+        });
       });
-    });
-    
-    this.tools[this.state.activeTool].current.setActive(true);
 
-    this.resize();
+      this.props.tools[this.state.activeTool].setActive(true);
 
-    this.init().then(() => {
-      this.props.onload(this);
-    });
+      this.resize();
+
+      this.toolInitialized = true;
+      this.props.dispatchSetControls(this);
+    }
+
+    if (this.isAllComponentsReady()) {
+      this.init().then(() => {
+        this.initialized = true;
+        this.props.onload(this);
+      });
+    }
   }
 
   // events
   onClickLogout = (e) => {
     this.isLoading = true;
     RequestClient.delete(
-      this.labelTool.getURL('unlock'),
+      this.props.labelTool.getURL('unlock'),
       null,
       res => {
         window.close();
@@ -428,20 +440,14 @@ class Controls extends React.Component {
   renderKlassSet(classes) {
     return (
       <KlassSet
-        labelTool={this.labelTool}
-        controls={this}
         classes={classes}
-        getRef={this.getKlassSet}
       />
     );
   }
   renderLabels(classes) {
     return (
       <Annotation
-        labelTool={this.labelTool}
-        controls={this}
         classes={classes}
-        getRef={this.getAnnotation}
       />
     );
   }
@@ -489,13 +495,11 @@ class Controls extends React.Component {
                 <Clipboard
                   controls={this}
                   classes={classes}
-                  getRef={this.getClipboard}
                 />
               <Grid item xs={12}>
                 <History
                   controls={this}
                   classes={classes}
-                  getRef={this.getHistory}
                 />
               </Grid>
               <Grid item xs={12}>
@@ -509,6 +513,22 @@ class Controls extends React.Component {
             {this.renderLabels(classes)}
           </div>
         </div>
+      </Drawer>
+    );
+  }
+  renderRightBar(classes) {
+    const tool = this.getTool();
+    const editor = tool == null ? null : tool.getEditor();
+    return (
+      <Drawer
+        anchor="right"
+        variant="permanent"
+        open={true}
+        classes={{
+          paper: classes.drawer
+        }}
+      >
+        {editor}
       </Drawer>
     );
   }
@@ -577,20 +597,8 @@ class Controls extends React.Component {
       </AppBar>
     );
     
-    // TODO: show bbox variable & edit it
-    let editBar = (
-      <Drawer
-        anchor="right"
-        variant="permanent"
-        open={true}
-        classes={{
-          paper: classes.drawer
-        }}
-      >
-      </Drawer>
-    );
     return (
-      <div >
+      <div>
         {appBar}
         {this.renderLeftBar(classes)}
         <main
@@ -599,10 +607,28 @@ class Controls extends React.Component {
         >
           {this.toolComponents}
         </main>
-        {editBar}
+        {this.renderRightBar(classes)}
       </div>
     );
   }
 }
-export default withStyles(toolStyle)(Controls);
+const mapStateToProps = state => ({
+  controls: state.tool.controls,
+  annotation: state.tool.annotation,
+  klassSet: state.tool.klassSet,
+  history: state.tool.history,
+  clipboard: state.tool.clipboard,
+  tools: state.tool.tools,
+  toolsCnt: state.tool.toolsCnt
+});
+const mapDispatchToProps = dispatch => ({
+  dispatchSetControls: target => dispatch(setControls(target))
+});
+export default compose(
+  withStyles(toolStyle),
+  connect(
+    mapStateToProps,
+    mapDispatchToProps 
+  )
+)(Controls);
 
