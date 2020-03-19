@@ -113,7 +113,7 @@ class JobSerializer(serializers.ModelSerializer):
         automan_config = cls.__get_automan_config(user_id)
         automan_config.update({
             'path': '/projects/' + str(project_id) + '/annotations/' + str(annotation_id) + '/',
-            'presigned': '/projects/' + str(project_id) + '/storages/put_s3/'})
+            'presigned': '/projects/' + str(project_id) + '/storages/post_s3/'})
 
         archive_config = cls.__get_archive_info(
             storage['storage_type'], user_id, project_id, dataset_id, annotation_id, original_id)
@@ -169,7 +169,7 @@ class JobSerializer(serializers.ModelSerializer):
         automan_config = cls.__get_automan_config(user_id)
         automan_config.update({
             'path': '/projects/' + project_id + '/datasets/',
-            'presigned': '/projects/' + project_id + '/storages/put_s3/'})
+            'presigned': '/projects/' + project_id + '/storages/post_s3/'})
         raw_data_config = cls.__get_raw_data_config(project_id, original_id, candidates)
         job_config = {
             'storage_type': storage['storage_type'],

@@ -193,7 +193,11 @@ const request = (url, data, method, successCB, failCB, options) => {
 
         const code = xhr.status;
         if (code === 200 || code === 201) {
-          resolve(JSON.parse(xhr.response));
+          if (xhr.getResponseHeader('Content-Type') === 'application/json') {
+            resolve(JSON.parse(xhr.response));
+            return;
+          }
+          resolve(xhr.response);
           return;
         }
         if (code === 204) {

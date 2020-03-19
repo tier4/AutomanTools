@@ -27,8 +27,9 @@ class StorageViewSet(viewsets.ModelViewSet):
         })
         if not serializer.is_valid():
             raise ValidationError
-        content = serializer.save()
-        return HttpResponse(status=201, content=content, content_type='application/json')
+        serializer.save()
+        content = StorageSerializer.list(project_id)
+        return HttpResponse(status=201, content=json.dumps(content), content_type='application/json')
 
     def list(self, request, project_id):
         username = request.user
@@ -49,7 +50,7 @@ class StorageViewSet(viewsets.ModelViewSet):
                             content_type='application/json')
 
     @action(methods=['get'], detail=False)
-    def put_s3(self, request, project_id):
+    def post_s3(self, request, project_id):
         # TODO s3 validation
         storage_id = int(request.GET.get(key='storage_id'))
         key = request.GET.get(key='key')

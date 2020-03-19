@@ -42,7 +42,7 @@ def annotations(request, project_id):
         annotation_id = annotation_manager.create_annotation(user_id, project_id, name, dataset_id)
 
         contents = annotation_manager.get_annotation(annotation_id)
-        return HttpResponse(status=201, content=contents, content_type='application/json')
+        return HttpResponse(status=201, content=json.dumps(contents), content_type='application/json')
 
 
 @api_view(['GET', 'POST', 'DELETE'])
@@ -60,7 +60,7 @@ def annotation(request, project_id, annotation_id):
         file_path = request.data.get('file_path')
         file_name = request.data.get('file_name')
         annotation_manager.set_archive(annotation_id, file_path, file_name)
-        return HttpResponse(status=201)
+        return HttpResponse(status=201, content=json.dumps({}), content_type='application/json')
 
     else:
         if not Permission.hasPermission(user_id, 'delete_annotationwork', project_id):
@@ -89,7 +89,7 @@ def frame(request, project_id, annotation_id, frame):
         edited = request.data.get('edited', "")
         deleted = request.data.get('deleted', "")
         annotation_manager.set_frame_label(user_id, project_id, annotation_id, frame, created, edited, deleted)
-        return HttpResponse(status=201)
+        return HttpResponse(status=201, content=json.dumps({}), content_type='application/json')
 
 
 @api_view(['GET'])
@@ -109,7 +109,8 @@ def download_archived_link(request, project_id, annotation_id):
             storage['storage_config']['bucket'], archive_path)
     else:
         raise UnknownStorageTypeError
-    return HttpResponse(status=200, content=json.dumps(content), content_type='text/plain')
+    return HttpResponse(status=200, content=content, content_type='text/plain')
+
 
 @api_view(['GET'])
 def download_local_nfs_archive(request, project_id, annotation_id):

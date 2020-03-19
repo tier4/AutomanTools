@@ -53,7 +53,7 @@ class DatasetViewSet(viewsets.ModelViewSet):
 
         contents = dataset_manager.get_dataset(user_id, dataset_id)
         return HttpResponse(status=201,
-                            content=contents,
+                            content=json.dumps(contents),
                             content_type='application/json')
 
     def retrieve(self, request, project_id, dataset_id):
@@ -106,7 +106,7 @@ def download_link(request, project_id, dataset_id, candidate_id, frame):
             storage['storage_config']['bucket'], key)
     else:
         raise UnknownStorageTypeError
-    return HttpResponse(status=200, content=json.dumps(content), content_type='text/plain')
+    return HttpResponse(status=200, content=content, content_type='text/plain')
 
 
 @api_view(['GET'])
