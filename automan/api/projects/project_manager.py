@@ -1,3 +1,4 @@
+import os
 import shutil
 from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist, FieldError
@@ -5,6 +6,7 @@ from projects.models import Projects
 from projects.members.models import Members
 from projects.storages.serializer import StorageSerializer
 from projects.klassset.klassset_manager import KlasssetManager
+from projects.storages.aws_s3 import AwsS3Client
 from api.common import validation_check
 from api.settings import SORT_KEY, PER_PAGE, SUPPORT_LABEL_TYPES
 from api.permissions import Permission
@@ -100,9 +102,14 @@ class ProjectManager(object):
             raise ObjectDoesNotExist()
         storages = StorageSerializer().get_storages(project_id)
         for storage in storages:
-            dir_path = (storage['storage_config']['mount_path']
-                        + storage['storage_config']['base_dir'])
-            shutil.rmtree(dir_path)
+            config = storage['storage_config']
+            if storage['storage_type'] == 'LOCAL_NFS':
+                path = (config['mount_path'] + config['base_dir'])
+                if os.path.isdir(path):
+                    shutil.rmtree(path)
+            elif storage['storage_type'] == 'AWS_S3':
+                AwsS3Client().delete_s3_files(
+                    config['bucket'], config['base_dir'] + '/')
         content.delete()
 
     def __is_support_label_type(self, label_type):

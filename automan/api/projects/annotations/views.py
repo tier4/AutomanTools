@@ -65,7 +65,11 @@ def annotation(request, project_id, annotation_id):
     else:
         if not Permission.hasPermission(user_id, 'delete_annotationwork', project_id):
             raise PermissionDenied
-        annotation_manager.delete_annotation(annotation_id)
+        dataset_id = annotation_manager.get_annotation(annotation_id)['dataset_id']
+        original_id = DatasetManager().get_dataset(user_id, dataset_id)['original_id']
+        storage_id = OriginalManager().get_original(project_id, original_id)['storage_id']
+        storage = StorageSerializer().get_storage(project_id, storage_id)
+        annotation_manager.delete_annotation(annotation_id, storage)
         return HttpResponse(status=204)
 
 

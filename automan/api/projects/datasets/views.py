@@ -73,7 +73,10 @@ class DatasetViewSet(viewsets.ModelViewSet):
         user_id = AccountManager.get_id_by_username(username)
         if not Permission.hasPermission(user_id, 'delete_dataset', project_id):
             raise PermissionDenied
-        dataset_manager.delete_dataset(user_id, dataset_id)
+        original_id = DatasetManager().get_dataset(user_id, dataset_id)['original_id']
+        storage_id = OriginalManager().get_original(project_id, original_id)['storage_id']
+        storage = StorageSerializer().get_storage(project_id, storage_id)
+        dataset_manager.delete_dataset(user_id, dataset_id, storage)
         return HttpResponse(status=204)
 
 

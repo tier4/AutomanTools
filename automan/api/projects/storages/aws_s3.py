@@ -60,3 +60,17 @@ class AwsS3Client(object):
             ExpiresIn=1800,
             HttpMethod='GET')
         return url
+
+    def delete_s3_files(self, bucket, key):
+        key = key.lstrip('/')
+
+        s3 = self.__make_s3_session()
+        if key.endswith('/') is False:
+            s3.delete_object(Bucket=bucket, Key=key)
+            return
+
+        res = s3.list_objects_v2(Bucket=bucket, Prefix=key)
+        contents = res['Contents']
+        for content in contents:
+            s3.delete_object(Bucket=bucket, Key=content['Key'])
+        return

@@ -209,9 +209,7 @@ class OriginalManager(object):
             raise ObjectDoesNotExist()
 
         storage = StorageSerializer().get_storage(project_id, rosbag.storage_id)
-        dir_path = (storage['storage_config']['mount_path']
-                    + storage['storage_config']['base_dir']
-                    + '/' + rosbag.name + '/')
+        config = storage['storage_config']
 
         dataset_manager = DatasetManager()
         if dataset_manager.get_datasets_count_by_original(original_id) == 0:
@@ -220,5 +218,11 @@ class OriginalManager(object):
                 candidate.delete()
 
         rosbag.delete()
-        shutil.rmtree(dir_path)
+        if storage['storage_type'] == 'LOCAL_NFS':
+            path = (config['mount_path'] + config['base_dir']
+                    + '/' + rosbag.name + '/')
+            shutil.rmtree(path)
+        elif storage['storage_type'] == 'AWS_S3':
+            key = config['base_dir'] + '/raws/' + rosbag.name
+            AwsS3Client().delete_s3_files(config['bucket'], key)
         return True
