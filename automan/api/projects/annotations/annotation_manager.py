@@ -302,7 +302,7 @@ class AnnotationManager(object):
         try:
             UUID(uuid4, version=4)
             return True
-        except:
+        except ValueError:
             return False
 
     def get_lock(self, try_lock, user_id, annotation_id, frame):
