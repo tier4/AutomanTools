@@ -9,6 +9,8 @@ import { addTool } from './actions/tool_action';
 
 import ImageBBox from './image_tool/image_bbox';
 
+const MAIN_SCREEN_SCALE = 0.68;
+const WIPE_SCREEN_SCALE = 1 - MAIN_SCREEN_SCALE;
 class ImageLabelTool extends React.Component {
   constructor(props) {
     super(props);
@@ -30,11 +32,16 @@ class ImageLabelTool extends React.Component {
     return null; 
   }
   render() {
+    const mainScale = this.state.scale * MAIN_SCREEN_SCALE;
+    const wipeScale = this.state.scale * WIPE_SCREEN_SCALE;
+    const mainMargin = this._wrapperSize.width - this._imageSize.width * mainScale;
+    const wipeWidth = this._imageSize.width * wipeScale;
+    const ml = Math.min(mainMargin, wipeWidth);
     const mainStyle = {
-      transform: `scale(${this.state.scale})`,
+      transform: `scale(${mainScale})`,
+      marginLeft: isFinite(ml) ? ml : 0,
       transformOrigin: 'left top'
     };
-    const wipeScale = this.state.scale * 0.32;
     const wipeStyle = {
       position: 'absolute',
       transform: `scale(${wipeScale})`,
@@ -210,14 +217,26 @@ class ImageLabelTool extends React.Component {
 
 
 
+  _getScale() {
+    const widthRatio = this._wrapperSize.width / this._imageSize.width;
+    const heightRatio = this._wrapperSize.height / this._imageSize.height;
+    const aspectRatio = widthRatio / heightRatio;
+
+    if (aspectRatio < MAIN_SCREEN_SCALE) {
+      return widthRatio / MAIN_SCREEN_SCALE;
+    } else if (aspectRatio < 1) {
+      return heightRatio;
+    } else if (aspectRatio <= 1 / MAIN_SCREEN_SCALE) {
+      return widthRatio;
+    } else {
+      return heightRatio / MAIN_SCREEN_SCALE;
+    }
+  }
   _resize() {
     const paper = this._paper;
     const wipePaper = this._wipePaper;
 
-    let scale = Math.min(
-      this._wrapperSize.width / this._imageSize.width,
-      this._wrapperSize.height / this._imageSize.height
-    );
+    const scale = this._getScale();
     paper.setSize(
       this._imageSize.width,
       this._imageSize.height
@@ -234,10 +253,8 @@ class ImageLabelTool extends React.Component {
       this._wipeImage = null;
     }
     if (url == null) {
-      this._wipeElement.current.style.display = 'none';
       return;
     }
-    this._wipeElement.current.style.display = '';
     const paper = this._wipePaper;
     const image = paper.image(url, 0, 0, "100%", "100%");
     image.toBack();
@@ -277,8 +294,9 @@ class ImageLabelTool extends React.Component {
   _creatingBox = null;
   _imageDragMove = (dx, dy) => {
     const klass = this.props.controls.getTargetKlass();
-    dx = dx / this.state.scale | 0;
-    dy = dy / this.state.scale | 0;
+    const mainScale = this.state.scale * MAIN_SCREEN_SCALE;
+    dx = dx / mainScale | 0;
+    dy = dy / mainScale | 0;
     if (this._creatingRect == null) {
       const posDiff = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
       if (posDiff >= 10) {
@@ -311,9 +329,10 @@ class ImageLabelTool extends React.Component {
     if (e.button !== 0) { return; } // not left click
     this.props.controls.selectLabel(null);
     const offset = this._container.offset();
+    const mainScale = this.state.scale * MAIN_SCREEN_SCALE;
     this._creatingBox = {
-      sx: (x - offset.left) / this.state.scale | 0,
-      sy: (y - offset.top) / this.state.scale | 0,
+      sx: (x - offset.left) / mainScale | 0,
+      sy: (y - offset.top) / mainScale | 0,
       ex: 0, ey: 0
     };
   };
