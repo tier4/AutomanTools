@@ -23,6 +23,7 @@ import { mainStyle } from 'automan/assets/main-style';
 
 import AzureBlobClient from 'automan/services/storages/azure_blob';
 import LocalStorageClient from 'automan/services/storages/local_storage';
+import AWSS3StorageClient from 'automan/services/storages/aws_s3';
 
 class OriginalDataForm extends React.Component {
   constructor(props) {
@@ -139,11 +140,11 @@ class OriginalDataForm extends React.Component {
         storageInfo = data;
         this.updateFileStateKeyValue(index, 'id', storageInfo.id);
       },
-      () => {}
+      () => { }
     )
       .then(() => {
-        storageInfo.storage_type = 'LOCAL_NFS'; // FIXME
-        if (storageInfo.storage_type == 'AZURE') {
+        let storage_type = this.state.storage.storage_type
+        if (storage_type == 'AZURE') {
           AzureBlobClient.upload(
             targetFile.fileInfo,
             storageInfo.access_info,
@@ -152,7 +153,16 @@ class OriginalDataForm extends React.Component {
             index,
             storageInfo.id
           );
-        } else if (storageInfo.storage_type == 'LOCAL_NFS') {
+        } else if (storage_type == 'AWS_S3') {
+          let requestPath = storageInfo.post_url;
+          AWSS3StorageClient.upload(
+            requestPath,
+            targetFile.fileInfo,
+            that.progressUpdate,
+            that.nextFileUpload,
+            index
+          );
+        } else if (storage_type == 'LOCAL_NFS') {
           let requestPath =
             `/projects/${this.props.currentProject.id}` +
             `/originals/${storageInfo.id}/file_upload/`;

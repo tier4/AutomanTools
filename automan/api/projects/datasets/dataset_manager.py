@@ -7,6 +7,7 @@ from api.settings import SORT_KEY, PER_PAGE
 from .models import LabelDataset, DatasetDatasetCandidate
 from projects.originals.candidate_manager import CandidateManager
 from projects.annotations.annotation_manager import AnnotationManager
+from projects.storages.aws_s3 import AwsS3Client
 
 
 class DatasetManager(object):
@@ -70,7 +71,7 @@ class DatasetManager(object):
         return new_dataset.id
 
     @transaction.atomic
-    def delete_dataset(self, admin_id, dataset_id):
+    def delete_dataset(self, admin_id, dataset_id, storage):
         dataset = LabelDataset.objects.filter(id=dataset_id).first()
         if dataset is None:
             raise ObjectDoesNotExist()
@@ -80,9 +81,12 @@ class DatasetManager(object):
             # delete candidate
             candidate_manager.delete_candidate(dataset.original)
         # delete dataset files (image, pcd)
-        shutil.rmtree(dataset.file_path)
-        annotation_manager = AnnotationManager()
-        annotation_manager.delete_annotations(dataset_id)
+        if storage['storage_type'] == 'LOCAL_NFS':
+            shutil.rmtree(dataset.file_path)
+        elif storage['storage_type'] == 'AWS_S3':
+            AwsS3Client().delete_s3_files(
+                storage['storage_config']['bucket'], dataset.file_path)
+        AnnotationManager().delete_annotations(dataset_id, storage)
         dataset.delete()
 
     def get_dataset(self, user_id, dataset_id):

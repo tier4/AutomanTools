@@ -9,6 +9,7 @@ from django.db.models import Q
 from django.utils import timezone
 from projects.originals.models import Original, FileType, RelatedFile, DatasetCandidate
 from projects.storages.serializer import StorageSerializer
+from projects.storages.aws_s3 import AwsS3Client
 from projects.datasets.dataset_manager import DatasetManager
 from api.common import validation_check
 from api.settings import SORT_KEY, PER_PAGE
@@ -32,6 +33,12 @@ class OriginalManager(object):
         storage_config = copy.deepcopy(STORAGE_CONFIG)
         storage_config.update({'blob': name})
         original = self.get_original(project_id, new_original.id)
+
+        storage = StorageSerializer().get_storage(project_id, original['storage_id'])
+        if storage['storage_type'] == 'AWS_S3':
+            config = storage['storage_config']
+            key = (config['base_dir'] + '/' + 'raws' + '/' + name)
+            original['post_url'] = AwsS3Client().get_s3_put_url(config['bucket'], key)
         return original
 
     @transaction.atomic
@@ -202,9 +209,7 @@ class OriginalManager(object):
             raise ObjectDoesNotExist()
 
         storage = StorageSerializer().get_storage(project_id, rosbag.storage_id)
-        dir_path = (storage['storage_config']['mount_path']
-                    + storage['storage_config']['base_dir']
-                    + '/' + rosbag.name + '/')
+        config = storage['storage_config']
 
         dataset_manager = DatasetManager()
         if dataset_manager.get_datasets_count_by_original(original_id) == 0:
@@ -213,5 +218,11 @@ class OriginalManager(object):
                 candidate.delete()
 
         rosbag.delete()
-        shutil.rmtree(dir_path)
+        if storage['storage_type'] == 'LOCAL_NFS':
+            path = (config['mount_path'] + config['base_dir']
+                    + '/' + rosbag.name + '/')
+            shutil.rmtree(path)
+        elif storage['storage_type'] == 'AWS_S3':
+            key = config['base_dir'] + '/raws/' + rosbag.name
+            AwsS3Client().delete_s3_files(config['bucket'], key)
         return True
