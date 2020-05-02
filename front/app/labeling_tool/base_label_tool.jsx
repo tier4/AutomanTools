@@ -5,6 +5,7 @@ import { compose } from 'redux';
 import { connect } from 'react-redux';
 
 import Controls from 'automan/labeling_tool/controls';
+import LoadingProgress from 'automan/labeling_tool/base_tool/loading_progress';
 
 import RequestClient from 'automan/services/request-client';
 import { setLabelTool } from './actions/tool_action';
@@ -141,7 +142,8 @@ class LabelTool extends React.Component {
     super(props);
     this.state = {
       isLoaded: false,
-      isInitialized: false
+      isInitialized: false,
+      loadingState: 0,
     };
 
     props.dispatchSetLabelTool(this);
@@ -159,6 +161,7 @@ class LabelTool extends React.Component {
           this.setState({isInitialized: true});
         });
       })
+      .then(() => this.prefetchBlobs())
       .then(() => {
         this.initializeEvent();
 
@@ -169,6 +172,22 @@ class LabelTool extends React.Component {
         console.error(e);
         // ******
       });
+  }
+  prefetchBlobs() {
+    const requests = [];
+    for(let i=0; i<this.frameLength; ++i) {
+      const req = this.loadBlobURL(i).then(() => {
+        this.setState(state => ({
+          loadingState: state.loadingState + 1
+        }));
+      });
+      requests.push(req);
+    }
+    return Promise.all(requests).then(() => {
+      this.setState({
+        loadingState: -1
+      });
+    });
   }
 
   // get project information
@@ -268,12 +287,18 @@ class LabelTool extends React.Component {
       );
     }
     if (!this.isInitialized()) {
-      return <div>Loading</div>;
+      return (
+        <LoadingProgress
+          text="Tool initializing"
+          progress={null}
+        />
+      );
     }
     return (
       <Controls
         labelTool={this}
         onload={this.controlsDidMount}
+        loadingState={this.state.loadingState / this.frameLength}
       />
     );
   }

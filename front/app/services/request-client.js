@@ -31,11 +31,11 @@ class PageQuery {
   getPage() { return this.page; }
   setPage(page) { this.page = Math.max(1, page); }
   getPerPage() { return this.perPage; }
-  setPerPage(pp) { this.perPage= Math.max(1, pp); }
+  setPerPage(pp) { this.perPage = Math.max(1, pp); }
   getSearch() { return this.searchText; }
-  setSearch(query) { this.searchText = query==null ? null : query.toString(); }
+  setSearch(query) { this.searchText = query == null ? null : query.toString(); }
   getSortKey() { return this.sortKey; }
-  setSortKey(key) { this.sortKey = key==null ? null : key.toString(); }
+  setSortKey(key) { this.sortKey = key == null ? null : key.toString(); }
   getSortRevFlag() { return this.sortReverseFlag; }
   setSortRevFlag(flag) { this.sortReverseFlag = !!flag; }
 
@@ -48,12 +48,12 @@ class PageQuery {
     abortableRequests.add(this);
 
     const data = {
-      page:   this.getPage(),
+      page: this.getPage(),
       per_page: this.getPerPage()
     };
-    let sort_key   = this.getSortKey(),
+    let sort_key = this.getSortKey(),
       reverse_flag = this.getSortRevFlag(),
-      search     = this.getSearch();
+      search = this.getSearch();
     if (sort_key !== null) {
       data.sort_key = sort_key;
       data.reverse_flag = reverse_flag;
@@ -89,7 +89,7 @@ const createErrorMessage = code => {
 const expandData = (urlObj, options, data) => {
   if (data == null) { return null; }
 
-  if (data instanceof PageQuery){
+  if (data instanceof PageQuery) {
     data = data.getData(options.xhr);
   } else {
     abortableRequests.add(options.xhr);
@@ -172,7 +172,7 @@ const request = (url, data, method, successCB, failCB, options) => {
   addJWT(urlObj, realOptions.headers);
 
   const body = expandData(urlObj, realOptions, data);
-  
+
   const handleProgress = getHandleProgress(realOptions);
 
   xhr.open(realOptions.method, urlObj.toString());
@@ -201,7 +201,11 @@ const request = (url, data, method, successCB, failCB, options) => {
             });
           }
           if (code === 200) {
-            resolve(JSON.parse(res));
+            if (xhr.getResponseHeader('Content-Type') === 'application/json') {
+              resolve(JSON.parse(res));
+            } else {
+              resolve(res);
+            }
             return;
           }
           if (code === 201) {
@@ -229,7 +233,7 @@ const request = (url, data, method, successCB, failCB, options) => {
         }
       });
       xhr.send(body);
-    } catch(err) {
+    } catch (err) {
       reject({
         message: err.toString()
       });

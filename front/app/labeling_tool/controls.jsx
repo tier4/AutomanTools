@@ -20,6 +20,7 @@ import KlassSet from 'automan/labeling_tool/klass_set';
 import Annotation from 'automan/labeling_tool/annotation';
 import History from 'automan/labeling_tool/history';
 import Clipboard from 'automan/labeling_tool/clipboard';
+import LoadingProgress from 'automan/labeling_tool/base_tool/loading_progress';
 
 import ImageLabelTool from 'automan/labeling_tool/image_label_tool';
 import PCDLabelTool from 'automan/labeling_tool/pcd_label_tool';
@@ -104,6 +105,9 @@ class Controls extends React.Component {
   initEvent() {
     $(window)
       .keydown(e => {
+        if (this.isLoading) {
+          return;
+        }
         if (e.keyCode == 8 || e.keyCode == 46) {
           // Backspace or Delete
           const label = this.getTargetLabel();
@@ -138,6 +142,9 @@ class Controls extends React.Component {
         }
       })
       .keyup(e => {
+        if (this.isLoading) {
+          return;
+        }
         this.getTool().handles.keyup(e);
       });
 
@@ -626,6 +633,10 @@ class Controls extends React.Component {
           {this.toolComponents}
         </main>
         {this.renderRightBar(classes)}
+        <LoadingProgress
+          text="Prefetching Files"
+          progress={this.props.loadingState}
+        />
       </div>
     );
   }
