@@ -21,80 +21,12 @@ class LabelTool extends React.Component {
   datasetId = null;       // from 'annotation'
   originalId = null;      // from 'dataset'
   labelType = null;
-  // progress
-  loaded = false;
   // file status
   filenames = {};
   frameLength = -1;
   // error
   errorMessage = null;
 
-  isLoaded() {
-    return this.loaded;
-  }
-  loadFrame(num) {
-    if (!this.isLoaded()) {
-      return Promise.reject('Duplicate loading');
-    }
-
-    // TODO: check 'num'
-    // TODO: decide move or not
-    let savePromise;
-    if (LabelTool.isChanged()) {
-      const TEXT_SAVE = 'Do you want to save?';
-      const TEXT_MOVE = 'Do you want to leave from this frame WITHOUT SAVING?';
-      if ( window.confirm(TEXT_SAVE) ) {
-        savePromise = annotation.save();
-      } else if ( window.confirm(TEXT_MOVE) ) {
-        savePromise = Promise.resolve();
-      } else {
-        return Promise.resolve();
-      }
-    } else {
-      savePromise = Promise.resolve();
-    }
-
-    this.controls.selectLabel(null);
-
-    this.loaded = false;
-    return savePromise.then(() => {
-      return this.controls.setFrameNumber(num);
-    }).then(() => {
-      return Promise.all(/* load all */);
-    }).then(() => {
-      this.loaded = true;
-      return Promise.resolve();
-    }).catch(e => {
-      // error toast
-      this.loaded = true;
-      return Promise.reject();
-    });
-    // *********
-  }
-  reloadFrame() {
-    this.loaded = false;
-
-
-    return this.controls.loadFrame().then(
-      () => {
-         this.loaded = true;
-      },
-      e => {
-         this.loaded = true;
-         return Promise.reject(e);
-      }
-    );
-    // *********
-  }
-  saveFrame() {
-    if (!this.isLoaded()) {
-      return Promise.reject('Duplicate save');
-    }
-    return this.saveStatus()
-      .then(() => this.controls.save())
-      .then(() => this.reloadFrame());
-    // *********
-  }
   saveStateus() {
     return Promise.resolve();
     // *********

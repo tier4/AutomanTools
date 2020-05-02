@@ -3,6 +3,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { createStore, applyMiddleware } from 'redux';
 import { Provider } from 'react-redux';
+import { SnackbarProvider } from 'notistack';
 import thunk from 'redux-thunk';
 
 import LabelTool from 'automan/labeling_tool/base_label_tool';
@@ -14,7 +15,9 @@ const store = createStore(
 );
 ReactDOM.render(
   <Provider store={store}>
-    <LabelTool />
+    <SnackbarProvider maxSnack={3}>
+      <LabelTool />
+    </SnackbarProvider>
   </Provider>,
   document.getElementById('wrapper')
 );
