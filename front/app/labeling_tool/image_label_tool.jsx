@@ -1,6 +1,7 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom';
+import { withStyles } from '@material-ui/core/styles';
 
 import { compose } from 'redux';
 import { connect } from 'react-redux';
@@ -9,13 +10,47 @@ import { addTool } from './actions/tool_action';
 
 import ImageBBox from './image_tool/image_bbox';
 
+const imageToolStyle = {
+  wrapper: {
+    position: 'relative',
+    height: '100%'
+  },
+  main: {
+    transformOrigin: 'left top'
+  },
+  wipe: {
+    position: 'absolute',
+    transformOrigin: 'left bottom',
+    bottom: 0,
+    left: 0,
+    borderTop: 'solid 2px #fff',
+    borderRight: 'solid 2px #fff'
+  },
+  wipeText: {
+    transformOrigin: 'left top',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    backgroundColor: '#fff',
+    padding: '0px 7px'
+  },
+  guard: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    height: '100%',
+    width: '100%'
+  }
+};
+
 const MAIN_SCREEN_SCALE = 0.68;
 const WIPE_SCREEN_SCALE = 1 - MAIN_SCREEN_SCALE;
 class ImageLabelTool extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      scale: 1.0
+      scale: 1.0,
+      isWipe: false
     };
     this._element = React.createRef();
     this._wipeElement = React.createRef();
@@ -32,57 +67,69 @@ class ImageLabelTool extends React.Component {
     return null; 
   }
   render() {
+    const classes = this.props.classes;
     const mainScale = this.state.scale * MAIN_SCREEN_SCALE;
     const wipeScale = this.state.scale * WIPE_SCREEN_SCALE;
     const mainMargin = this._wrapperSize.width - this._imageSize.width * mainScale;
     const wipeWidth = this._imageSize.width * wipeScale;
     const ml = Math.min(mainMargin, wipeWidth);
+
+    const wrapperStyle = this.state.isWipe ? {
+      transformOrigin: 'left top',
+      transform: `scale(${wipeScale})`,
+      position: 'absolute',
+      zIndex: 100
+    } : {};
     const mainStyle = {
       transform: `scale(${mainScale})`,
-      marginLeft: isFinite(ml) ? ml : 0,
-      transformOrigin: 'left top'
+      marginLeft: isFinite(ml) ? ml : 0
     };
     const wipeStyle = {
-      position: 'absolute',
-      transform: `scale(${wipeScale})`,
-      transformOrigin: 'left bottom',
-      bottom: 0,
-      left: 0,
-      borderTop: 'solid 2px #fff',
-      borderRight: 'solid 2px #fff'
+      transform: `scale(${wipeScale})`
     };
     const wipeTextStyle = {
-      transform: `scale(${1 / wipeScale})`,
-      transformOrigin: 'left top',
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      backgroundColor: '#fff',
-      padding: '0px 7px'
+      transform: `scale(${1 / wipeScale})`
+    };
+    const guardStyle = {};
+    if (this.state.isWipe) {
+      wipeStyle['display'] = 'none';
+      Object.assign(mainStyle, {
+        transform: 'scale(1)',
+        marginLeft: 0,
+        borderRight: 'solid 2px white',
+        borderBottom: 'solid 2px white'
+      });
+    } else {
+      guardStyle['display'] = 'none';
     }
     return (
       <div
         ref={this._wrapperElement}
-        style={{
-          position: 'relative',
-          height: '100%'
-        }}
+        className={classes.wrapper}
+        style={wrapperStyle}
       >
         <div
           ref={this._element}
+          className={classes.main}
           style={mainStyle}
         />
         <div
           ref={this._wipeElement}
+          className={classes.wipe}
           style={wipeStyle}
           onClick={() => this.props.controls.previousFrame()}
         >
           <div
+            className={classes.wipeText}
             style={wipeTextStyle}
           >
             Prev
           </div>
         </div>
+        <div
+          className={classes.guard}
+          style={guardStyle}
+        />
       </div>
     );
   }
@@ -161,8 +208,11 @@ class ImageLabelTool extends React.Component {
     keyup: e =>{
     }
   };
-  setActive(isActive) {
-    if ( isActive ) {
+  setActive(isActive, isWipe=false) {
+    if (isWipe !== this.state.isWipe) {
+      this.setState({ isWipe: isWipe });
+    }
+    if (isActive) {
       this._wrapper.show();
     } else {
       this._wrapper.hide();
@@ -464,6 +514,7 @@ const mapDispatchToProps = dispatch => ({
   dispatchAddTool: (idx, target) => dispatch(addTool(idx, target))
 });
 export default compose(
+  withStyles(imageToolStyle),
   connect(
     mapStateToProps,
     mapDispatchToProps

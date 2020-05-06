@@ -7,6 +7,8 @@ import TextField from '@material-ui/core/TextField';
 import Drawer from '@material-ui/core/Drawer';
 import Divider from '@material-ui/core/Divider';
 import Grid from '@material-ui/core/Grid';
+import List from '@material-ui/core/List';
+import ListItem from '@material-ui/core/ListItem';
 import Button from '@material-ui/core/Button';
 import IconButton from '@material-ui/core/IconButton';
 import { NavigateNext, NavigateBefore, ExitToApp } from '@material-ui/icons';
@@ -43,7 +45,8 @@ class Controls extends React.Component {
     this.state = {
       frameNumber: 0,
       skipFrameCount: 1,
-      activeTool: 0
+      activeTool: 0,
+      isActivePCD: false
     };
 
     this.frameLength = props.labelTool.frameLength;
@@ -52,14 +55,17 @@ class Controls extends React.Component {
   }
   initTools() {
     // load labeling tools
+    // TODO: get tool name from dataset
     const LABEL_TYPES = {
       BB2D: {
         tools: [ImageLabelTool],
-        names: ['2D']
+        pcdIndex: -1,
+        names: ['Front']
       },
       BB2D3D: {
         tools: [ImageLabelTool, PCDLabelTool],
-        names: ['2D', '3D']
+        pcdIndex: 1,
+        names: ['Front', '3D']
       }
     };
     const type = LABEL_TYPES[this.props.labelTool.labelType];
@@ -68,6 +74,7 @@ class Controls extends React.Component {
       return;
     }
     this.toolNames = type.names;
+    this.pcdToolIndex = type.pcdIndex;
     this.toolComponents = type.tools.map((tool, idx) => {
       const Component = tool;
       const component = (
@@ -230,8 +237,28 @@ class Controls extends React.Component {
   getTools() {
     return this.props.tools;
   }
+  setPCDActive(isActive) {
+    const prevState = this.state.isActivePCD;
+    const pcdIndex = this.pcdToolIndex;
+    if (pcdIndex < 0 || prevState === isActive) {
+      return;
+    }
+    let prevTool, nextTool;
+    const activeTool = this.state.activeTool;
+    const imageTool = this.props.tools[activeTool];
+    const pcdTool = this.props.tools[pcdIndex];
+    this.setState({isActivePCD: isActive});
+    if (prevState) {
+      pcdTool.setActive(false);
+      imageTool.setActive(true);
+    } else {
+      imageTool.setActive(true, true);
+      pcdTool.setActive(true);
+    }
+  }
   setTool(idx) {
-    const activeTool = this.state.activeTool
+    const isActivePCD = this.state.isActivePCD;
+    const activeTool = this.state.activeTool;
     if (activeTool === idx) {
       return;
     }
@@ -239,11 +266,12 @@ class Controls extends React.Component {
     const nextTool = this.props.tools[idx];
     this.setState({activeTool: idx});
     prevTool.setActive(false);
-    nextTool.setActive(true);
-    // update ??
-    // *********
+    nextTool.setActive(true, isActivePCD);
   }
   getTool() {
+    if (this.state.isActivePCD) {
+      return this.props.tools[this.pcdToolIndex];
+    }
     return this.props.tools[this.state.activeTool];
   }
   getToolFromCandidateId(id) {
@@ -479,18 +507,41 @@ class Controls extends React.Component {
   renderLeftBar(classes) {
     const toolButtons = [];
     this.toolNames.forEach((name, idx) => {
-      const cls = this.state.activeTool === idx ? classes.activeTool : '';
+      if (idx === this.pcdToolIndex) {
+        return;
+      }
+      const isActive = this.state.activeTool === idx;
+      const cls = isActive ? classes.activeTool : '';
       const button = (
-        <Button
+        <ListItem
           onClick={() => this.setTool(idx)}
+          button={!isActive}
           key={idx}
           className={cls}
         >
           {name}
-        </Button>
+        </ListItem>
       );
       toolButtons.push(button);
     });
+    let pcdButton;
+    if (this.pcdToolIndex >= 0) {
+      pcdButton = (
+        <Button
+          onClick={
+            () => this.setPCDActive(
+              !this.state.isActivePCD
+            )
+          }
+          variant={
+            this.state.isActivePCD ?
+              'contained' : 'outlined'
+          }
+        >
+          3D
+        </Button>
+      );
+    }
     const tool = this.getTool();
     const buttons  = tool == null ? null : tool.getButtons();
     return (
@@ -504,11 +555,15 @@ class Controls extends React.Component {
       >
         <div className={classes.toolControlsWrapper}>
           <div className={classes.toolControls}>
-            Tools
-            <Divider />
             <Grid container alignItems="center">
               <Grid item xs={12}>
-                {toolButtons}
+                Cameras {pcdButton}
+                <Divider />
+                <List>
+                  {toolButtons}
+                </List>
+                <Divider />
+                Tools
                 <Divider />
               </Grid>
               <Grid item xs={12}>
