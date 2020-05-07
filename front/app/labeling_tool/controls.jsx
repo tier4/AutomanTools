@@ -461,9 +461,15 @@ class Controls extends React.Component {
     );
   };
   onClickNextFrame = (e) => {
+    if (this.isLoading) {
+      return;
+    }
     this.nextFrame();
   };
   onClickPrevFrame = (e) => {
+    if (this.isLoading) {
+      return;
+    }
     this.previousFrame();
   };
   onFrameBlurOrFocus = (e) => {
