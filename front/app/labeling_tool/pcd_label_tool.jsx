@@ -286,8 +286,6 @@ class PCDLabelTool extends React.Component {
   disposeBBox(bbox) {
     bbox.remove();
   }
-  updateBBox(label) {
-  }
   updateTarget(prev, next) {
     const id = this.candidateId;
     if (prev != null && prev.has(id)) {

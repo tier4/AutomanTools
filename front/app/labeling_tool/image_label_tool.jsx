@@ -247,9 +247,6 @@ class ImageLabelTool extends React.Component {
   disposeBBox(bbox) {
     bbox.remove();
   }
-  updateBBox(label) {
-    // TODO: recreate all
-  }
   updateTarget(prev, next) {
     const id = this.candidateId;
     if (prev != null && prev.has(id)) {
