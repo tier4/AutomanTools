@@ -143,7 +143,8 @@ class LabelTool extends React.Component {
     this.state = {
       isLoaded: false,
       isInitialized: false,
-      loadingState: 0,
+      loadingState: -1,
+      loadingCnt: 0,
     };
 
     props.dispatchSetLabelTool(this);
@@ -174,14 +175,23 @@ class LabelTool extends React.Component {
       });
   }
   prefetchBlobs() {
+    const PARA = 5;
     const requests = [];
-    for(let i=0; i<this.frameLength; ++i) {
-      const req = this.loadBlobURL(i).then(() => {
-        this.setState(state => ({
-          loadingState: state.loadingState + 1
-        }));
-      });
-      requests.push(req);
+    this.setState({
+      loadingState: 0,
+      loadingCnt: this.frameLength,
+    });
+    for(let t=0; t<PARA; ++t) {
+      const thread = async () => {
+        for(let i=t; i<this.frameLength; i+=PARA) {
+          await this.loadBlobURL(i).then(() => {
+            this.setState(state => ({
+              loadingState: state.loadingState + 1
+            }));
+          });
+        }
+      };
+      requests.push(thread());
     }
     return Promise.all(requests).then(() => {
       this.setState({
@@ -298,7 +308,7 @@ class LabelTool extends React.Component {
       <Controls
         labelTool={this}
         onload={this.controlsDidMount}
-        loadingState={this.state.loadingState / this.frameLength}
+        loadingState={this.state.loadingState / this.state.loadingCnt}
       />
     );
   }
