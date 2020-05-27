@@ -189,26 +189,48 @@ const request = (url, data, method, successCB, failCB, options) => {
         });
       }
       xhr.addEventListener('load', () => {
-        abortableRequests.delete(xhr);
+        try {
+          abortableRequests.delete(xhr);
 
-        const code = xhr.status;
-        if (code === 200 || code === 201) {
-          if (xhr.getResponseHeader('Content-Type') === 'application/json') {
-            resolve(JSON.parse(xhr.response));
+          const code = xhr.status;
+          const res = xhr.response;
+          if (res === null) {
+            return reject({
+              message: createErrorMessage(code),
+              code: code
+            });
+          }
+          if (code === 200) {
+            if (xhr.getResponseHeader('Content-Type') === 'application/json') {
+              resolve(JSON.parse(res));
+            } else {
+              resolve(res);
+            }
             return;
           }
-          resolve(xhr.response);
-          return;
-        }
-        if (code === 204) {
-          resolve(null);
-          return;
-        }
+          if (code === 201) {
+            // TODO; decide JSON or none
+            if (res !== '') {
+              resolve(JSON.parse(res));
+            } else {
+              resolve(null);
+            }
+            return;
+          }
+          if (code === 204) {
+            resolve(null);
+            return;
+          }
 
-        return reject({
-          message: createErrorMessage(code),
-          code: code
-        });
+          return reject({
+            message: createErrorMessage(code),
+            code: code
+          });
+        } catch(err) {
+          reject({
+            message: err.toString()
+          });
+        }
       });
       xhr.send(body);
     } catch (err) {
