@@ -25,6 +25,7 @@
       - ca-certificates
       - curl
       - software-properties-common
+      - conntrack
 
   - name: Install Docker-CE
     apt:
