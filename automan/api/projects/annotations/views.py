@@ -4,9 +4,14 @@ from django.http import HttpResponse
 from django.core.exceptions import PermissionDenied
 from rest_framework.decorators import api_view
 from .annotation_manager import AnnotationManager
+from projects.datasets.dataset_manager import DatasetManager
+from projects.originals.original_manager import OriginalManager
+from projects.storages.serializer import StorageSerializer
+from projects.storages.aws_s3 import AwsS3Client
 from api.permissions import Permission
 from api.settings import PER_PAGE, SORT_KEY
 from accounts.account_manager import AccountManager
+from api.errors import UnknownStorageTypeError
 
 
 @api_view(['GET', 'POST'])
@@ -37,7 +42,7 @@ def annotations(request, project_id):
         annotation_id = annotation_manager.create_annotation(user_id, project_id, name, dataset_id)
 
         contents = annotation_manager.get_annotation(annotation_id)
-        return HttpResponse(status=201, content=contents, content_type='application/json')
+        return HttpResponse(status=201, content=json.dumps(contents), content_type='application/json')
 
 
 @api_view(['GET', 'POST', 'DELETE'])
@@ -55,12 +60,16 @@ def annotation(request, project_id, annotation_id):
         file_path = request.data.get('file_path')
         file_name = request.data.get('file_name')
         annotation_manager.set_archive(annotation_id, file_path, file_name)
-        return HttpResponse(status=201)
+        return HttpResponse(status=201, content=json.dumps({}), content_type='application/json')
 
     else:
         if not Permission.hasPermission(user_id, 'delete_annotationwork', project_id):
             raise PermissionDenied
-        annotation_manager.delete_annotation(annotation_id)
+        dataset_id = annotation_manager.get_annotation(annotation_id)['dataset_id']
+        original_id = DatasetManager().get_dataset(user_id, dataset_id)['original_id']
+        storage_id = OriginalManager().get_original(project_id, original_id)['storage_id']
+        storage = StorageSerializer().get_storage(project_id, storage_id)
+        annotation_manager.delete_annotation(annotation_id, storage)
         return HttpResponse(status=204)
 
 
@@ -84,11 +93,31 @@ def frame(request, project_id, annotation_id, frame):
         edited = request.data.get('edited', "")
         deleted = request.data.get('deleted', "")
         annotation_manager.set_frame_label(user_id, project_id, annotation_id, frame, created, edited, deleted)
-        return HttpResponse(status=201)
+        return HttpResponse(status=201, content=json.dumps({}), content_type='application/json')
 
 
 @api_view(['GET'])
-def download_archived_annotation(request, project_id, annotation_id):
+def download_archived_link(request, project_id, annotation_id):
+    username = request.user
+    user_id = AccountManager.get_id_by_username(username)
+    annotation_manager = AnnotationManager()
+    dataset_id = annotation_manager.get_annotation(annotation_id)['dataset_id']
+    original_id = DatasetManager().get_dataset(user_id, dataset_id)['original_id']
+    storage_id = OriginalManager().get_original(project_id, original_id)['storage_id']
+    storage = StorageSerializer().get_storage(project_id, storage_id)
+    if storage['storage_type'] == 'LOCAL_NFS':
+        content = request.build_absolute_uri(request.path) + 'local/'
+    elif storage['storage_type'] == 'AWS_S3':
+        archive_path = annotation_manager.get_archive_path(annotation_id)
+        content = AwsS3Client().get_s3_down_url(
+            storage['storage_config']['bucket'], archive_path)
+    else:
+        raise UnknownStorageTypeError
+    return HttpResponse(status=200, content=content, content_type='text/plain')
+
+
+@api_view(['GET'])
+def download_local_nfs_archive(request, project_id, annotation_id):
     username = request.user
     user_id = AccountManager.get_id_by_username(username)
     if not Permission.hasPermission(user_id, 'get_label', project_id):

@@ -1,10 +1,7 @@
 import RequestClient from 'automan/services/request-client'
 
-export default class LocalStorageClient {
+export default class AWSS3StorageClient {
   static upload(requestPath, file, progressCallback, completeCallback, index) {
-    const fd = new FormData();
-    fd.append('file', file);
-
     const options = {
       handleProgress: e => {
         const progress = parseInt(e.loaded / e.total * 100);
@@ -12,7 +9,7 @@ export default class LocalStorageClient {
       }
     };
 
-    RequestClient.post(requestPath, fd, options)
+    RequestClient.put(requestPath, file, options)
       .then((data) => {
         completeCallback(index + 1);
       }, (err) => {

@@ -51,7 +51,7 @@ class StorageForm extends React.Component {
       is_loading: true,
       error: null,
       query: RequestClient.createPageQuery(),
-      storageTypes: ['AZURE_BLOB', 'LOCAL_NFS'], // FIXME: hard coding
+      storageTypes: ['AZURE_BLOB', 'LOCAL_NFS', 'AWS_S3'], // FIXME: hard coding
       storageType: null,
       storageConfig: null,
       activeStep: 0
@@ -134,6 +134,19 @@ class StorageForm extends React.Component {
           );
         } else if (this.state.storageType == 'LOCAL_NFS') {
           form = <p> No additional settings.</p>;
+        } else if (this.state.storageType == 'AWS_S3') {
+          form = (
+            <FormControl>
+              <TextField
+                margin="dense"
+                id="storageConfig"
+                label="Bucket"
+                type="config"
+                onChange={this.handleTextFieldChange}
+                fullWidth
+              />
+            </FormControl>
+          );
         }
         return form;
       case 2:
@@ -155,6 +168,10 @@ class StorageForm extends React.Component {
       };
     } else if (this.state.storageType == 'LOCAL_NFS') {
       submitData.storage_config = {};
+    } else if (this.state.storageType == 'AWS_S3') {
+      submitData.storage_config = {
+        bucket: this.state.storageConfig
+      };
     }
     return submitData;
   };

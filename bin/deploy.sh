@@ -8,4 +8,6 @@ kubectl describe deployment automan-labeling-mysql || kubectl create -f mysql-de
 sleep 5
 
 cd ../app
+kubectl describe secret automan-secret || kubectl create -f automan-secret.yaml
+sleep 5
 kubectl describe deployment automan-labeling-app || kubectl kustomize overlays/development | kubectl apply -f -

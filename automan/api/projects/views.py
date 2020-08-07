@@ -68,7 +68,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
             raise ValidationError
         storage.save()
 
-        return HttpResponse(status=201, content={}, content_type='application/json')
+        return HttpResponse(status=201, content=json.dumps({}), content_type='application/json')
 
     def retrieve(self, request, project_id):
         username = request.user
@@ -98,7 +98,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         new_klassset = json.loads(request.body.decode())
         klassset_manager.set_klassset(
             project_id, user_id, new_klassset['klasses'])
-        return HttpResponse(status=201)
+        return HttpResponse(status=201, content=json.dumps({}), content_type='application/json')
 
     @action(detail=True, methods=['get'])
     def permissions(self, request, project_id):

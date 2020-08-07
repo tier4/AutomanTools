@@ -5,6 +5,7 @@ import { compose } from 'redux';
 import { connect } from 'react-redux';
 
 import Controls from 'automan/labeling_tool/controls';
+import LoadingProgress from 'automan/labeling_tool/base_tool/loading_progress';
 
 import RequestClient from 'automan/services/request-client';
 import { setLabelTool } from './actions/tool_action';
@@ -21,80 +22,12 @@ class LabelTool extends React.Component {
   datasetId = null;       // from 'annotation'
   originalId = null;      // from 'dataset'
   labelType = null;
-  // progress
-  loaded = false;
   // file status
   filenames = {};
   frameLength = -1;
   // error
   errorMessage = null;
 
-  isLoaded() {
-    return this.loaded;
-  }
-  loadFrame(num) {
-    if (!this.isLoaded()) {
-      return Promise.reject('Duplicate loading');
-    }
-
-    // TODO: check 'num'
-    // TODO: decide move or not
-    let savePromise;
-    if (LabelTool.isChanged()) {
-      const TEXT_SAVE = 'Do you want to save?';
-      const TEXT_MOVE = 'Do you want to leave from this frame WITHOUT SAVING?';
-      if ( window.confirm(TEXT_SAVE) ) {
-        savePromise = annotation.save();
-      } else if ( window.confirm(TEXT_MOVE) ) {
-        savePromise = Promise.resolve();
-      } else {
-        return Promise.resolve();
-      }
-    } else {
-      savePromise = Promise.resolve();
-    }
-
-    this.controls.selectLabel(null);
-
-    this.loaded = false;
-    return savePromise.then(() => {
-      return this.controls.setFrameNumber(num);
-    }).then(() => {
-      return Promise.all(/* load all */);
-    }).then(() => {
-      this.loaded = true;
-      return Promise.resolve();
-    }).catch(e => {
-      // error toast
-      this.loaded = true;
-      return Promise.reject();
-    });
-    // *********
-  }
-  reloadFrame() {
-    this.loaded = false;
-
-
-    return this.controls.loadFrame().then(
-      () => {
-         this.loaded = true;
-      },
-      e => {
-         this.loaded = true;
-         return Promise.reject(e);
-      }
-    );
-    // *********
-  }
-  saveFrame() {
-    if (!this.isLoaded()) {
-      return Promise.reject('Duplicate save');
-    }
-    return this.saveStatus()
-      .then(() => this.controls.save())
-      .then(() => this.reloadFrame());
-    // *********
-  }
   saveStateus() {
     return Promise.resolve();
     // *********
@@ -209,7 +142,8 @@ class LabelTool extends React.Component {
     super(props);
     this.state = {
       isLoaded: false,
-      isInitialized: false
+      isInitialized: false,
+      loadingState: 0,
     };
 
     props.dispatchSetLabelTool(this);
@@ -227,6 +161,7 @@ class LabelTool extends React.Component {
           this.setState({isInitialized: true});
         });
       })
+      .then(() => this.prefetchBlobs())
       .then(() => {
         this.initializeEvent();
 
@@ -237,6 +172,22 @@ class LabelTool extends React.Component {
         console.error(e);
         // ******
       });
+  }
+  prefetchBlobs() {
+    const requests = [];
+    for(let i=0; i<this.frameLength; ++i) {
+      const req = this.loadBlobURL(i).then(() => {
+        this.setState(state => ({
+          loadingState: state.loadingState + 1
+        }));
+      });
+      requests.push(req);
+    }
+    return Promise.all(requests).then(() => {
+      this.setState({
+        loadingState: -1
+      });
+    });
   }
 
   // get project information
@@ -336,12 +287,18 @@ class LabelTool extends React.Component {
       );
     }
     if (!this.isInitialized()) {
-      return <div>Loading</div>;
+      return (
+        <LoadingProgress
+          text="Tool initializing"
+          progress={null}
+        />
+      );
     }
     return (
       <Controls
         labelTool={this}
         onload={this.controlsDidMount}
+        loadingState={this.state.loadingState / this.frameLength}
       />
     );
   }
