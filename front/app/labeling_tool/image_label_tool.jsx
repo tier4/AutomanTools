@@ -198,6 +198,8 @@ class ImageLabelTool extends React.Component {
       resolve();
     });
   }
+  unload(frame) {
+  }
   handles = {
     resize: size => {
       this._wrapperSize = size;

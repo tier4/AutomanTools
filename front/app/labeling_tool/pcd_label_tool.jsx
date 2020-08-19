@@ -165,6 +165,19 @@ class PCDLabelTool extends React.Component {
     this._wipeScene.add(wipeMesh);
     return wipeMesh;
   }
+  pcdUnload(frame) {
+    if (!this.isLoadedFrame(frame)) {
+      return;
+    }
+    const mesh = this._pointMeshes[frame];
+    const wipeMesh = this._wipePointMeshes[frame];
+    this._scene.remove(mesh);
+    this._wipeScene.remove(wipeMesh);
+    mesh.material.dispose();
+    mesh.geometry.dispose();
+    wipeMesh.material.dispose();
+    wipeMesh.geometry.dispose();
+  }
   pcdLoad(frame) {
     if (this.isLoadedFrame(frame)) {
       return Promise.resolve({
@@ -220,6 +233,9 @@ class PCDLabelTool extends React.Component {
       this._redrawFlag = true;
       this._loaded = true;
     });
+  }
+  unload(frame) {
+    this.pcdUnload(frame);
   }
   handles = {
     resize: size => {

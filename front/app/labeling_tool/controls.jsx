@@ -378,8 +378,13 @@ class Controls extends React.Component {
     }
 
     this.isLoading = true;
-    return this.props.labelTool.loadBlobURL(num)
+    const labelTool = this.props.labelTool;
+    return Promise.all([
+        labelTool.loadBlobURL(num),
+        num >= 1 && labelTool.loadBlobURL(num - 1)
+      ])
       .then(() => {
+        labelTool.prefetchManage(num);
         return this.props.annotation.load(num);
       })
       .then(() => {
