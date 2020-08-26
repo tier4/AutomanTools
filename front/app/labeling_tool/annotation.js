@@ -235,10 +235,8 @@ class Annotation extends React.Component {
       this.props.controls.error(txt);
       return;
     }
+    this.props.history.addHistory([label], 'change');
     label.setKlass(klass);
-    this.getTools().forEach(tool => {
-      tool.updateBBox(label);
-    });
   }
   attachBBox(id, candidateId, bbox) {
     let label = this.getLabel(id);
@@ -705,7 +703,9 @@ class Label {
     if (this.id !== obj.id) {
       throw new Error('history id error');
     }
-    this.klass = obj.klass;
+    if (this.klass !== obj.klass) {
+      this.setKlass(obj.klass);
+    }
     this.instanceId = obj.instanceId;
     this._annotationTool.getTools().forEach(tool => {
       const id = tool.candidateId;

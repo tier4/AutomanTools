@@ -66,7 +66,7 @@ export const toolStyle = theme => ({
     textAlign: 'center'
   },
   activeTool: {
-    border: 'solid 1px #000'
+    backgroundColor: 'rgba(0, 0, 0, 0.2)'
   },
   labelList: {
     height: `calc(100% - ${toolHeight})`
