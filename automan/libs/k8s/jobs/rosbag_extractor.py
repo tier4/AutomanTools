@@ -2,11 +2,13 @@ import json
 from kubernetes import client
 from libs.k8s.jobs import BaseJob
 from projects.storages.aws_s3 import AwsS3Client
+from automan_website import settings
 
 
 class RosbagExtractor(BaseJob):
-    IMAGE_NAME = 'automan-rosbag-extractor'
-    MEMORY = '512Mi'
+    IMAGE_NAME = settings.JOB['EXTRACTOR']['IMAGE_NAME']
+    REPOSITORY_NAME = (settings.JOB_DOCKER_REGISTRY_HOST + '/' if settings.JOB_DOCKER_REGISTRY_HOST is not None else "") + IMAGE_NAME + ':' + settings.JOB['EXTRACTOR']['IMAGE_TAG']
+    MEMORY = settings.JOB['EXTRACTOR']['MEMORY']
 
     # TODO: automan_server_info
     def __init__(
@@ -46,7 +48,7 @@ class RosbagExtractor(BaseJob):
             spec=client.models.V1JobSpec(
                 # ttlSecondsAfterFinished = 45 Day
                 ttl_seconds_after_finished=3888000,
-                active_deadline_seconds=600,
+                active_deadline_seconds=10800,
                 completions=1,
                 parallelism=1,
                 # TODO: backoffLimit
@@ -86,7 +88,7 @@ class RosbagExtractor(BaseJob):
                 client.models.V1Container(
                     command=command,
                     args=args,
-                    image=self.IMAGE_NAME,
+                    image=self.REPOSITORY_NAME,
                     image_pull_policy='IfNotPresent',
                     name=self.IMAGE_NAME,
                     # env=[access_key_env, secret_key_env],
@@ -99,7 +101,7 @@ class RosbagExtractor(BaseJob):
                 client.models.V1Container(
                     command=command,
                     args=args,
-                    image=self.IMAGE_NAME,
+                    image=self.REPOSITORY_NAME,
                     image_pull_policy='IfNotPresent',
                     name=self.IMAGE_NAME,
                     resources=client.models.V1ResourceRequirements(limits=system_usage, requests=system_usage),

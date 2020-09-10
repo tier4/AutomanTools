@@ -2,17 +2,20 @@ import json
 from kubernetes import client
 from libs.k8s.jobs import BaseJob
 from projects.storages.aws_s3 import AwsS3Client
+from automan_website import settings
 
 
 class AnnotationArchiver(BaseJob):
-    IMAGE_NAME = 'automan-annotation-archiver'
-    MEMORY = '512Mi'
+    IMAGE_NAME = settings.JOB['ARCHIVER']['IMAGE_NAME']
+    REPOSITORY_NAME = (settings.JOB_DOCKER_REGISTRY_HOST + '/' if settings.JOB_DOCKER_REGISTRY_HOST is not None else "") + IMAGE_NAME + ':' + settings.JOB['ARCHIVER']['IMAGE_TAG']
+    MEMORY = settings.JOB['ARCHIVER']['MEMORY']
 
     # TODO: automan_server_info
     def __init__(
             self, storage_type, storage_config, automan_config,
             archive_config, k8s_config_path=None, ros_distrib='kinetic'):
         super(AnnotationArchiver, self).__init__(k8s_config_path)
+
         self.ros_distrib = ros_distrib
         self.storage_type = storage_type
         if storage_type == 'LOCAL_NFS':
@@ -41,7 +44,7 @@ class AnnotationArchiver(BaseJob):
             spec=client.models.V1JobSpec(
                 # ttlSecondsAfterFinished = 45 Day
                 ttl_seconds_after_finished=3888000,
-                active_deadline_seconds=600,
+                active_deadline_seconds=10800,
                 completions=1,
                 parallelism=1,
                 # TODO: backoffLimit
@@ -81,7 +84,7 @@ class AnnotationArchiver(BaseJob):
                 client.models.V1Container(
                     command=command,
                     args=args,
-                    image=self.IMAGE_NAME,
+                    image=self.REPOSITORY_NAME,
                     image_pull_policy='IfNotPresent',
                     name=self.IMAGE_NAME,
                     # env=[access_key_env, secret_key_env],
@@ -94,7 +97,7 @@ class AnnotationArchiver(BaseJob):
                 client.models.V1Container(
                     command=command,
                     args=args,
-                    image=self.IMAGE_NAME,
+                    image=self.REPOSITORY_NAME,
                     image_pull_policy='IfNotPresent',
                     name=self.IMAGE_NAME,
                     resources=client.models.V1ResourceRequirements(limits=system_usage, requests=system_usage),

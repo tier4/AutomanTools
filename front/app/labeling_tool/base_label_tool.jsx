@@ -136,7 +136,7 @@ class LabelTool extends React.Component {
       case 'candidate_info': {
         const dataType = args[0];
         ret =
-          PROJECT_ROOT + 'originals/' + this.originalId + '/candidates/';
+          PROJECT_ROOT + 'datasets/' + this.datasetId + '/candidates/';
         if (dataType != null) {
           ret += '?data_type=' + dataType;
         }
@@ -283,6 +283,7 @@ class LabelTool extends React.Component {
         res => {
           this.originalId = res.original_id;
           this.frameLength = res.frame_count;
+          this.candidateInfo = res.candidates;
           resolve();
         },
         err => {
@@ -297,7 +298,7 @@ class LabelTool extends React.Component {
         this.getURL('candidate_info'),
         null,
         res => {
-          this.candidateInfo = res.records;
+          this.candidateInfo = res.candidates;
           
           resolve();
         },
@@ -311,7 +312,7 @@ class LabelTool extends React.Component {
     return this.initProject()
       .then(() => this.initAnnotation())
       .then(() => this.initDataset())
-      .then(() => this.initCandidateInfo())
+      // .then(() => this.initCandidateInfo())
   }
   
   initializeEvent() {

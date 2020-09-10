@@ -44,6 +44,7 @@ class ServiceLog:
             "detail_msg": detail_msg,
         }
         if exception:
+            print(traceback.format_exc())
             cause_frame = traceback.extract_tb(exception.__traceback__)[-1]
             traceback_msg = traceback.format_tb(exception.__traceback__)
             log_dict.update({

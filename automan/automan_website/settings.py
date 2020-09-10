@@ -159,8 +159,6 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
 
-STATIC_ROOT = ''
-
 STATIC_URL = '/static/'
 
 
@@ -198,4 +196,26 @@ AUTOMAN_PORT = os.environ.get("AUTOMAN_PORT")
 SWAGGER_SETTINGS = {
     'SECURITY_DEFINITIONS': None,  # FIXME
     'USE_SESSION_AUTH': False,
+}
+
+# JOB
+JOB_DOCKER_REGISTRY_HOST = os.environ.get('JOB_DOCKER_REGISTRY_HOST', None)
+JOB_DEFAULT_MEMORY = os.environ.get('JOB_DEFAULT_MEMORY', '1024Mi')
+
+JOB = {
+    'ARCHIVER': {
+        'IMAGE_NAME': os.environ.get('JOB_ARCHIVER_IMAGE_NAME'),
+        'IMAGE_TAG': os.environ.get('JOB_ARCHIVER_IMAGE_TAG'),
+        'MEMORY': os.environ.get('JOB_ARCHIVER_MEMORY'),
+    },
+    'ANALYZER': {
+        'IMAGE_NAME': os.environ.get('JOB_ANALYZER_IMAGE_NAME'),
+        'IMAGE_TAG': os.environ.get('JOB_ANALYZER_IMAGE_TAG'),
+        'MEMORY': os.environ.get('JOB_ANALYZER_MEMORY'),
+    },
+    'EXTRACTOR': {
+        'IMAGE_NAME': os.environ.get('JOB_EXTRACTOR_IMAGE_NAME'),
+        'IMAGE_TAG': os.environ.get('JOB_EXTRACTOR_IMAGE_TAG'),
+        'MEMORY': os.environ.get('JOB_EXTRACTOR_MEMORY'),
+    },
 }

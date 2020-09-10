@@ -2,14 +2,17 @@ import json
 from kubernetes import client
 from libs.k8s.jobs import BaseJob
 from projects.storages.aws_s3 import AwsS3Client
+from automan_website import settings
 
 
 class RosbagAnalyzer(BaseJob):
-    IMAGE_NAME = 'automan-rosbag-analyzer'
-    MEMORY = '512Mi'
+    IMAGE_NAME = settings.JOB['ANALYZER']['IMAGE_NAME']
+    REPOSITORY_NAME = (settings.JOB_DOCKER_REGISTRY_HOST + '/' if settings.JOB_DOCKER_REGISTRY_HOST is not None else "") + IMAGE_NAME + ':' + settings.JOB['ANALYZER']['IMAGE_TAG']
+    MEMORY = settings.JOB['ANALYZER']['MEMORY']
 
     # TODO: automan_server_info
-    def __init__(self, storage_type, storage_config, automan_config, k8s_config_path=None, ros_distrib='kinetic'):
+    def __init__(self, storage_type, storage_config, automan_config,
+                 k8s_config_path=None, ros_distrib='kinetic'):
         super(RosbagAnalyzer, self).__init__(k8s_config_path)
         self.storage_type = storage_type
         if storage_type == 'LOCAL_NFS':
@@ -24,6 +27,7 @@ class RosbagAnalyzer(BaseJob):
                  'base_dir': storage_config['base_dir'],
                  'target_url': AwsS3Client().get_s3_down_url(storage_config['bucket'], storage_config['path'])},
                 separators=(',', ':'))
+            print(self.storage_info)
             self.automan_info = json.dumps(automan_config, separators=(',', ':'))
         else:
             raise NotImplementedError  # FIXME
@@ -76,7 +80,7 @@ class RosbagAnalyzer(BaseJob):
                 client.models.V1Container(
                     command=command,
                     args=args,
-                    image=self.IMAGE_NAME,
+                    image=self.REPOSITORY_NAME,
                     image_pull_policy='IfNotPresent',
                     name=self.IMAGE_NAME,
                     volume_mounts=[client.models.V1VolumeMount(mount_path=self.mount_path, name=self.volume_name)],
@@ -88,7 +92,7 @@ class RosbagAnalyzer(BaseJob):
                 client.models.V1Container(
                     command=command,
                     args=args,
-                    image=self.IMAGE_NAME,
+                    image=self.REPOSITORY_NAME,
                     image_pull_policy='IfNotPresent',
                     name=self.IMAGE_NAME,
                     resources=client.models.V1ResourceRequirements(limits=system_usage, requests=system_usage),
