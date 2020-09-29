@@ -6,6 +6,7 @@ export const SET_TOOL_CLIPBOARD = PREFIX + 'set_clipboard';
 export const SET_TOOL_CONTROLS = PREFIX + 'set_controls';
 export const SET_TOOL_LABEL_TOOL = PREFIX + 'set_label_tool';
 export const ADD_TOOL_WITH_INDEX= PREFIX + 'add_tool';
+export const SET_TOOL_LOCK = PREFIX + 'set_lock';
 
 
 export function setAnnotation(target) {
@@ -49,5 +50,11 @@ export function addTool(idx, target) {
     type: ADD_TOOL_WITH_INDEX,
     idx: idx,
     tool: target
+  };
+}
+export function setLockInfo(lockInfo) {
+  return {
+    type: SET_TOOL_LOCK,
+    lockInfo: lockInfo
   };
 }

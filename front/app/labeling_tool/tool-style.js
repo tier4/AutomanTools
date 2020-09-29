@@ -58,6 +58,9 @@ export const toolStyle = theme => ({
   frameSkip: {
     width: 50
   },
+  annotationWrapper: {
+    height: '100%',
+  },
   toolControlsWrapper: {
     height: toolHeight,
     overflowY: 'scroll'
