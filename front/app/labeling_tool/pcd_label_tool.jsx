@@ -27,6 +27,9 @@ class PCDLabelTool extends React.Component {
     this._wrapperElement = React.createRef();
     this._mainElement = React.createRef();
     this._wipeElement = React.createRef();
+    this._projectionZElement = React.createRef();
+    this._projectionXElement = React.createRef();
+    this._projectionYElement = React.createRef();
     this._toolButtons = (
       <Button
         key={0}
@@ -53,6 +56,16 @@ class PCDLabelTool extends React.Component {
         style={{position: 'relative'}}
       >
         <div ref={this._mainElement} />
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          backgroundColor: '#fff',
+        }}>
+          <div ref={this._projectionZElement} />
+          <div ref={this._projectionXElement} />
+          <div ref={this._projectionYElement} />
+        </div>
         <div
           ref={this._wipeElement}
           style={{
@@ -252,6 +265,14 @@ class PCDLabelTool extends React.Component {
       this._renderer.setSize(size.width, size.height);
       const wipeScale = 0.32;
       this._wipeRenderer.setSize(size.width * wipeScale, size.height * wipeScale);
+
+      const projectionScale = 0.32;
+      for (let renderer of this._projectionRendereres) {
+        renderer.setSize(
+          size.width * projectionScale,
+          size.height * projectionScale
+        );
+      }
       this._redrawFlag = true;
     },
     keydown: (e) => {
@@ -410,6 +431,15 @@ class PCDLabelTool extends React.Component {
     wipeRenderer.setSize(this._canvasSize.width*0.22, this._canvasSize.height*0.22);
     this._wipeRenderer = wipeRenderer;
     this._wipeScene = wipeScene;
+
+    // projections
+    this._projectionRendereres = [0, 1, 2].map(idx => {
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setClearColor(0x000000);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(this._canvasSize.width*0.22, this._canvasSize.height*0.22);
+      return renderer;
+    });
   }
   _initCamera() {
     // TODO: read YAML and set camera?
@@ -447,6 +477,22 @@ class PCDLabelTool extends React.Component {
 
     this._camera = camera;
     this._cameraControls = controls;
+
+    const poses = [
+      new THREE.Vector3(0, 0, 50),
+      new THREE.Vector3(0, 50, 0),
+      new THREE.Vector3(50, 0, 0)
+    ];
+    this._projectionCameras = [0,1,2].map(idx => {
+      const x = 10, y = x / aspect;
+      const camera = new THREE.OrthographicCamera(-x, x, y, -y, 5, FAR);
+      const p = poses[idx];
+      camera.position.set(p.x, p.y, p.z);
+      camera.lookAt(new THREE.Vector3(0,0,0));
+      camera.up.set(0, 0, 1);
+      this._scene.add(camera);
+      return camera;
+    });
   }
   _initDom() {
     const wrapper = $(this._wrapperElement.current);
@@ -460,6 +506,16 @@ class PCDLabelTool extends React.Component {
     const wipe = $(this._wipeElement.current);
     wipe.append(this._wipeRenderer.domElement);
     this._wipe = wipe;
+
+    const projectionZ = $(this._projectionZElement.current);
+    projectionZ.append(this._projectionRendereres[0].domElement);
+    const projectionX = $(this._projectionXElement.current);
+    projectionX.append(this._projectionRendereres[1].domElement);
+    const projectionY = $(this._projectionYElement.current);
+    projectionY.append(this._projectionRendereres[2].domElement);
+    this._projections = [
+      projectionZ, projectionX, projectionY
+    ];
   }
   _initEvent() {
     const modeStatus = this._modeStatus;
@@ -542,6 +598,12 @@ class PCDLabelTool extends React.Component {
         this._wipeRenderer.render(
             this._wipeScene,
             this._camera);
+        for (let i=0; i<3; ++i) {
+          this._projectionRendereres[i].render(
+            this._scene,
+            this._projectionCameras[i]
+          );
+        }
       } catch(e) {
         console.error(e);
         window.cancelAnimationFrame(id);
@@ -550,18 +612,71 @@ class PCDLabelTool extends React.Component {
       this._redrawFlag = false;
     }
   }
+  aspectToSize(minx, miny, aspect) {
+    let scale = minx;
+    if (scale / aspect < miny) {
+      scale = miny * aspect;
+    }
+    scale *= 1.6 / 2;
+    return [scale, scale / aspect];
+  }
+  setProjectionCamera(pos, dir, size) {
+    const cameraDis = 5;
+    const lenx = size ? size.x * 1.2 / 2 + cameraDis : 50;
+    const leny = size ? size.y * 1.2 / 2 + cameraDis : 50;
+    const poses = [
+      [0, 0, 50],
+      [lenx * Math.cos(dir), lenx * Math.sin(dir), 0],
+      [leny * Math.sin(dir), -leny * Math.cos(dir), 0],
+    ];
+    const canvasSize = this._canvasSize;
+    const aspect = canvasSize.width / canvasSize.height;
+    const sizes = size && [
+      this.aspectToSize(size.x, size.y, aspect),
+      this.aspectToSize(size.y, size.z, aspect),
+      this.aspectToSize(size.x, size.z, aspect)
+    ];
+    const far = size && [
+      2000, size.x * 1.2, size.y * 1.2
+    ];
+    this._projectionCameras[0].up.set(
+      -Math.sin(dir), Math.cos(dir), 0
+    );
+    this._projectionCameras[1].up.set(0, 0, 1);
+    this._projectionCameras[2].up.set(0, 0, 1);
+    for (let i=0; i<3; ++i) {
+      const p = poses[i];
+      const camera = this._projectionCameras[i];
+      camera.position.set(
+        pos.x + p[0], pos.y + p[1], pos.z + p[2]
+      );
+      camera.lookAt(pos);
+      if (sizes) {
+        const s = sizes[i];
+        camera.left = -s[0];
+        camera.right = s[0];
+        camera.top = s[1];
+        camera.bottom = -s[1];
+        camera.far = far[i] + cameraDis;
+        camera.updateProjectionMatrix();
+      }
+    }
+  }
   setArrow(bbox, direction) {
     if (bbox == null) {
       this._editArrowGroup.visible = false;
     } else {
       let pos = bbox, dir = direction;
+      let size = null;
       if (bbox instanceof PCDBBox) {
         pos = bbox.box.pos;
         dir = bbox.box.yaw;
+        size = bbox.box.size;
       }
       this._editArrowGroup.visible = true;
       this._editArrowGroup.position.set(pos.x, pos.y, pos.z);
       this._editArrowGroup.rotation.z = dir;
+      this.setProjectionCamera(pos, dir, size);
     }
   }
   setMouseType(name) {
