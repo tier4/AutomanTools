@@ -50,6 +50,10 @@ class PCDLabelTool extends React.Component {
     return <EditBar candidateId={this.candidateId}/>
   }
   render() {
+    const projectionStyle = {
+      padding: 2,
+      backgroundColor: '#ccc'
+    };
     return (
       <div
         ref={this._wrapperElement}
@@ -62,9 +66,18 @@ class PCDLabelTool extends React.Component {
           right: 0,
           backgroundColor: '#fff',
         }}>
-          <div ref={this._projectionZElement} />
-          <div ref={this._projectionXElement} />
-          <div ref={this._projectionYElement} />
+          <div
+            style={projectionStyle}
+            ref={this._projectionZElement}
+          />
+          <div
+            style={projectionStyle}
+            ref={this._projectionXElement}
+          />
+          <div
+            style={projectionStyle}
+            ref={this._projectionYElement}
+          />
         </div>
         <div
           ref={this._wipeElement}
@@ -118,6 +131,7 @@ class PCDLabelTool extends React.Component {
   _modeStatus = {
     mode: 'edit',
     busy: false,
+    nextFunc: null,
     nextMode: null
   };
   _redrawFlag = true;
@@ -483,13 +497,15 @@ class PCDLabelTool extends React.Component {
       new THREE.Vector3(0, 50, 0),
       new THREE.Vector3(50, 0, 0)
     ];
+    this._projectionCenter = new THREE.Vector3(0, 0, 0);
     this._projectionCameras = [0,1,2].map(idx => {
       const x = 10, y = x / aspect;
       const camera = new THREE.OrthographicCamera(-x, x, y, -y, 5, FAR);
       const p = poses[idx];
       camera.position.set(p.x, p.y, p.z);
-      camera.lookAt(new THREE.Vector3(0,0,0));
       camera.up.set(0, 0, 1);
+      camera.rotation.order = 'ZXY';
+      camera.lookAt(this._projectionCenter);
       this._scene.add(camera);
       return camera;
     });
@@ -536,25 +552,50 @@ class PCDLabelTool extends React.Component {
 
     
     // mouse events
+    const mainViewObj = {
+      type: 'main',
+      id: 'main',
+      elem: this._main,
+      camera: this._camera,
+      renderer: this._renderer
+    };
     this._main.contextmenu((e) => {
       e.preventDefault();
     }).mousedown((e) => {
       if (e.button !== 0) { return; } // not left click
-      this.getModeMethod().mouseDown(e);
+      this.getModeMethod().mouseDown(e, mainViewObj);
     }).mouseup((e) => {
       if (e.button !== 0) { return; } // not left click
       if ( !modeStatus.busy ) { return; }
-      this.getModeMethod().mouseUp(e);
-      modeStatus.busy = false;
-      if (modeStatus.nextMode != null) {
-        setTimeout(() => {
-          this.modeChange(modeStatus.nextMode);
-          modeStatus.nextMode = null;
-        }, 0);
-      }
+      this.getModeMethod().mouseUp(e, mainViewObj);
+      this.modeBusyChange(false);
     }).mousemove((e) => {
-      this.getModeMethod().mouseMove(e);
+      this.getModeMethod().mouseMove(e, mainViewObj);
     });
+
+    for (let i=0; i<3; ++i) {
+      const viewObj = {
+        type: 'projection',
+        projection: 'zxy'[i],
+        id: ['proj-z', 'proj-x', 'proj-y'][i],
+        elem: this._projections[i],
+        camera: this._projectionCameras[i],
+        renderer: this._projectionRendereres[i]
+      };
+      this._projections[i].contextmenu((e) => {
+        e.preventDefault();
+      }).mousedown((e) => {
+        if (e.button !== 0) { return; } // not left click
+        this.getModeMethod().mouseDown(e, viewObj);
+      }).mouseup((e) => {
+        if (e.button !== 0) { return; } // not left click
+        if (!modeStatus.busy) { return; }
+        this.getModeMethod().mouseUp(e, viewObj);
+        this.modeBusyChange(false);
+      }).mousemove((e) => {
+        this.getModeMethod().mouseMove(e, viewObj);
+      })
+    }
 
     this.getModeMethod().changeTo();
   }
@@ -598,11 +639,19 @@ class PCDLabelTool extends React.Component {
         this._wipeRenderer.render(
             this._wipeScene,
             this._camera);
+        const tgt = this.props.controls &&
+          this.props.controls.getTargetLabel();
+        if (tgt != null) {
+          tgt.bbox[this.candidateId].setThin(true);
+        }
         for (let i=0; i<3; ++i) {
           this._projectionRendereres[i].render(
             this._scene,
             this._projectionCameras[i]
           );
+        }
+        if (tgt != null) {
+          tgt.bbox[this.candidateId].setThin(false);
         }
       } catch(e) {
         console.error(e);
@@ -614,13 +663,21 @@ class PCDLabelTool extends React.Component {
   }
   aspectToSize(minx, miny, aspect) {
     let scale = minx;
-    if (scale / aspect < miny) {
-      scale = miny * aspect;
+    const scaledMiny = miny * 1.3;
+    if (scale < scaledMiny * aspect) {
+      scale = scaledMiny * aspect;
     }
-    scale *= 1.6 / 2;
     return [scale, scale / aspect];
   }
   setProjectionCamera(pos, dir, size) {
+    if (this._modeStatus.busy) {
+      this._modeStatus.nextFunc = () => {
+        this.setProjectionCamera(pos, dir, size);
+        this._redrawFlag = true;
+      };
+      return;
+    }
+    this._projectionCenter = pos.clone();
     const cameraDis = 5;
     const lenx = size ? size.x * 1.2 / 2 + cameraDis : 50;
     const leny = size ? size.y * 1.2 / 2 + cameraDis : 50;
@@ -681,9 +738,15 @@ class PCDLabelTool extends React.Component {
   }
   setMouseType(name) {
     this._main.css('cursor', name);
+    for (let p of this._projections) {
+      p.css('cursor', name);
+    }
   }
   resetMouseType() {
     this._main.css('cursor', 'crosshair');
+    for (let p of this._projections) {
+      p.css('cursor', 'crosshair');
+    }
   }
   
 
@@ -696,6 +759,23 @@ class PCDLabelTool extends React.Component {
       this._modeStatus.nextMode = nextMode;
     } else {
       this.modeChange(nextMode);
+    }
+  }
+  modeBusyChange(val) {
+    const modeStatus = this._modeStatus;
+    const prev = modeStatus.busy;
+    modeStatus.busy = val;
+    if (prev && !val) {
+      if (modeStatus.nextFunc != null) {
+        modeStatus.nextFunc();
+        modeStatus.nextFunc = null;
+      }
+      if (modeStatus.nextMode != null) {
+        setTimeout(() => {
+          this.modeChange(modeStatus.nextMode);
+          modeStatus.nextMode = null;
+        }, 0);
+      }
     }
   }
   modeChange(nextMode) {
@@ -714,17 +794,17 @@ class PCDLabelTool extends React.Component {
   }
 
   // 3d geo methods
-  getMousePos(e) {
-    const offset = this._main.offset();
-    const size = this._renderer.getSize();
+  getMousePos(e, v) {
+    const offset = v.elem.offset();
+    const size = v.renderer.getSize();
     return new THREE.Vector2(
        (e.clientX - offset.left) / size.width * 2 - 1,
       -(e.clientY - offset.top) / size.height * 2 + 1
     );
   }
-  getRay(e) {
-    const pos = this.getMousePos(e);
-    const camera = this._camera;
+  getRay(e, v) {
+    const pos = this.getMousePos(e, v);
+    const camera = v.camera;
     let ray;
     if ( this._isBirdView ) {
       ray = new THREE.Raycaster();
@@ -736,20 +816,22 @@ class PCDLabelTool extends React.Component {
     }
     return ray;
   }
-  getIntersectPos(e) {
-    const ray = this.getRay(e);
+  getIntersectPos(e, v) {
+    const ray = this.getRay(e, v);
     const intersectPos = ray.intersectObject(this._groundPlane);
     if (intersectPos.length > 0) {
       return intersectPos[0].point;
     }
     return null;
   }
-  getZPos(e, p) {
-    const ray = this.getRay(e);
+  getZPos(e, v, p) {
+    const ray = this.getRay(e, v);
     const zPlane = this._zPlane;
-    zPlane.rotation.z = this._camera.rotation.z;
-    zPlane.position.x = p.x;
-    zPlane.position.y = p.y;
+    const pos = v.type === 'projection' ?
+      this._projectionCenter : p;
+    zPlane.rotation.z = v.camera.rotation.z;
+    zPlane.position.x = pos.x;
+    zPlane.position.y = pos.y;
     zPlane.position.z = 0;
     zPlane.updateMatrixWorld();
     const intersectPos = ray.intersectObject(zPlane);
@@ -809,10 +891,11 @@ function createModeMethods(pcdTool) {
       startParam: null,
       animate: function() {
       },
-      mouseDown: function(e) {
-        let pos = pcdTool.getIntersectPos(e);
-        if (this.prevHover !== null && this.prevHover.type === 'top') {
-          pos = pcdTool.getZPos(e, this.prevHover.bbox.box.pos);
+      mouseDown: function(e, v) {
+        let pos = pcdTool.getIntersectPos(e, v);
+        if (this.prevHover !== null && (this.prevHover.type === 'top' ||
+            v.id === 'proj-x' || v.id === 'proj-y')) {
+          pos = pcdTool.getZPos(e, v, this.prevHover.bbox.box.pos);
         }
 
         if (pos != null && this.prevHover !== null) {
@@ -846,15 +929,15 @@ function createModeMethods(pcdTool) {
             startParam.diagYaw = Math.atan2(diag.y, diag.x);
           }
           this.startParam = startParam;
-          pcdTool._modeStatus.busy = true;
+          pcdTool.modeBusyChange(true);
           pcdTool.props.controls.selectLabel(this.prevHover.bbox.label);
           this.prevHover.bbox.label.createHistory();
           return;
         }
 
-        if (pos != null) {
+        if (pos != null && v.type == 'main') {
           pcdTool._creatingBBox.startPos = pos;
-          pcdTool._modeStatus.busy = true;
+          pcdTool.modeBusyChange(true);
           this.mode = 'create';
           pcdTool.props.controls.selectLabel(null);
           return;
@@ -945,8 +1028,7 @@ function createModeMethods(pcdTool) {
         new THREE.Vector3(1, -1, 0),
         new THREE.Vector3(-1, -1, 0),
       ],
-      mouseMoveEdgeIntersectCheck: function(ray) {
-        const bboxes = Array.from(pcdTool.pcdBBoxes);
+      mouseMoveEdgeIntersectCheck: function(bboxes, ray, v) {
         for(let i=0; i<bboxes.length; ++i) {
           const bbox = bboxes[i];
           for (let j=0; j<4; ++j) {
@@ -963,6 +1045,7 @@ function createModeMethods(pcdTool) {
               this.setHoverObj(bbox, normal);
               this.prevHover = {
                 type: 'edge',
+                viewObj: v,
                 bbox: bbox,
                 idx: j
               };
@@ -983,11 +1066,18 @@ function createModeMethods(pcdTool) {
         new THREE.Vector3(0, 0, 1),
         new THREE.Vector3(0, 0, -1),
       ],
-      mouseMoveCornerIntersectCheck: function(ray) {
-        const bboxes = Array.from(pcdTool.pcdBBoxes);
+      mouseMoveCornerIntersectCheck: function(bboxes, ray, v) {
+        let directions = [0, 1, 2, 3];
+        if (v.type === 'projection') {
+          if (v.projection === 'x') {
+            directions = [1, 3];
+          } else if (v.projection === 'y') {
+            directions = [0, 2];
+          }
+        }
         for(let i=0; i<bboxes.length; ++i) {
           const bbox = bboxes[i];
-          for (let j=0; j<4; ++j) {
+          for (let j of directions) {
             const corner = bbox.cube.corners[j];
             const intersectPos = ray.intersectObject(corner);
             if (intersectPos.length > 0) {
@@ -1001,6 +1091,7 @@ function createModeMethods(pcdTool) {
               this.setHoverObj(bbox, normal);
               this.prevHover = {
                 type: 'corner',
+                viewObj: v,
                 bbox: bbox,
                 idx: j
               };
@@ -1011,8 +1102,7 @@ function createModeMethods(pcdTool) {
         }
         return false;
       },
-      mouseMoveTopIntersectCheck: function(ray) {
-        const bboxes = Array.from(pcdTool.pcdBBoxes);
+      mouseMoveTopIntersectCheck: function(bboxes, ray, v) {
         for(let i=0; i<bboxes.length; ++i) {
           const bbox = bboxes[i];
           for (let j=0; j<2; ++j) {
@@ -1029,6 +1119,7 @@ function createModeMethods(pcdTool) {
               this.setHoverObjZ(bbox, normal);
               this.prevHover = {
                 type: 'top',
+                viewObj: v,
                 bbox: bbox,
                 idx: j
               };
@@ -1039,8 +1130,7 @@ function createModeMethods(pcdTool) {
         }
         return false;
       },
-      mouseMoveIntersectCheck: function(ray) {
-        const bboxes = Array.from(pcdTool.pcdBBoxes);
+      mouseMoveIntersectCheck: function(bboxes, ray, v) {
         for(let i=0; i<bboxes.length; ++i) {
           const bbox = bboxes[i];
           const intersectPos = ray.intersectObject(bbox.cube.mesh);
@@ -1053,6 +1143,7 @@ function createModeMethods(pcdTool) {
             pcdTool.setMouseType('all-scroll');
             this.prevHover = {
               type: 'box',
+              viewObj: v,
               bbox: bbox
             };
             pcdTool.redrawRequest();
@@ -1111,14 +1202,19 @@ function createModeMethods(pcdTool) {
         const dsize = bbox.setSizeZ(prevSize.z - dz) / 2;
         bbox.box.pos.sub(new THREE.Vector3(0, 0, dsize));
       },
-      mouseMove: function(e) {
+      mouseMove: function(e, v) {
         if (this.mode === 'move') {
+          if (this.prevHover != null &&
+              this.prevHover.viewObj.id !== v.id) {
+            return;
+          }
           const bbox = this.prevHover.bbox;
           const prev = this.startParam;
 
-          const pos = this.prevHover.type !== 'top'
-            ? pcdTool.getIntersectPos(e)
-            : pcdTool.getZPos(e, prev.pos);
+          const pos = (this.prevHover.type === 'top' ||
+              v.id === 'proj-x' || v.id === 'proj-y') ?
+              pcdTool.getZPos(e, v, prev.pos) :
+              pcdTool.getIntersectPos(e, v);
           if (pos == null) {
             return;
           }
@@ -1127,7 +1223,11 @@ function createModeMethods(pcdTool) {
           const dz = pos.z - prev.mouse.z;
 
           if (this.prevHover.type === 'box') {
-            bbox.box.pos.set(prev.pos.x+dx, prev.pos.y+dy, prev.pos.z);
+            if (v.id === 'proj-x' || v.id === 'proj-y') {
+              bbox.box.pos.set(prev.pos.x+dx, prev.pos.y+dy, prev.pos.z+dz);
+            } else {
+              bbox.box.pos.set(prev.pos.x+dx, prev.pos.y+dy, prev.pos.z);
+            }
           } else if (this.prevHover.type === 'edge') {
             this.mouseMoveRotateResize(bbox, prev, dx, dy);
 
@@ -1164,8 +1264,12 @@ function createModeMethods(pcdTool) {
         }
 
         if (pcdTool._creatingBBox.startPos != null) {
+          if (this.prevHover != null &&
+              this.prevHover.viewObj.id !== v.id) {
+            return;
+          }
           this.resetHover();
-          const pos = pcdTool.getIntersectPos(e);
+          const pos = pcdTool.getIntersectPos(e, v);
           if (pos == null) {
             return;
           }
@@ -1184,26 +1288,31 @@ function createModeMethods(pcdTool) {
           return;
         }
 
-        const ray = pcdTool.getRay(e);
-        if (this.mouseMoveIntersectCheck(ray)) {
+        const ray = pcdTool.getRay(e, v);
+        const pcdBBoxes = Array.from(pcdTool.pcdBBoxes)
+        let target = pcdBBoxes.filter(bbox => bbox.selected);
+        if (target.length === 0) {
+          target = pcdBBoxes;
+        }
+        if (this.mouseMoveIntersectCheck(target, ray, v)) {
           return;
         }
-        if (pcdTool._camera.rotation.x < Math.PI / 180 * 45) {
-          if (this.mouseMoveCornerIntersectCheck(ray)) {
+        if (this.mouseMoveCornerIntersectCheck(target, ray, v)) {
+          return;
+        }
+        if (v.camera.rotation.x < Math.PI / 180 * 45) {
+          if (this.mouseMoveEdgeIntersectCheck(target, ray, v)) {
             return;
           }
         } else {
-          if (this.mouseMoveTopIntersectCheck(ray)) {
+          if (this.mouseMoveTopIntersectCheck(target, ray, v)) {
             return;
           }
-        }
-        if (this.mouseMoveEdgeIntersectCheck(ray)) {
-          return;
         }
         this.resetHover();
         pcdTool.resetMouseType();
       },
-      mouseUp: function(e) {
+      mouseUp: function(e, v) {
         const mode = this.mode;
         this.mode = null;
 
@@ -1224,7 +1333,7 @@ function createModeMethods(pcdTool) {
             }
             return;
           }
-          const pos = pcdTool.getIntersectPos(e);
+          const pos = pcdTool.getIntersectPos(e, v);
           if (pos != null) {
             bbox.endPos = pos;
           }
@@ -1264,12 +1373,12 @@ function createModeMethods(pcdTool) {
         pcdTool.redrawRequest();
         pcdTool._cameraControls.update();
       },
-      mouseDown: function(e) {
-        pcdTool._modeStatus.busy = true;
+      mouseDown: function(e, v) {
+        pcdTool.modeBusyChange(true);
       },
-      mouseMove: function(e) {
+      mouseMove: function(e, v) {
       },
-      mouseUp: function(e) {
+      mouseUp: function(e, v) {
       },
       changeFrom: function() {
         pcdTool._cameraControls.enabled = false;

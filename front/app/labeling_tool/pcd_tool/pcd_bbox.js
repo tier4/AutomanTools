@@ -68,6 +68,11 @@ export default class PCDBBox {
     const box = this.box;
     this.cube.meshFrame.setParam(box.pos, box.size, box.yaw);
   }
+  setThin(flag) {
+    this.cube.meshFrame.setThin(flag);
+    const box = this.box;
+    this.cube.meshFrame.setParam(box.pos, box.size, box.yaw);
+  }
   hover(isInto) {
     this.cube.meshFrame.setStatus(this.selected, isInto);
   }
