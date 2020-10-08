@@ -7,6 +7,7 @@ import { compose } from 'redux';
 import { connect } from 'react-redux';
 
 import { addTool } from './actions/tool_action';
+import { setTargetState } from './actions/annotation_action';
 
 import BoxFrameObject from './pcd_tool/box_frame_object';
 import PCDBBox from './pcd_tool/pcd_bbox';
@@ -734,6 +735,8 @@ class PCDLabelTool extends React.Component {
       this._editArrowGroup.position.set(pos.x, pos.y, pos.z);
       this._editArrowGroup.rotation.z = dir;
       this.setProjectionCamera(pos, dir, size);
+      const state = {pos, size, dir};
+      this.props.dispatchSetTargetState(state);
     }
   }
   setMouseType(name) {
@@ -1397,6 +1400,7 @@ const mapStateToProps = state => ({
   labelTool: state.tool.labelTool
 });
 const mapDispatchToProps = dispatch => ({
+  dispatchSetTargetState: (state) => dispatch(setTargetState(state)),
   dispatchAddTool: (idx, target) => dispatch(addTool(idx, target))
 });
 export default compose(
