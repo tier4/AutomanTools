@@ -93,6 +93,8 @@ class ImageLabelTool extends React.Component {
     const guardStyle = {};
     if (this.state.isWipe) {
       wipeStyle['display'] = 'none';
+      guardStyle['width'] = this._imageSize.width + 'px';
+      guardStyle['height'] = this._imageSize.height + 'px';
       Object.assign(mainStyle, {
         transform: 'scale(1)',
         marginLeft: 0,
@@ -262,6 +264,9 @@ class ImageLabelTool extends React.Component {
     } else {
       this._decoration.hide();
     }
+  }
+  getMainScale() {
+    return this.state.scale * MAIN_SCREEN_SCALE;
   }
 
 

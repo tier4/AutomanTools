@@ -43,7 +43,7 @@ export default class ImageBBox {
     this.initResizer();
   }
   getScale() {
-    return this.imageTool.state.scale;
+    return this.imageTool.getMainScale();
   }
   setLabel(label) {
     if (this.label != null) {

@@ -649,8 +649,10 @@ class PCDLabelTool extends React.Component {
             this._camera);
         const tgt = this.props.controls &&
           this.props.controls.getTargetLabel();
-        if (tgt != null) {
-          tgt.bbox[this.candidateId].setThin(true);
+        const tgtBBox = tgt != null ?
+          tgt.bbox[this.candidateId] : null;
+        if (tgtBBox != null) {
+          tgtBBox.setThin(true);
         }
         for (let i=0; i<3; ++i) {
           this._projectionRendereres[i].render(
@@ -658,8 +660,8 @@ class PCDLabelTool extends React.Component {
             this._projectionCameras[i]
           );
         }
-        if (tgt != null) {
-          tgt.bbox[this.candidateId].setThin(false);
+        if (tgtBBox != null) {
+          tgtBBox.setThin(false);
         }
       } catch(e) {
         console.error(e);
