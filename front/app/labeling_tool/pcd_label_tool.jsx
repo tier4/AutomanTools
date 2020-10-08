@@ -598,6 +598,13 @@ class PCDLabelTool extends React.Component {
       })
     }
 
+    document.addEventListener('mouseup', (e) => {
+      if (e.button !== 0) { return; } // not left click
+      if (!modeStatus.busy) { return; }
+      this.getModeMethod().mouseUp(e, null);
+      this.modeBusyChange(false);
+    });
+
     this.getModeMethod().changeTo();
   }
   _initEditObj() {
@@ -820,6 +827,9 @@ class PCDLabelTool extends React.Component {
     return ray;
   }
   getIntersectPos(e, v) {
+    if (v == null) {
+      return null;
+    }
     const ray = this.getRay(e, v);
     const intersectPos = ray.intersectObject(this._groundPlane);
     if (intersectPos.length > 0) {
