@@ -14,8 +14,6 @@ import classNames from 'classnames';
 import RequestClient from 'automan/services/request-client';
 import { setTargetLabel } from './actions/annotation_action';
 import { setAnnotation, setLockInfo } from './actions/tool_action';
-import LockStatus from './lock_status';
-
 
 class Annotation extends React.Component {
   // data
@@ -513,7 +511,6 @@ class Annotation extends React.Component {
         >
           {this.renderList(classes)}
         </List>
-        <LockStatus />
       </div>
     );
   }

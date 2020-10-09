@@ -23,6 +23,7 @@ import Annotation from 'automan/labeling_tool/annotation';
 import History from 'automan/labeling_tool/history';
 import Clipboard from 'automan/labeling_tool/clipboard';
 import LoadingProgress from 'automan/labeling_tool/base_tool/loading_progress';
+import LockStatus from './lock_status';
 
 import ImageLabelTool from 'automan/labeling_tool/image_label_tool';
 import PCDLabelTool from 'automan/labeling_tool/pcd_label_tool';
@@ -578,15 +579,11 @@ class Controls extends React.Component {
                 <Divider />
               </Grid>
               <Grid item xs={12}>
-                <Button onClick={() => this.saveFrame()}>Save</Button>
-                <Button onClick={() => this.reloadFrame()}>Reload</Button>
-              </Grid>
-              <Grid item xs={12}>
-              </Grid>
                 <Clipboard
                   controls={this}
                   classes={classes}
                 />
+              </Grid>
               <Grid item xs={12}>
                 <History
                   controls={this}
@@ -658,6 +655,7 @@ class Controls extends React.Component {
           value={skip === 0 ? '' : skip}
           margin="dense"
         />
+        <LockStatus onClick={() => this.saveFrame()} />
       </div>
     );
     let appBar = (
