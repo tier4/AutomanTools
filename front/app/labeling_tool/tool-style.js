@@ -48,7 +48,8 @@ export const toolStyle = theme => ({
     color: '#000',
     backgroundColor: '#fff',
     borderRadius: 5,
-    width: 260,
+    width: 280,
+    display: 'flex',
     marginLeft: 20
   },
   frameNumber: {

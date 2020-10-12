@@ -32,6 +32,18 @@ const styles = theme => ({
     top: 5,
     left: 5
   },
+  normalButton: {
+    background: green[100],
+    '&:hover': {
+      background: green[300],
+    }
+  },
+  expiredButton: {
+    background: red[100],
+    '&:hover': {
+      background: red[300],
+    }
+  },
   progress: {
     position: 'absolute',
     top: 1,
@@ -102,7 +114,10 @@ class LockStatus extends React.Component {
           }
         >
           <Fab
-            className={classes.button}
+            className={classNames(
+              classes.button,
+              isExpired ? classes.expiredButton : classes.normalButton
+            )}
             onClick={this.props.onClick}
             size="small"
           >
