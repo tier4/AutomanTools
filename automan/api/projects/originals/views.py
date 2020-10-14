@@ -48,7 +48,7 @@ def index(request, project_id):
 
 
 @api_view(['POST'])
-def file_upload(request, project_id, original_id):
+def file_upload(request, project_id):
     username = request.user
     user_id = AccountManager.get_id_by_username(username)
     if not Permission.hasPermission(user_id, 'create_original', project_id):
@@ -56,7 +56,7 @@ def file_upload(request, project_id, original_id):
     try:
         file = request.FILES['file']
         original_manager = OriginalManager()
-        data = original_manager.save_file(project_id, original_id, file)
+        data = original_manager.save_file(project_id, file)
         response = JSONResponse(data, mimetype=response_mimetype(request))
         response['Content-Disposition'] = 'inline; filename=files.json'
         return response
