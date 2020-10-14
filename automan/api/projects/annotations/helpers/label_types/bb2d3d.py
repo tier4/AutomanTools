@@ -24,17 +24,17 @@ class BB2D3D(object):
             'required': True,
             'empty': False,
         },
-        'height_3d': {
-            'type': 'float',
-            'required': True,
-            'empty': False,
-        },
         'length_3d': {
             'type': 'float',
             'required': True,
             'empty': False,
         },
-        'rotation_y': {
+        'height_3d': {
+            'type': 'float',
+            'required': True,
+            'empty': False,
+        },
+        'yaw': {
             'type': 'float',
             'required': True,
             'empty': False,
