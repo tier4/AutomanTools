@@ -42,9 +42,9 @@ class AnnotationArchiver(BaseJob):
                 name=name,
             ),
             spec=client.models.V1JobSpec(
-                # ttlSecondsAfterFinished = 45 Day
-                ttl_seconds_after_finished=3888000,
-                active_deadline_seconds=10800,
+                # ttlSecondsAfterFinished = 1h
+                ttl_seconds_after_finished=3600,
+                active_deadline_seconds=10800,  # 3h
                 completions=1,
                 parallelism=1,
                 # TODO: backoffLimit

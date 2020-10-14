@@ -39,8 +39,8 @@ class RosbagAnalyzer(BaseJob):
                 name=name,
             ),
             spec=client.models.V1JobSpec(
-                # ttlSecondsAfterFinished = 45 Day
-                ttl_seconds_after_finished=3888000,
+                # ttlSecondsAfterFinished = 1h
+                ttl_seconds_after_finished=3600,
                 active_deadline_seconds=600,
                 completions=1,
                 parallelism=1,

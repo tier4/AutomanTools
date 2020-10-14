@@ -266,7 +266,10 @@ class JobSerializer(serializers.ModelSerializer):
     @classmethod
     def __get_job_status(cls, id, job_type):
         namespace = cls.__generate_job_namespace()
-        res = BaseJob().fetch(cls.__generate_job_name(id, job_type), namespace)
+        try:
+            res = BaseJob().fetch(cls.__generate_job_name(id, job_type), namespace)
+        except Exception:
+            return None, None, None
         if res['is_succeeded']:
             content = res['content']
             status = cls.__get_status_from_k8s_response(content)
