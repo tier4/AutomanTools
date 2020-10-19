@@ -126,6 +126,7 @@ class PCDLabelTool extends React.Component {
   _currentPointMesh = null;
   // to mouse position
   _groundPlane = null;
+  _sceneAxis = null;
   _zPlane = null;
   // control mode
   _modeMethods = createModeMethods(this);
@@ -619,6 +620,10 @@ class PCDLabelTool extends React.Component {
     faceCube.visible = false;
     this._editFaceCube  = faceCube;
     this._scene.add(faceCube);
+
+    const sceneAxis = new THREE.AxisHelper(3);
+    this._sceneAxis = sceneAxis;
+    this._scene.add(sceneAxis);
   }
   _initArrow() {
     const size = 3,
@@ -1357,13 +1362,13 @@ function createModeMethods(pcdTool) {
           const boxSize = bbox.box.getSize();
           const boxYaw = bbox.box.getYaw();
           const pcdBBox = new PCDBBox(pcdTool, {
-                'x_3d': boxPos.x,
-                'y_3d': boxPos.y,
-                'z_3d': -0.5,
-                'width_3d': boxSize.x,
-                'height_3d': boxSize.y,
-                'length_3d': boxSize.z,
-                'rotation_y': boxYaw,
+                [PCDBBox.NAME.POS_X]: boxPos.x,
+                [PCDBBox.NAME.POS_Y]: boxPos.y,
+                [PCDBBox.NAME.POS_Z]: -0.5,
+                [PCDBBox.NAME.SIZE_X]: boxSize.x,
+                [PCDBBox.NAME.SIZE_Y]: boxSize.y,
+                [PCDBBox.NAME.SIZE_Z]: boxSize.z,
+                [PCDBBox.NAME.YAW]: boxYaw,
               });
           // TODO: add branch use selecting label 
           const label = pcdTool.props.controls.createLabel(

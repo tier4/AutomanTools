@@ -91,15 +91,24 @@ export default class PCDBBox {
     this.pcdTool.redrawRequest();
     this.pcdTool.pcdBBoxes.delete(this);
   }
+  static NAME = {
+    POS_X: 'x_3d',
+    POS_Y: 'y_3d',
+    POS_Z: 'z_3d',
+    SIZE_X: 'width_3d',
+    SIZE_Y: 'length_3d',
+    SIZE_Z: 'height_3d',
+    YAW: 'yaw',
+  };
   toContent(obj) {
     // make object values by parameters
-    obj['x_3d'] = this.box.pos.x;
-    obj['y_3d'] = this.box.pos.y;
-    obj['z_3d'] = this.box.pos.z;
-    obj['width_3d'] = this.box.size.x;
-    obj['height_3d'] = this.box.size.y;
-    obj['length_3d'] = this.box.size.z;
-    obj['rotation_y'] = this.box.yaw;
+    obj[PCDBBox.NAME.POS_X] = this.box.pos.x;
+    obj[PCDBBox.NAME.POS_Y] = this.box.pos.y;
+    obj[PCDBBox.NAME.POS_Z] = this.box.pos.z;
+    obj[PCDBBox.NAME.SIZE_X] = this.box.size.x;
+    obj[PCDBBox.NAME.SIZE_Y] = this.box.size.y;
+    obj[PCDBBox.NAME.SIZE_Z] = this.box.size.z;
+    obj[PCDBBox.NAME.YAW] = this.box.yaw;
   }
   static fromContentToObj(content) {
     const ret = {
@@ -107,23 +116,23 @@ export default class PCDBBox {
       size: new THREE.Vector3(),
       yaw: 0
     };
-    ret.pos.x  = +content['x_3d'];
-    ret.pos.y  = +content['y_3d'];
-    ret.pos.z  = +content['z_3d'];
-    ret.size.x = +content['width_3d'];
-    ret.size.y = +content['height_3d'];
-    ret.size.z = +content['length_3d'];
-    ret.yaw    = +content['rotation_y'];
+    ret.pos.x  = +content[PCDBBox.NAME.POS_X];
+    ret.pos.y  = +content[PCDBBox.NAME.POS_Y];
+    ret.pos.z  = +content[PCDBBox.NAME.POS_Z];
+    ret.size.x = +content[PCDBBox.NAME.SIZE_X];
+    ret.size.y = +content[PCDBBox.NAME.SIZE_Y];
+    ret.size.z = +content[PCDBBox.NAME.SIZE_Z];
+    ret.yaw    = +content[PCDBBox.NAME.YAW];
     return ret;
   }
   fromContent(content) {
-    this.box.pos.x  = +content['x_3d'];
-    this.box.pos.y  = +content['y_3d'];
-    this.box.pos.z  = +content['z_3d'];
-    this.box.size.x = +content['width_3d'];
-    this.box.size.y = +content['height_3d'];
-    this.box.size.z = +content['length_3d'];
-    this.box.yaw    = +content['rotation_y'];
+    this.box.pos.x  = +content[PCDBBox.NAME.POS_X];
+    this.box.pos.y  = +content[PCDBBox.NAME.POS_Y];
+    this.box.pos.z  = +content[PCDBBox.NAME.POS_Z];
+    this.box.size.x = +content[PCDBBox.NAME.SIZE_X];
+    this.box.size.y = +content[PCDBBox.NAME.SIZE_Y];
+    this.box.size.z = +content[PCDBBox.NAME.SIZE_Z];
+    this.box.yaw    = +content[PCDBBox.NAME.YAW];
   }
   initCube() {
     const mesh = new THREE.Mesh(
