@@ -95,8 +95,8 @@ export default class PCDBBox {
     POS_X: 'x_3d',
     POS_Y: 'y_3d',
     POS_Z: 'z_3d',
-    SIZE_X: 'width_3d',
-    SIZE_Y: 'length_3d',
+    SIZE_X: 'length_3d',
+    SIZE_Y: 'width_3d',
     SIZE_Z: 'height_3d',
     YAW: 'yaw',
   };
