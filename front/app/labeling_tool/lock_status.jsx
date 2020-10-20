@@ -102,7 +102,7 @@ class LockStatus extends React.Component {
           className={classes.progress}
           size={48}
           value={diff * 100}
-          variant="determinate"
+          variant="static"
           color={isExpired ?
             'secondary' : 'primary'
           }

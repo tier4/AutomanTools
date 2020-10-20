@@ -504,9 +504,7 @@ class Controls extends React.Component {
 
   renderKlassSet(classes) {
     return (
-      <KlassSet
-        classes={classes}
-      />
+      <KlassSet />
     );
   }
   renderLabels(classes) {
@@ -663,26 +661,24 @@ class Controls extends React.Component {
         position="relative"
         className={classes.appBar}
       >
-        <Grid
-          container
-          alignItems="center"
+        <div
           className={classes.gridContainer}
         >
-          <Grid item xs={3} className={classes.gridItem}>
+          <div className={classes.gridItem}>
             {frameNumberForm}
-          </Grid>
-          <Grid item xs={8}>
+          </div>
+          <div className={classes.gridKlassSet}>
             {this.renderKlassSet(classes)}
-          </Grid>
-          <Grid item xs={1}>
+          </div>
+          <div className={classes.gridExitButton}>
             <IconButton
               onClick={this.onClickLogout}
               style={{backgroundColor: '#fff'}}
             >
               <ExitToApp />
             </IconButton>
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </AppBar>
     );
     
