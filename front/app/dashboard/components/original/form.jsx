@@ -112,11 +112,23 @@ class OriginalDataForm extends React.Component {
     let that = this;
     if (index > 0) {
       let prevIndex = index - 1;
-      let originalId = this.state.uploadFiles[prevIndex].id;
-      let url =
-        `/projects/${that.props.currentProject.id}` +
-        `/originals/${originalId}/`;
-      RequestClient.put(url, { status: 'uploaded' }, data => {}, () => {});
+      let targetFile = this.state.uploadFiles[prevIndex];
+      let key = targetFile.hasOwnProperty("name") ? targetFile.name : targetFile.fileInfo.name;
+      let registerInfo = {
+        name: key,
+        size: targetFile.fileInfo.size,
+        file_type: 'rosbag',
+        file_codec: 'gz',
+        storage_id: that.state.storage.id
+      };
+      console.log(registerInfo);
+      let storageInfo;
+      RequestClient.post(
+        '/projects/' + that.props.currentProject.id + '/originals/',
+        registerInfo,
+        data => { },
+        () => { }
+      )
     }
     if (that.state.uploadFiles.length == index) {
       that.setState({ isUploaded: true });
@@ -124,60 +136,44 @@ class OriginalDataForm extends React.Component {
     }
     that.setState({ targetFileIndex: index });
     let targetFile = that.state.uploadFiles[index];
-    let registerInfo = {
-      name: targetFile.fileInfo.name,
-      size: targetFile.fileInfo.size,
-      file_type: 'rosbag',
-      file_codec: 'gz',
-      storage_id: that.state.storage.id
-    };
     let storageInfo;
-    console.log(registerInfo);
-    RequestClient.post(
-      '/projects/' + that.props.currentProject.id + '/originals/',
-      registerInfo,
-      data => {
-        storageInfo = data;
-        this.updateFileStateKeyValue(index, 'id', storageInfo.id);
-      },
-      () => { }
-    )
-      .then(() => {
-        let storage_type = this.state.storage.storage_type
-        if (storage_type == 'AZURE') {
-          AzureBlobClient.upload(
-            targetFile.fileInfo,
-            storageInfo.access_info,
-            that.progressUpdate,
-            that.nextFileUpload,
-            index,
-            storageInfo.id
-          );
-        } else if (storage_type == 'AWS_S3') {
-          let requestPath = storageInfo.post_url;
+    let storage_type = this.state.storage.storage_type
+    if (storage_type == 'AWS_S3') {
+      let uploadInfo = {
+        storage_id: that.state.storage.id,
+        key: that.props.currentProject.id + '/bags/' + targetFile.fileInfo.name
+      }
+      RequestClient.post(
+        '/projects/' + that.props.currentProject.id + '/storages/upload/',
+        uploadInfo,
+        data => {
+          console.log(data);
+          storageInfo = data;
           AWSS3StorageClient.upload(
-            requestPath,
+            data.url,
             targetFile.fileInfo,
             that.progressUpdate,
             that.nextFileUpload,
             index
           );
-        } else if (storage_type == 'LOCAL_NFS') {
-          let requestPath =
-            `/projects/${this.props.currentProject.id}` +
-            `/originals/${storageInfo.id}/file_upload/`;
-          LocalStorageClient.upload(
-            requestPath,
-            targetFile.fileInfo,
-            that.progressUpdate,
-            that.nextFileUpload,
-            index
-          );
-        } else {
-          alert(storageInfo.storage_type + ' is not supported.');
-        }
-      })
-      .then(() => {});
+          this.updateFileStateKeyValue(index, 'name', uploadInfo.key);
+        },
+        () => { }
+      )
+    } else if (storage_type == 'LOCAL_NFS') {
+      let requestPath =
+        `/projects/${this.props.currentProject.id}` +
+        `/originals/file_upload/`;
+      LocalStorageClient.upload(
+        requestPath,
+        targetFile.fileInfo,
+        that.progressUpdate,
+        that.nextFileUpload,
+        index
+      );
+    } else {
+      alert(storageInfo.storage_type + ' is not supported.');
+    }
   };
   handleClickUpload = event => {
     if (this.state.uploadFiles.length == 0) {

@@ -7,6 +7,7 @@ const MaterialColors = {
   hover: 0xffff00,
 };
 const BOLD_WEIGHT = 2,
+      THIN_WEIGHT = 0.3,
       NORMAL_WEIGHT = 1;
 
 // initialize geometry
@@ -65,6 +66,7 @@ export default class BoxFrameObject {
     this.meshGroup = meshGroup;
     this.meshByAxis = meshByAxis;
     this.bold = false;
+    this.thin = false;
 
     const colorMat = new THREE.MeshBasicMaterial({
       color: 0x000000, side: THREE.DoubleSide,
@@ -92,13 +94,17 @@ export default class BoxFrameObject {
   setBold(b) {
     this.bold = !!b;
   }
+  setThin(b) {
+    this.thin = !!b;
+  }
   setParam(pos, size, yaw) {
     this.pos = pos;
     this.size = size;
     this.yaw = yaw;
     this.meshGroup.position.set(pos.x, pos.y, pos.z);
     this.meshGroup.rotation.z = yaw;
-    const w = this.bold ? BOLD_WEIGHT : NORMAL_WEIGHT;
+    const w = this.thin ? THIN_WEIGHT :
+      this.bold ? BOLD_WEIGHT : NORMAL_WEIGHT;
     for (let axis in edgesByAxis) {
       const edges = edgesByAxis[axis];
       const meshes = this.meshByAxis[axis];

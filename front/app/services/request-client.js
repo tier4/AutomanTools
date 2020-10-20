@@ -165,7 +165,7 @@ const request = (url, data, method, successCB, failCB, options) => {
 
   const argOpt = getOptionFromArgs(successCB, failCB, options);
   const realOptions = Object.assign({}, opt, argOpt);
-  const xhr = new XMLHttpRequest();
+  let xhr = new XMLHttpRequest();
   realOptions.xhr = xhr;
 
   realOptions.headers = new Headers();

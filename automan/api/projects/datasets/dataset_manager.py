@@ -90,9 +90,11 @@ class DatasetManager(object):
         dataset.delete()
 
     def get_dataset(self, user_id, dataset_id):
+        candidate_manager = CandidateManager()
         dataset = LabelDataset.objects.filter(id=dataset_id).first()
         if dataset is None:
             raise ObjectDoesNotExist()
+        candidates = DatasetDatasetCandidate.objects.filter(dataset=dataset_id)
         contents = {}
         contents['id'] = dataset.id
         contents['name'] = dataset.name
@@ -101,6 +103,10 @@ class DatasetManager(object):
         contents['frame_count'] = dataset.frame_count
         contents['created_at'] = str(dataset.created_at)
         contents['updated_at'] = str(dataset.updated_at)
+        contents['candidates'] = []
+        for candidate in candidates:
+            contents['candidates'].append(candidate_manager.get_candidate(candidate.dataset_candidate_id))
+        print(contents)
         return contents
 
     def get_dataset_file_path(self, user_id, dataset_id):

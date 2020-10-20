@@ -429,7 +429,7 @@ class Controls extends React.Component {
             if (tool.candidateId >= 0) {
               return;
             }
-            tool.candidateId = info.candidate_id; // TODO: multi candidate_id
+            tool.candidateId = info.id; // TODO: multi candidate_id
             this.props.labelTool.filenames[tool.candidateId] = [];
           }
         });

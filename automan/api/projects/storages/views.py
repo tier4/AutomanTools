@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError, PermissionDenied
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from .serializer import StorageSerializer
+from .storage_manager import StorageManager
 from api.permissions import Permission
 from api.settings import PER_PAGE, SORT_KEY
 from accounts.account_manager import AccountManager
@@ -49,15 +50,14 @@ class StorageViewSet(viewsets.ModelViewSet):
                             status=200,
                             content_type='application/json')
 
-    @action(methods=['get'], detail=False)
-    def post_s3(self, request, project_id):
+    @action(methods=['post'], detail=False)
+    def upload(self, request, project_id):
         # TODO s3 validation
-        storage_id = int(request.GET.get(key='storage_id'))
-        key = request.GET.get(key='key')
-        serializer = StorageSerializer()
-        storage = serializer.get_storage(project_id, storage_id)
-        bucket = storage['storage_config']['bucket']
-        res = serializer.get_s3_presigned_url(bucket, key)
-        return HttpResponse(content=res,
+        storage_id = int(request.data.get('storage_id'))
+        key = request.data.get('key')
+        storage_manager = StorageManager(project_id, storage_id)
+        bucket = storage_manager.storage['storage_config']['bucket']
+        res = storage_manager.get_s3_presigned_url(bucket, key)
+        return HttpResponse(content=json.dumps(res),
                             status=200,
                             content_type='application/json')

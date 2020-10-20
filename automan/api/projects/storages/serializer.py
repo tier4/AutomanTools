@@ -6,7 +6,6 @@ from rest_framework import serializers
 from .models import Storage
 from api.settings import PER_PAGE, SORT_KEY, MOUNT_PATH, VOLUME_NAME, CLAIM_NAME
 from api.common import validation_check
-from projects.storages.aws_s3 import AwsS3Client
 
 
 class StorageSerializer(serializers.ModelSerializer):
@@ -95,29 +94,6 @@ class StorageSerializer(serializers.ModelSerializer):
             records.append(record)
         return records
 
-    @staticmethod
-    def get_original_path(storage_type, storage_config, name):
-        if storage_type == 'LOCAL_NFS':
-            return storage_config['mount_path'] + storage_config['base_dir'] + '/' + name + '/raw/' + name
-        elif storage_type == 'AWS_S3':
-            return storage_config['base_dir'] + '/raws/' + name
-        else:
-            raise NotImplementedError  # FIXME
-
-    @staticmethod
-    def get_dataset_output_dir(storage_type, storage_config, name, candidates):
-        candidates_str = '_'.join(map(str, candidates))
-        if storage_type == 'LOCAL_NFS':
-            return (storage_config['mount_path'] + storage_config['base_dir']
-                    + '/dataset_' + candidates_str + '_'
-                    + datetime.now().strftime('%s') + '/')
-        elif storage_type == 'AWS_S3':
-            return (storage_config['base_dir']
-                    + '/datasets/dataset_' + candidates_str + '_'
-                    + datetime.now().strftime('%s') + '/')
-        else:
-            raise NotImplementedError  # FIXME
-
     def __local_storage_config(self, project_id):
         return json.dumps({
             'mount_path': MOUNT_PATH,
@@ -132,7 +108,3 @@ class StorageSerializer(serializers.ModelSerializer):
             'bucket': config['bucket'],
             'base_dir': '/' + str(project_id),
         })
-
-    def get_s3_presigned_url(self, bucket, key):
-        # TODO bucket & key permisson
-        return AwsS3Client().get_s3_post_url(bucket, key)
