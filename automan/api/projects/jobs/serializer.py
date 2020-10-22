@@ -19,6 +19,7 @@ from projects.storages.storage_manager import StorageManager
 from api.settings import PER_PAGE
 from api.common import validation_check
 from accounts.account_manager import AccountManager
+from automan_website import settings
 
 
 class JobSerializer(serializers.ModelSerializer):
@@ -291,5 +292,5 @@ class JobSerializer(serializers.ModelSerializer):
 
     # FIXME: Consider security
     @staticmethod
-    def __generate_job_namespace(key=None):
-        return key is not None if key else 'default'
+    def __generate_job_namespace():
+        return settings.JOB_NAMESPACE
