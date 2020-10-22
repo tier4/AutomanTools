@@ -131,7 +131,7 @@ class JobSerializer(serializers.ModelSerializer):
         new_job.save()
         job = AnnotationArchiver(**job_config)
         job.create(cls.__generate_job_name(new_job.id, 'archiver'))
-        res = job.run()
+        res = job.run(namespace=settings.JOB_NAMESPACE)
         return res
 
     def __get_archive_info(storage_type, user_id, project_id, dataset_id, annotation_id, original_id):
@@ -187,7 +187,7 @@ class JobSerializer(serializers.ModelSerializer):
         if original['file_type'] == 'rosbag':
             job = RosbagExtractor(**job_config)
             job.create(cls.__generate_job_name(new_job.id, 'extractor'))
-            res = job.run()
+            res = job.run(namespace=settings.JOB_NAMESPACE)
             return res
         else:
             raise ValidationError()
@@ -220,7 +220,7 @@ class JobSerializer(serializers.ModelSerializer):
         if original['file_type'] == 'rosbag':
             job = RosbagAnalyzer(**job_config)
             job.create(cls.__generate_job_name(new_job.id, 'analyzer'))
-            res = job.run()
+            res = job.run(namespace=settings.JOB_NAMESPACE)
             return res
         else:
             raise ValidationError()
