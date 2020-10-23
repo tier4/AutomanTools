@@ -201,6 +201,7 @@ SWAGGER_SETTINGS = {
 # JOB
 JOB_DOCKER_REGISTRY_HOST = os.environ.get('JOB_DOCKER_REGISTRY_HOST', None)
 JOB_DEFAULT_MEMORY = os.environ.get('JOB_DEFAULT_MEMORY', '1024Mi')
+JOB_NAMESPACE = os.environ.get('JOB_NAMESPACE', 'default')
 
 JOB = {
     'ARCHIVER': {

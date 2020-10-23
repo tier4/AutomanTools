@@ -19,6 +19,7 @@ from projects.storages.storage_manager import StorageManager
 from api.settings import PER_PAGE
 from api.common import validation_check
 from accounts.account_manager import AccountManager
+from automan_website import settings
 
 
 class JobSerializer(serializers.ModelSerializer):
@@ -131,7 +132,7 @@ class JobSerializer(serializers.ModelSerializer):
         new_job.save()
         job = AnnotationArchiver(**job_config)
         job.create(cls.__generate_job_name(new_job.id, 'archiver'))
-        res = job.run()
+        res = job.run(namespace=settings.JOB_NAMESPACE)
         return res
 
     def __get_archive_info(storage_type, user_id, project_id, dataset_id, annotation_id, original_id):
@@ -187,7 +188,7 @@ class JobSerializer(serializers.ModelSerializer):
         if original['file_type'] == 'rosbag':
             job = RosbagExtractor(**job_config)
             job.create(cls.__generate_job_name(new_job.id, 'extractor'))
-            res = job.run()
+            res = job.run(namespace=settings.JOB_NAMESPACE)
             return res
         else:
             raise ValidationError()
@@ -220,7 +221,7 @@ class JobSerializer(serializers.ModelSerializer):
         if original['file_type'] == 'rosbag':
             job = RosbagAnalyzer(**job_config)
             job.create(cls.__generate_job_name(new_job.id, 'analyzer'))
-            res = job.run()
+            res = job.run(namespace=settings.JOB_NAMESPACE)
             return res
         else:
             raise ValidationError()
@@ -291,5 +292,5 @@ class JobSerializer(serializers.ModelSerializer):
 
     # FIXME: Consider security
     @staticmethod
-    def __generate_job_namespace(key=None):
-        return key is not None if key else 'default'
+    def __generate_job_namespace():
+        return settings.JOB_NAMESPACE
