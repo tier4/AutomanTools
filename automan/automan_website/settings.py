@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.11/ref/settings/
 """
 
+from libs.secret import secret
 import os
 import sys
 import datetime
@@ -24,7 +25,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'middlewares'))
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(BASE_DIR, "api"))
 sys.path.append(os.path.join(BASE_DIR, 'libs'))
-from libs.secret import secret
 UPLOAD_FORM_DIRS = os.path.join(BASE_DIR, 'upload_form')
 
 
@@ -118,8 +118,6 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': os.environ.get("MYSQL_DB_NAME"),
-        # 'USER': os.environ.get("MYSQL_USER"),
-        # 'PASSWORD': os.environ.get("MYSQL_PASSWORD"),
         'USER': mysql_access_dict["MYSQL_USER"],
         'PASSWORD': mysql_access_dict["MYSQL_PASSWORD"],
         'HOST': os.environ.get("MYSQL_HOST"),
