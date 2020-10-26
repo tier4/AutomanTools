@@ -13,11 +13,44 @@ import { setKlassSet } from './actions/tool_action';
 
 const KlassTab = withStyles(theme => ({
   root: {
+    minWidth: 'auto',
     '&:hover': {
       backgroundColor: 'rgba(0, 0, 0, 0.1)',
     },
   }
 }))(props => <Tab {...props}/>);
+
+const klassSetStyle = {
+  klasssetArea: {
+    display: 'inline-block',
+    background: 'rgba(255,255,255,0.1)',
+    borderRadius: 5
+  },
+  klasssetTitle: {
+    position: 'absolute',
+    height: 20,
+    top: -2,
+    padding: 3,
+    color: 'black',
+    background: 'rgba(255,255,255,0.5)',
+    borderRadius: 5
+  },
+  klassTab: {
+    display: 'flex',
+    marginTop: 8,
+  },
+  colorPane: {
+    width: 18,
+    height: 18,
+    borderRadius: 2,
+    border: 'solid 1px #fff',
+    marginRight: 3,
+  },
+  klassName: {
+    height: 17,
+    paddingTop: 1,
+  },
+};
 
 class KlassSet extends React.Component {
   // data
@@ -102,13 +135,17 @@ class KlassSet extends React.Component {
       list.push(
         <KlassTab
           key={klass.id}
-          icon={(
-            <div>
+          label={(
+            <div className={classes.klassTab}>
               <div
                 className={classes.colorPane}
                 style={{ backgroundColor: klass.color }}
               />
-              {klass.name}
+              <div
+                className={classes.klassName}
+              >
+                {klass.name}
+              </div>
             </div>
           )}
         />
@@ -123,29 +160,20 @@ class KlassSet extends React.Component {
   render() {
     const classes = this.props.classes;
     return (
-      <Tabs
-        value={this.state.targetIndex}
-        onChange={this.handleTabChange}
-      >
-        {this.renderTabs(classes)}
-      </Tabs>
-    );
-    /*
-    return (
-      <List
-        className={classes.list}
-        subheader={
-          <ListSubheader
-            className={classes.listHead}
-          >
+      <div>
+        <div className={classes.klasssetArea}>
+          <div className={classes.klasssetTitle}>
             Class Set
-          </ListSubheader>
-        }
-      >
-        {this.renderList(classes)}
-      </List>
+          </div>
+          <Tabs
+            value={this.state.targetIndex}
+            onChange={this.handleTabChange}
+          >
+            {this.renderTabs(classes)}
+          </Tabs>
+        </div>
+      </div>
     );
-    */
   }
 };
 const mapStateToProps = state => ({
@@ -156,6 +184,7 @@ const mapDispatchToProps = dispatch => ({
   dispatchSetKlassSet: target => dispatch(setKlassSet(target))
 });
 export default compose(
+  withStyles(klassSetStyle),
   connect(
     mapStateToProps,
     mapDispatchToProps

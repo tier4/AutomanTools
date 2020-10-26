@@ -13,8 +13,7 @@ import classNames from 'classnames';
 
 import RequestClient from 'automan/services/request-client';
 import { setTargetLabel } from './actions/annotation_action';
-import { setAnnotation } from './actions/tool_action';
-
+import { setAnnotation, setLockInfo } from './actions/tool_action';
 
 class Annotation extends React.Component {
   // data
@@ -105,6 +104,9 @@ class Annotation extends React.Component {
             const labels = new Map(), instanceIds = new Map();
             const isLocked = res.is_locked,
                   expiresAt = res.expires_at;
+            this.props.dispatchSetLockInfo({
+              expiresAt: new Date(expiresAt * 1000)
+            });
             res.records.forEach(obj => {
               let klass = this.props.klassSet.getByName(obj.name);
               let bboxes = {};
@@ -496,21 +498,24 @@ class Annotation extends React.Component {
   render() {
     const classes = this.props.classes;
     return (
-      <List
-        className={classes.list}
-        subheader={
-          <ListSubheader
-            className={classes.listHead}
-          >
-            Bounding Box
-          </ListSubheader>
-        }
-      >
-        {this.renderList(classes)}
-      </List>
+      <div className={classes.annotationWrapper}>
+        <List
+          className={classes.list}
+          subheader={
+            <ListSubheader
+              className={classes.listHead}
+            >
+              Bounding Box
+            </ListSubheader>
+          }
+        >
+          {this.renderList(classes)}
+        </List>
+      </div>
     );
   }
 }
+
 const mapStateToProps = state => ({
   targetLabel: state.annotation.targetLabel,
   labelTool: state.tool.labelTool,
@@ -520,7 +525,8 @@ const mapStateToProps = state => ({
 });
 const mapDispatchToProps = dispatch => ({
   dispatchSetTargetLabel: target => dispatch(setTargetLabel(target)),
-  dispatchSetAnnotation: target => dispatch(setAnnotation(target))
+  dispatchSetAnnotation: target => dispatch(setAnnotation(target)),
+  dispatchSetLockInfo: info => dispatch(setLockInfo(info))
 });
 export default compose(
   connect(

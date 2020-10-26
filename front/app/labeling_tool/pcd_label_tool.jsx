@@ -206,6 +206,8 @@ class PCDLabelTool extends React.Component {
     mesh.geometry.dispose();
     wipeMesh.material.dispose();
     wipeMesh.geometry.dispose();
+    this._pointMeshes[frame] = null;
+    this._wipePointMeshes[frame] = null;
   }
   pcdLoad(frame) {
     if (this.isLoadedFrame(frame)) {

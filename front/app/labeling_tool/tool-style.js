@@ -17,6 +17,11 @@ export const toolStyle = theme => ({
     marginTop: appBarHeight,
     overflow: 'auto'
   },
+  colorPane: {
+    width: 18,
+    height: 18,
+    borderRadius: 2,
+  },
   list: {
     overflow: 'auto',
     height: '100%',
@@ -40,15 +45,26 @@ export const toolStyle = theme => ({
   },
   gridContainer: {
     height: appBarHeight,
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center',
   },
   gridItem: {
     textAlign: 'center',
+  },
+  gridKlassSet: {
+    flexGrow: 1,
+  },
+  gridExitButton: {
+    marginRight: 5,
   },
   frameNumberParts: {
     color: '#000',
     backgroundColor: '#fff',
     borderRadius: 5,
-    width: 260,
+    width: 280,
+    display: 'flex',
+    marginRight: 5,
     marginLeft: 20
   },
   frameNumber: {
@@ -57,6 +73,9 @@ export const toolStyle = theme => ({
   },
   frameSkip: {
     width: 50
+  },
+  annotationWrapper: {
+    height: '100%',
   },
   toolControlsWrapper: {
     height: toolHeight,
@@ -74,11 +93,6 @@ export const toolStyle = theme => ({
   klassSetList: {
     textAlign: 'center',
     margin: 'auto',
-  },
-  colorPane: {
-    width: 18,
-    height: 18,
-    borderRadius: 2
   },
   content: {
     marginLeft: drawerWidth,

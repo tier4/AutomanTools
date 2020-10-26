@@ -81,6 +81,7 @@ class KlasssetKlassTable extends React.Component {
           type="number"
           style={{ width: '50px' }}
           value={klass.minSize[axis]}
+          min="1"
           onChange={e => this.changeMinSize(e, index, axis)}
         />
       );

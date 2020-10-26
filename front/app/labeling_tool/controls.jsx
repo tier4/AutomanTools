@@ -23,6 +23,7 @@ import Annotation from 'automan/labeling_tool/annotation';
 import History from 'automan/labeling_tool/history';
 import Clipboard from 'automan/labeling_tool/clipboard';
 import LoadingProgress from 'automan/labeling_tool/base_tool/loading_progress';
+import LockStatus from './lock_status';
 
 import ImageLabelTool from 'automan/labeling_tool/image_label_tool';
 import PCDLabelTool from 'automan/labeling_tool/pcd_label_tool';
@@ -503,9 +504,7 @@ class Controls extends React.Component {
 
   renderKlassSet(classes) {
     return (
-      <KlassSet
-        classes={classes}
-      />
+      <KlassSet />
     );
   }
   renderLabels(classes) {
@@ -578,15 +577,11 @@ class Controls extends React.Component {
                 <Divider />
               </Grid>
               <Grid item xs={12}>
-                <Button onClick={() => this.saveFrame()}>Save</Button>
-                <Button onClick={() => this.reloadFrame()}>Reload</Button>
-              </Grid>
-              <Grid item xs={12}>
-              </Grid>
                 <Clipboard
                   controls={this}
                   classes={classes}
                 />
+              </Grid>
               <Grid item xs={12}>
                 <History
                   controls={this}
@@ -658,6 +653,7 @@ class Controls extends React.Component {
           value={skip === 0 ? '' : skip}
           margin="dense"
         />
+        <LockStatus onClick={() => this.saveFrame()} />
       </div>
     );
     let appBar = (
@@ -665,26 +661,24 @@ class Controls extends React.Component {
         position="relative"
         className={classes.appBar}
       >
-        <Grid
-          container
-          alignItems="center"
+        <div
           className={classes.gridContainer}
         >
-          <Grid item xs={3} className={classes.gridItem}>
+          <div className={classes.gridItem}>
             {frameNumberForm}
-          </Grid>
-          <Grid item xs={8}>
+          </div>
+          <div className={classes.gridKlassSet}>
             {this.renderKlassSet(classes)}
-          </Grid>
-          <Grid item xs={1}>
+          </div>
+          <div className={classes.gridExitButton}>
             <IconButton
               onClick={this.onClickLogout}
               style={{backgroundColor: '#fff'}}
             >
               <ExitToApp />
             </IconButton>
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </AppBar>
     );
     
