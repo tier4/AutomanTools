@@ -6,7 +6,7 @@ until mysqladmin ping -h ${MYSQL_HOST} --silent; do
     sleep 3
 done
 
-python bin/create_database.py
+python -m bin.create_database
 cd automan/
 python manage.py makemigrations
 python manage.py migrate
