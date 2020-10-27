@@ -109,6 +109,26 @@ spec:
               value: automan-labeling-service
             - name: AUTOMAN_PORT
               value: "8080"
+            - name: JOB_DOCKER_REGISTRY_HOST
+              value: ""
+            - name: JOB_ARCHIVER_IMAGE_NAME
+              value: automan-annotation-archiver
+            - name: JOB_ARCHIVER_IMAGE_TAG
+              value: latest
+            - name: JOB_ARCHIVER_MEMORY
+              value: 1024Mi
+            - name: JOB_ANALYZER_IMAGE_NAME
+              value: automan-rosbag-analyzer
+            - name: JOB_ANALYZER_IMAGE_TAG
+              value: latest
+            - name: JOB_ANALYZER_MEMORY
+              value: 1024Mi
+            - name: JOB_EXTRACTOR_IMAGE_NAME
+              value: automan-rosbag-extractor
+            - name: JOB_EXTRACTOR_IMAGE_TAG
+              value: latest
+            - name: JOB_EXTRACTOR_MEMORY
+              value: 1024Mi
       restartPolicy: Always
       volumes:
         - name: app-persistent-storage

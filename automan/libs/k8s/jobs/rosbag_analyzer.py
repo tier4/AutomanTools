@@ -7,7 +7,7 @@ from automan_website import settings
 
 class RosbagAnalyzer(BaseJob):
     IMAGE_NAME = settings.JOB['ANALYZER']['IMAGE_NAME']
-    REPOSITORY_NAME = (settings.JOB_DOCKER_REGISTRY_HOST + '/' if settings.JOB_DOCKER_REGISTRY_HOST is not None else "") + IMAGE_NAME + ':' + settings.JOB['ANALYZER']['IMAGE_TAG']
+    REPOSITORY_NAME = (settings.JOB_DOCKER_REGISTRY_HOST + '/' if settings.JOB_DOCKER_REGISTRY_HOST else "") + IMAGE_NAME + ':' + settings.JOB['ANALYZER']['IMAGE_TAG']
     MEMORY = settings.JOB['ANALYZER']['MEMORY']
 
     # TODO: automan_server_info
