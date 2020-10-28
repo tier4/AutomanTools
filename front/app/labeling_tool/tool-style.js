@@ -75,11 +75,12 @@ export const toolStyle = theme => ({
     width: 50
   },
   annotationWrapper: {
-    height: '100%',
   },
   toolControlsWrapper: {
     height: toolHeight,
-    overflowY: 'scroll'
+    overflowY: 'none',
+    display: 'flex',
+    flexDirection: 'column'
   },
   toolControls: {
     textAlign: 'center'
@@ -88,7 +89,8 @@ export const toolStyle = theme => ({
     backgroundColor: 'rgba(0, 0, 0, 0.2)'
   },
   labelList: {
-    height: `calc(100% - ${toolHeight})`
+    flexGrow: 1,
+    overflowY: 'auto'
   },
   klassSetList: {
     textAlign: 'center',
