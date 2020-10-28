@@ -9,6 +9,7 @@ import { connect } from 'react-redux';
 import { addTool } from './actions/tool_action';
 
 import ImageBBox from './image_tool/image_bbox';
+import CommonEditBar from './common_edit_bar';
 
 const imageToolStyle = {
   wrapper: {
@@ -64,7 +65,9 @@ class ImageLabelTool extends React.Component {
     return null;
   }
   getEditor() {
-    return null; 
+    return (
+      <CommonEditBar />
+    );
   }
   render() {
     const classes = this.props.classes;

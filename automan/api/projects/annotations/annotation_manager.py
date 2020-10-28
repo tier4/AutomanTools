@@ -165,8 +165,13 @@ class AnnotationManager(object):
 
         # TODO: bulk insert (try to use bulk_create method)
         for label in created_list:
-            for v in label['content'].values():
-                if not LabelClass.validate(v):
+            for k, v in label['content'].items():
+                if k == 'memo':
+                    if type(v) is not str:
+                        raise ValidationError("Label content is invalid.")
+                    if len(v) > 128:
+                        raise ValidationError("Label content is invalid (Too long memo).")
+                elif not LabelClass.validate(v):
                     raise ValidationError("Label content is invalid.")
             new_object = DatasetObject(
                 annotation_id=annotation_id,
@@ -180,8 +185,13 @@ class AnnotationManager(object):
             new_label.save()
 
         for label in edited_list:
-            for v in label['content'].values():
-                if not LabelClass.validate(v):
+            for k, v in label['content'].items():
+                if k == 'memo':
+                    if type(v) is not str:
+                        raise ValidationError("Label content is invalid.")
+                    if len(v) > 128:
+                        raise ValidationError("Label content is invalid (Too long memo).")
+                elif not LabelClass.validate(v):
                     raise ValidationError("Label content is invalid.")
             edited_label = DatasetObjectAnnotation(
                 object_id=label['object_id'],
