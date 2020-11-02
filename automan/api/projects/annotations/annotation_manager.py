@@ -149,6 +149,15 @@ class AnnotationManager(object):
             try_lock, user_id, annotation_id, frame)
         return labels
 
+    def content_validate(self, label_class, content):
+        for k, v in content.items():
+            if k == 'memo':
+                if not MemoValidator.validate(v):
+                    return False
+            elif not label_class.validate(v):
+                return False
+        return True
+
     @transaction.atomic
     def set_frame_label(
             self, user_id, project_id, annotation_id, frame, created_list, edited_list, deleted_list):
@@ -166,12 +175,8 @@ class AnnotationManager(object):
 
         # TODO: bulk insert (try to use bulk_create method)
         for label in created_list:
-            for k, v in label['content'].items():
-                if k == 'memo':
-                    if not MemoValidator.validate(v):
-                        raise ValidationError("Label content is invalid.")
-                elif not LabelClass.validate(v):
-                    raise ValidationError("Label content is invalid.")
+            if not self.content_validate(LabelClass, label['content']):
+                raise ValidationError("Label content is invalid.")
             new_object = DatasetObject(
                 annotation_id=annotation_id,
                 frame=frame,
@@ -184,12 +189,8 @@ class AnnotationManager(object):
             new_label.save()
 
         for label in edited_list:
-            for k, v in label['content'].items():
-                if k == 'memo':
-                    if not MemoValidator.validate(v):
-                        raise ValidationError("Label content is invalid.")
-                elif not LabelClass.validate(v):
-                    raise ValidationError("Label content is invalid.")
+            if not self.content_validate(LabelClass, label['content']):
+                raise ValidationError("Label content is invalid.")
             edited_label = DatasetObjectAnnotation(
                 object_id=label['object_id'],
                 name=label['name'],
