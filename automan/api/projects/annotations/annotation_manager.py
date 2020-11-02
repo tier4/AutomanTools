@@ -10,6 +10,7 @@ from django.core.exceptions import (
 from projects.annotations.models import DatasetObject, DatasetObjectAnnotation, AnnotationProgress
 from projects.annotations.helpers.label_types.bb2d import BB2D
 from projects.annotations.helpers.label_types.bb2d3d import BB2D3D
+from projects.annotations.helpers.memo import MemoValidator
 from .models import Annotation, ArchivedLabelDataset, FrameLock
 from projects.datasets.models import LabelDataset
 from projects.models import Projects
@@ -167,10 +168,8 @@ class AnnotationManager(object):
         for label in created_list:
             for k, v in label['content'].items():
                 if k == 'memo':
-                    if type(v) is not str:
+                    if not MemoValidator.validate(v):
                         raise ValidationError("Label content is invalid.")
-                    if len(v) > 128:
-                        raise ValidationError("Label content is invalid (Too long memo).")
                 elif not LabelClass.validate(v):
                     raise ValidationError("Label content is invalid.")
             new_object = DatasetObject(
@@ -187,10 +186,8 @@ class AnnotationManager(object):
         for label in edited_list:
             for k, v in label['content'].items():
                 if k == 'memo':
-                    if type(v) is not str:
+                    if not MemoValidator.validate(v):
                         raise ValidationError("Label content is invalid.")
-                    if len(v) > 128:
-                        raise ValidationError("Label content is invalid (Too long memo).")
                 elif not LabelClass.validate(v):
                     raise ValidationError("Label content is invalid.")
             edited_label = DatasetObjectAnnotation(
