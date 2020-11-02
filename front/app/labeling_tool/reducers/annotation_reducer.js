@@ -6,7 +6,9 @@ import {
 
 const initialState = {
   targetState: null,
-  targetLabel: null
+  targetLabel: {
+    label: null
+  }
 };
 
 export default function annotationReducer(state = initialState, action = {}) {
@@ -14,7 +16,9 @@ export default function annotationReducer(state = initialState, action = {}) {
   switch (action.type) {
     case SET_TARGET_LABEL:
       newState = {
-        targetLabel: action.label
+        targetLabel: {
+          label: action.label
+        }
       };
       break;
     case SET_TARGET_PCD_STATE:

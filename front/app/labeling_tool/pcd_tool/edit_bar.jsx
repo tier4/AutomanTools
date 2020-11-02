@@ -9,6 +9,7 @@ import Slider from '@material-ui/core/Slider';
 
 import { compose } from 'redux';
 import { connect } from 'react-redux';
+import CommonEditBar from '../common_edit_bar';
 
 const MIN_MAX = {
   pos: [-100, 100],
@@ -20,7 +21,7 @@ class PCDEditBar extends React.Component {
     super(props);
   }
   getValue(type, axis) {
-    const label = this.props.targetLabel;
+    const label = this.props.targetLabel.label;
     const box = label.bbox[this.props.candidateId].box;
     if (type === 'yaw') {
       return box[type] * 180 / Math.PI;
@@ -29,7 +30,7 @@ class PCDEditBar extends React.Component {
     }
   }
   setValue(val, type, axis) {
-    const label = this.props.targetLabel;
+    const label = this.props.targetLabel.label;
     const bbox = label.bbox[this.props.candidateId];
     if (type === 'yaw') {
       bbox.box[type] = val * Math.PI / 180;
@@ -39,7 +40,7 @@ class PCDEditBar extends React.Component {
     bbox.updateParam();
   }
   render() {
-    const label = this.props.targetLabel;
+    const label = this.props.targetLabel.label;
     if (label == null) {
       return null;
     }
@@ -106,6 +107,8 @@ class PCDEditBar extends React.Component {
           <Grid item xs={12}>{'Yaw'}</Grid>
           {changeGrid('yaw')}
         </Grid>
+        <Divider />
+        <CommonEditBar />
       </div>
     );
   }

@@ -111,50 +111,62 @@ class Controls extends React.Component {
     });
   }
   initEvent() {
-    $(window)
-      .keydown(e => {
-        if (this.isLoading) {
-          return;
+    const inputTargetCheck = e => {
+      const tag = e.target.tagName.toLowerCase();
+      if (tag === 'textarea' || tag === 'input') {
+        return true;
+      }
+      return false;
+    };
+    window.addEventListener('keydown', e => {
+      if (this.isLoading) {
+        return;
+      }
+      if (inputTargetCheck(e)) {
+        return;
+      }
+      if (e.keyCode == 8 || e.keyCode == 46) {
+        // Backspace or Delete
+        const label = this.getTargetLabel();
+        if (label != null) {
+          this.removeLabel(label);
         }
-        if (e.keyCode == 8 || e.keyCode == 46) {
-          // Backspace or Delete
-          const label = this.getTargetLabel();
-          if (label != null) {
-            this.removeLabel(label);
+      } else if (e.keyCode == 39) {
+        this.nextFrame();
+      } else if (e.keyCode == 37) {
+        this.previousFrame();
+      } else if (e.keyCode == 90) {
+        // Z key
+        if (e.ctrlKey) {
+          if (e.shiftKey) {
+            this.props.history.redo();
+          } else {
+            this.props.history.undo();
           }
-        } else if (e.keyCode == 39) {
-          this.nextFrame();
-        } else if (e.keyCode == 37) {
-          this.previousFrame();
-        } else if (e.keyCode == 90) {
-          // Z key
-          if (e.ctrlKey) {
-            if (e.shiftKey) {
-              this.props.history.redo();
-            } else {
-              this.props.history.undo();
-            }
-          }
-        } else if (e.keyCode == 67) {
-          // C key
-          if (e.ctrlKey) {
-            this.props.clipboard.copy(null);
-          }
-        } else if (e.keyCode == 86) {
-          // V key
-          if (e.ctrlKey) {
-            this.props.clipboard.paste();
-          }
-        } else {
-          this.getTool().handles.keydown(e);
         }
-      })
-      .keyup(e => {
-        if (this.isLoading) {
-          return;
+      } else if (e.keyCode == 67) {
+        // C key
+        if (e.ctrlKey) {
+          this.props.clipboard.copy(null);
         }
-        this.getTool().handles.keyup(e);
-      });
+      } else if (e.keyCode == 86) {
+        // V key
+        if (e.ctrlKey) {
+          this.props.clipboard.paste();
+        }
+      } else {
+        this.getTool().handles.keydown(e);
+      }
+    });
+    window.addEventListener('keyup', e => {
+      if (this.isLoading) {
+        return;
+      }
+      if (inputTargetCheck(e)) {
+        return;
+      }
+      this.getTool().handles.keyup(e);
+    });
 
     window.addEventListener('resize', () => {
       this.resize();

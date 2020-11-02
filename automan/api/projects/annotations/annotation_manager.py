@@ -10,6 +10,7 @@ from django.core.exceptions import (
 from projects.annotations.models import DatasetObject, DatasetObjectAnnotation, AnnotationProgress
 from projects.annotations.helpers.label_types.bb2d import BB2D
 from projects.annotations.helpers.label_types.bb2d3d import BB2D3D
+from projects.annotations.helpers.memo import MemoValidator
 from .models import Annotation, ArchivedLabelDataset, FrameLock
 from projects.datasets.models import LabelDataset
 from projects.models import Projects
@@ -148,6 +149,15 @@ class AnnotationManager(object):
             try_lock, user_id, annotation_id, frame)
         return labels
 
+    def content_validate(self, label_class, content):
+        for k, v in content.items():
+            if k == 'memo':
+                if not MemoValidator.validate(v):
+                    return False
+            elif not label_class.validate(v):
+                return False
+        return True
+
     @transaction.atomic
     def set_frame_label(
             self, user_id, project_id, annotation_id, frame, created_list, edited_list, deleted_list):
@@ -165,9 +175,8 @@ class AnnotationManager(object):
 
         # TODO: bulk insert (try to use bulk_create method)
         for label in created_list:
-            for v in label['content'].values():
-                if not LabelClass.validate(v):
-                    raise ValidationError("Label content is invalid.")
+            if not self.content_validate(LabelClass, label['content']):
+                raise ValidationError("Label content is invalid.")
             new_object = DatasetObject(
                 annotation_id=annotation_id,
                 frame=frame,
@@ -180,9 +189,8 @@ class AnnotationManager(object):
             new_label.save()
 
         for label in edited_list:
-            for v in label['content'].values():
-                if not LabelClass.validate(v):
-                    raise ValidationError("Label content is invalid.")
+            if not self.content_validate(LabelClass, label['content']):
+                raise ValidationError("Label content is invalid.")
             edited_label = DatasetObjectAnnotation(
                 object_id=label['object_id'],
                 name=label['name'],
