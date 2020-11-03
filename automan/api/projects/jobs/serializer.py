@@ -102,7 +102,7 @@ class JobSerializer(serializers.ModelSerializer):
 
     @classmethod
     @transaction.atomic
-    def archive(cls, user_id, project_id, dataset_id, original_id, annotation_id):
+    def archive(cls, user_id, project_id, dataset_id, original_id, annotation_id, write_image: bool):
         original = OriginalManager().get_original(project_id, original_id, status='analyzed')
         storage_manager = StorageManager(project_id, original['storage_id'])
         storage_config = copy.deepcopy(storage_manager.storage['storage_config'])
@@ -116,7 +116,7 @@ class JobSerializer(serializers.ModelSerializer):
             'presigned': '/projects/' + str(project_id) + '/storages/upload/'})
 
         archive_config = cls.__get_archive_info(
-            storage_manager.storage['storage_type'], user_id, project_id, dataset_id, annotation_id, original_id, False)
+            storage_manager.storage['storage_type'], user_id, project_id, dataset_id, annotation_id, original_id, write_image)
         job_config = {
             'storage_type': storage_manager.storage['storage_type'],
             'storage_config': storage_config,
