@@ -116,7 +116,7 @@ class JobSerializer(serializers.ModelSerializer):
             'presigned': '/projects/' + str(project_id) + '/storages/upload/'})
 
         archive_config = cls.__get_archive_info(
-            storage_manager.storage['storage_type'], user_id, project_id, dataset_id, annotation_id, original_id)
+            storage_manager.storage['storage_type'], user_id, project_id, dataset_id, annotation_id, original_id, False)
         job_config = {
             'storage_type': storage_manager.storage['storage_type'],
             'storage_config': storage_config,
@@ -135,22 +135,24 @@ class JobSerializer(serializers.ModelSerializer):
         res = job.run(namespace=settings.JOB_NAMESPACE)
         return res
 
-    def __get_archive_info(storage_type, user_id, project_id, dataset_id, annotation_id, original_id):
+    @staticmethod
+    def __get_archive_info(storage_type, user_id, project_id, dataset_id, annotation_id, original_id, write_image):
         dataset = DatasetManager().get_dataset(user_id, dataset_id)
         file_path = dataset['file_path'].rsplit('/', 2)
         archive_name = file_path[1] + '_' + datetime.now().strftime('%s')
         archive_dir = file_path[0]
         if storage_type == 'AWS_S3':
             archive_dir = dataset['file_path'].replace('datasets', 'archives')
-        archive_config = {
+
+        return {
             'project_id': project_id,
             'dataset_id': dataset_id,
             'annotation_id': annotation_id,
             'original_id': original_id,
             'archive_dir': archive_dir,
             'archive_name': archive_name,
+            'write_image': write_image,
         }
-        return archive_config
 
     @classmethod
     @transaction.atomic
