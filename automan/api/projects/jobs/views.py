@@ -43,7 +43,8 @@ class JobViewSet(viewsets.ModelViewSet):
             original_id = int(job_config['original_id'])
             dataset_id = int(job_config['dataset_id'])
             annotation_id = int(job_config['annotation_id'])
-            JobSerializer.archive(user_id, int(project_id), dataset_id, original_id, annotation_id)
+            is_include_image = bool(job_config['include_image'])
+            JobSerializer.archive(user_id, int(project_id), dataset_id, original_id, annotation_id, is_include_image)
         else:
             raise ValidationError
 
