@@ -102,7 +102,7 @@ class JobSerializer(serializers.ModelSerializer):
 
     @classmethod
     @transaction.atomic
-    def archive(cls, user_id, project_id, dataset_id, original_id, annotation_id, write_image: bool):
+    def archive(cls, user_id, project_id, dataset_id, original_id, annotation_id, include_image: bool):
         original = OriginalManager().get_original(project_id, original_id, status='analyzed')
         storage_manager = StorageManager(project_id, original['storage_id'])
         storage_config = copy.deepcopy(storage_manager.storage['storage_config'])
@@ -116,7 +116,7 @@ class JobSerializer(serializers.ModelSerializer):
             'presigned': '/projects/' + str(project_id) + '/storages/upload/'})
 
         archive_config = cls.__get_archive_info(
-            storage_manager.storage['storage_type'], user_id, project_id, dataset_id, annotation_id, original_id, write_image)
+            storage_manager.storage['storage_type'], user_id, project_id, dataset_id, annotation_id, original_id, include_image)
         job_config = {
             'storage_type': storage_manager.storage['storage_type'],
             'storage_config': storage_config,
@@ -136,7 +136,7 @@ class JobSerializer(serializers.ModelSerializer):
         return res
 
     @staticmethod
-    def __get_archive_info(storage_type, user_id, project_id, dataset_id, annotation_id, original_id, write_image):
+    def __get_archive_info(storage_type, user_id, project_id, dataset_id, annotation_id, original_id, include_image):
         dataset = DatasetManager().get_dataset(user_id, dataset_id)
         file_path = dataset['file_path'].rsplit('/', 2)
         archive_name = file_path[1] + '_' + datetime.now().strftime('%s')
@@ -151,7 +151,7 @@ class JobSerializer(serializers.ModelSerializer):
             'original_id': original_id,
             'archive_dir': archive_dir,
             'archive_name': archive_name,
-            'write_image': write_image,
+            'include_image': include_image,
         }
 
     @classmethod

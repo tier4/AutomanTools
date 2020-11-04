@@ -7,11 +7,12 @@ import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import Button from '@material-ui/core/Button';
 import Archive from '@material-ui/icons/Archive';
+import Tooltip from '@material-ui/core/Tooltip';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Checkbox from '@material-ui/core/Checkbox';
 
 const initialState = {
-  write_image_flag: true,
+  include_image_flag: true,
 };
 class ArchiveDialog extends React.Component {
   constructor(props) {
@@ -20,7 +21,7 @@ class ArchiveDialog extends React.Component {
   }
   handleArchive = () =>{
     const opt = {
-      write_image_flag: this.state.write_image_flag
+      include_image_flag: this.state.include_image_flag
     };
     this.setState(initialState);
     this.props.onArchive(opt);
@@ -29,9 +30,9 @@ class ArchiveDialog extends React.Component {
     this.setState(initialState);
     this.props.onClose();
   };
-  handleWriteImageFlag = e => {
+  handleIncludeImageFlag = e => {
     this.setState({
-      write_image_flag: e.target.checked,
+      include_image_flag: e.target.checked,
     });
   };
   render() {
@@ -45,17 +46,21 @@ class ArchiveDialog extends React.Component {
         <DialogTitle id="alert-dialog-title">{"Archive Option Config"}</DialogTitle>
         <DialogContent>
           <DialogContentText id="alert-dialog-description">
-            <FormControlLabel
-              label="Write image"
-              control={
-                <Checkbox
-                  checked={this.state.write_image_flag}
-                  onChange={this.handleWriteImageFlag}
-                  name="checkedB"
-                  color="primary"
-                />
-              }
-            />
+            <Tooltip
+              title="If checked, include images in the archive target"
+            >
+              <FormControlLabel
+                label="Include image"
+                control={
+                  <Checkbox
+                    checked={this.state.include_image_flag}
+                    onChange={this.handleIncludeImageFlag}
+                    name="checkedB"
+                    color="primary"
+                  />
+                }
+              />
+            </Tooltip>
           </DialogContentText>
         </DialogContent>
         <DialogActions>

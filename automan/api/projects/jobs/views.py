@@ -43,8 +43,8 @@ class JobViewSet(viewsets.ModelViewSet):
             original_id = int(job_config['original_id'])
             dataset_id = int(job_config['dataset_id'])
             annotation_id = int(job_config['annotation_id'])
-            is_write_image = bool(job_config.get('write_image', True))  # TODO: delete default value
-            JobSerializer.archive(user_id, int(project_id), dataset_id, original_id, annotation_id, is_write_image)
+            is_include_image = bool(job_config.get('include_image', True))  # TODO: delete default value
+            JobSerializer.archive(user_id, int(project_id), dataset_id, original_id, annotation_id, is_include_image)
         else:
             raise ValidationError
 

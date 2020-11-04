@@ -159,7 +159,7 @@ class AnnotationTable extends React.Component {
           data = {
             job_type: 'ARCHIVER',
             job_config: {
-              write_image: opt.write_image_flag,
+              include_image: opt.include_image_flag,
               original_id: datasetInfo.original_id,
               dataset_id: row.dataset_id,
               annotation_id: row.id
