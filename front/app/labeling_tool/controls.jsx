@@ -235,6 +235,14 @@ class Controls extends React.Component {
     // *********
   }
 
+  getFixedSkipFrameCount() {
+    return Math.max(1, this.state.skipFrameCount);
+  }
+
+  isFrameNumberValid(frameNumber) {
+    return !isNaN(frameNumber) && 0 <= frameNumber && frameNumber < this.frameLength;
+  }
+
   getTools() {
     return this.props.tools;
   }
@@ -289,13 +297,13 @@ class Controls extends React.Component {
 
   nextFrame(count) {
     if (count == undefined) {
-      count = Math.max(1, this.state.skipFrameCount);
+      count = this.getFixedSkipFrameCount();
     }
     this.moveFrame(count);
   }
   previousFrame(count) {
     if (count == undefined) {
-      count = Math.max(1, this.state.skipFrameCount);
+      count = this.getFixedSkipFrameCount();
     }
     this.moveFrame(-count);
   }
@@ -312,7 +320,7 @@ class Controls extends React.Component {
   isLoading = false;
   setFrameNumber(num) {
     num = parseInt(num);
-    if (isNaN(num) || num < 0 || this.frameLength <= num) {
+    if (!this.isFrameNumberValid(num)) {
       return false;
     }
     if (this.state.frameNumber === num) {
@@ -380,9 +388,10 @@ class Controls extends React.Component {
 
     this.isLoading = true;
     const labelTool = this.props.labelTool;
+    const previousFrameNumber = num - this.getFixedSkipFrameCount();
     return Promise.all([
         labelTool.loadBlobURL(num),
-        num >= 1 && labelTool.loadBlobURL(num - 1)
+        this.isFrameNumberValid(previousFrameNumber) && labelTool.loadBlobURL(previousFrameNumber),
       ])
       .then(() => {
         labelTool.prefetchManage(num);

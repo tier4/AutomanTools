@@ -233,7 +233,7 @@ class PCDLabelTool extends React.Component {
   loadWipe(frame) {
     this.setVisibleTo(this._currentWipePointMesh, false);
     this._currentWipePointMesh = null;
-    const wipeFrame = frame - 1;
+    const wipeFrame = frame - this.props.controls.getFixedSkipFrameCount();
     if (wipeFrame < 0) {
       return Promise.resolve();
     }
