@@ -40,11 +40,11 @@ class LabelTool extends React.Component {
   }
   prefetchManage(num) {
     const len = this.PREFETCH_LEN;
-    const start = Math.max(num - len, 0),
-          end = Math.min(num + len, this.frameLength - 1);
     const prefetchNum = [];
-    for (let i=start; i<=end; ++i) {
-      prefetchNum.push(i);
+    for (let i = -len; i <= len; ++i) {
+      const skipStep = this.controls.getFixedSkipFrameCount()
+      const frameNumber = num + i * skipStep;
+      if (this.controls.isFrameNumberValid(frameNumber)) prefetchNum.push(frameNumber);
     }
     const loaded = this.loadedFileSet;
     for (let it of prefetchNum) {
