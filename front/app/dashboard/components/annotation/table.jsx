@@ -169,10 +169,12 @@ class AnnotationTable extends React.Component {
           url,
           data,
           res => {
+            this.handleArchiveClose();
             this.show();
           },
           mes => {
             this.setState({
+              archive_row: null,
               error: mes.message
             });
           }
@@ -180,6 +182,7 @@ class AnnotationTable extends React.Component {
       },
       mes => {
         this.setState({
+          archive_row: null,
           error: mes.message
         });
       }
