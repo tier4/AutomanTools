@@ -50,9 +50,6 @@ class PCDEditBar extends React.Component {
     if (bbox == null) {
       return null;
     }
-    const handleValueChange = (type, axis) => (e, val) => {
-      this.setValue(val, type, axis);
-    };
     const handleInputChange = (type, axis) => (e) => {
       let val = e.target.value === '' ? '': Number(e.target.value);
       this.setValue(val, type, axis);
@@ -61,19 +58,10 @@ class PCDEditBar extends React.Component {
       const minmax = MIN_MAX[type];
       return (
         <React.Fragment>
-          <Grid item xs={1}>
+          <Grid item xs={2}>
             {axis != null ? axis + ': ' : null}
           </Grid>
-          <Grid item xs={7}>
-            <Slider
-              value={this.getValue(type, axis)}
-              onChange={handleValueChange(type, axis)}
-              step={0.01}
-              min={minmax[0]}
-              max={minmax[1]}
-            />
-          </Grid>
-          <Grid item xs={4}>
+          <Grid item xs={10}>
             {type === 'yaw' ?
             <Input 
               value={this.getValue(type, axis)}
