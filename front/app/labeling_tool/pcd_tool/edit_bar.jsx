@@ -6,6 +6,8 @@ import Grid from '@material-ui/core/Grid';
 import Button from '@material-ui/core/Button';
 import { RotateLeft, RotateRight } from '@material-ui/icons';
 import Slider from '@material-ui/core/Slider';
+import Input from '@material-ui/core/Input';
+import InputAdornment from '@material-ui/core/InputAdornment';
 
 import { compose } from 'redux';
 import { connect } from 'react-redux';
@@ -13,7 +15,7 @@ import CommonEditBar from '../common_edit_bar';
 
 const MIN_MAX = {
   pos: [-100, 100],
-  size: [0.1, 15],
+  size: [0.1, 100],
   yaw: [-180, 180],
 };
 class PCDEditBar extends React.Component {
@@ -48,29 +50,43 @@ class PCDEditBar extends React.Component {
     if (bbox == null) {
       return null;
     }
-    const handleValueChange = (type, axis) => (e, val) => {
+    const handleInputChange = (type, axis) => (e) => {
+      let val = e.target.value === '' ? '': Number(e.target.value);
       this.setValue(val, type, axis);
     };
     const changeGrid = (type, axis) => {
       const minmax = MIN_MAX[type];
       return (
         <React.Fragment>
-          <Grid item xs={1}>
+          <Grid item xs={2}>
             {axis != null ? axis + ': ' : null}
           </Grid>
-          <Grid item xs={8}>
-            <Slider
-              value={this.getValue(type, axis)}
-              onChange={handleValueChange(type, axis)}
-              step={0.01}
-              min={minmax[0]}
-              max={minmax[1]}
-            />
-          </Grid>
-          <Grid item xs={3}>
+          <Grid item xs={10}>
             {type === 'yaw' ?
-            ((this.getValue(type, axis) | 0) + '°') :
-            ('' + this.getValue(type, axis)).slice(0, 5)}
+            <Input 
+              value={this.getValue(type, axis)}
+              onChange={handleInputChange(type, axis)}
+              inputProps={{
+                step: 1,
+                min: minmax[0],
+                max: minmax[1],
+                type: 'number',
+              }}
+              startAdornment={<InputAdornment position="start">{' '}</InputAdornment>}
+              endAdornment={<InputAdornment position="end">{'°'}</InputAdornment>}
+            />:
+            <Input
+              value={this.getValue(type, axis)}
+              onChange={handleInputChange(type, axis)}
+              inputProps={{
+                step: 0.01,
+                min: minmax[0],
+                max: minmax[1],
+                type: 'number',
+              }}
+              startAdornment={<InputAdornment position="start">{' '}</InputAdornment>}
+            />
+            }
           </Grid>
         </React.Fragment>
       );
