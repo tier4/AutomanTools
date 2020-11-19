@@ -81,7 +81,7 @@ class RosbagAnalyzer(BaseJob):
                     command=command,
                     args=args,
                     image=self.REPOSITORY_NAME,
-                    image_pull_policy='IfNotPresent',
+                    image_pull_policy='Always',
                     name=self.IMAGE_NAME,
                     volume_mounts=[client.models.V1VolumeMount(mount_path=self.mount_path, name=self.volume_name)],
                     resources=client.models.V1ResourceRequirements(limits=system_usage, requests=system_usage),
@@ -93,7 +93,7 @@ class RosbagAnalyzer(BaseJob):
                     command=command,
                     args=args,
                     image=self.REPOSITORY_NAME,
-                    image_pull_policy='IfNotPresent',
+                    image_pull_policy='Always',
                     name=self.IMAGE_NAME,
                     resources=client.models.V1ResourceRequirements(limits=system_usage, requests=system_usage),
                 )
