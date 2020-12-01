@@ -35,6 +35,7 @@ class OriginalDataForm extends React.Component {
       storages: [],
       storage_type: 'None',
       targetFileIndex: null,
+      isUploading: false,
       isUploaded: false
     };
   }
@@ -109,7 +110,6 @@ class OriginalDataForm extends React.Component {
     this.setState({ uploadFiles: uploadFiles });
   };
   nextFileUpload = index => {
-    let that = this;
     if (index > 0) {
       let prevIndex = index - 1;
       let targetFile = this.state.uploadFiles[prevIndex];
@@ -119,32 +119,35 @@ class OriginalDataForm extends React.Component {
         size: targetFile.fileInfo.size,
         file_type: 'rosbag',
         file_codec: 'gz',
-        storage_id: that.state.storage.id
+        storage_id: this.state.storage.id
       };
       console.log(registerInfo);
       let storageInfo;
       RequestClient.post(
-        '/projects/' + that.props.currentProject.id + '/originals/',
+        '/projects/' + this.props.currentProject.id + '/originals/',
         registerInfo,
         data => { },
         () => { }
       )
     }
-    if (that.state.uploadFiles.length == index) {
-      that.setState({ isUploaded: true });
+    if (this.state.uploadFiles.length == index) {
+      this.setState({
+        isUploaded: true,
+        isUploading: false
+      });
       return;
     }
-    that.setState({ targetFileIndex: index });
-    let targetFile = that.state.uploadFiles[index];
+    this.setState({ targetFileIndex: index });
+    let targetFile = this.state.uploadFiles[index];
     let storageInfo;
     let storage_type = this.state.storage.storage_type
     if (storage_type == 'AWS_S3') {
       let uploadInfo = {
-        storage_id: that.state.storage.id,
-        key: that.props.currentProject.id + '/bags/' + targetFile.fileInfo.name
+        storage_id: this.state.storage.id,
+        key: this.props.currentProject.id + '/bags/' + targetFile.fileInfo.name
       }
       RequestClient.post(
-        '/projects/' + that.props.currentProject.id + '/storages/upload/',
+        '/projects/' + this.props.currentProject.id + '/storages/upload/',
         uploadInfo,
         data => {
           console.log(data);
@@ -152,8 +155,8 @@ class OriginalDataForm extends React.Component {
           AWSS3StorageClient.upload(
             data.url,
             targetFile.fileInfo,
-            that.progressUpdate,
-            that.nextFileUpload,
+            this.progressUpdate,
+            this.nextFileUpload,
             index
           );
           this.updateFileStateKeyValue(index, 'name', uploadInfo.key);
@@ -167,18 +170,22 @@ class OriginalDataForm extends React.Component {
       LocalStorageClient.upload(
         requestPath,
         targetFile.fileInfo,
-        that.progressUpdate,
-        that.nextFileUpload,
+        this.progressUpdate,
+        this.nextFileUpload,
         index
       );
     } else {
       alert(storageInfo.storage_type + ' is not supported.');
+      this.setState({
+        isUploading: false
+      });
     }
   };
   handleClickUpload = event => {
     if (this.state.uploadFiles.length == 0) {
       alert('No raw data is selected.');
     }
+    this.setState({ isUploading: true });
     this.nextFileUpload(0);
   };
   hide = () => {
@@ -193,6 +200,7 @@ class OriginalDataForm extends React.Component {
     const { classes } = this.props;
     const { uploadFiles, isUploaded } = this.state;
     const isInitialized = this.state.uploadFiles.length == 0;
+    const isUploading = this.state.isUploading;
     const filesContent = (
       <div>
         {uploadFiles.map((f, index) => {
@@ -297,7 +305,10 @@ class OriginalDataForm extends React.Component {
                 <span>Raws Table</span>
               </Button>
             ) : (
-                <Button disabled={isInitialized} onClick={this.handleClickUpload}>
+                <Button
+                  disabled={isInitialized || isUploading}
+                  onClick={this.handleClickUpload}
+                >
                   <CloudUpload />
                   <span>Upload</span>
                 </Button>
