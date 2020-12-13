@@ -33,7 +33,7 @@ class LabelTool extends React.Component {
     return Promise.resolve();
     // *********
   }
-  
+
 
   getProjectInfo() {
     return this.projectInfo;
@@ -88,7 +88,7 @@ class LabelTool extends React.Component {
               this.getURL('image_url', candidateId, num),
               null,
               res => {
-                resolve(res);
+                resolve(res['image_link']);
               },
               e => {
                 reject(e);
@@ -248,9 +248,9 @@ class LabelTool extends React.Component {
         null,
         res => {
           this.projectInfo = res;
-  
+
           this.labelType = res.label_type;
-  
+
           resolve();
         },
         err => {
@@ -299,7 +299,7 @@ class LabelTool extends React.Component {
         null,
         res => {
           this.candidateInfo = res.candidates;
-          
+
           resolve();
         },
         err => {
@@ -314,7 +314,7 @@ class LabelTool extends React.Component {
       .then(() => this.initDataset())
       // .then(() => this.initCandidateInfo())
   }
-  
+
   initializeEvent() {
     this.controls.initEvent();
   }

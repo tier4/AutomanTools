@@ -114,19 +114,19 @@ spec:
             - name: JOB_ARCHIVER_IMAGE_NAME
               value: automan-annotation-archiver
             - name: JOB_ARCHIVER_IMAGE_TAG
-              value: latest
+              value: develop
             - name: JOB_ARCHIVER_MEMORY
               value: 1024Mi
             - name: JOB_ANALYZER_IMAGE_NAME
               value: automan-rosbag-analyzer
             - name: JOB_ANALYZER_IMAGE_TAG
-              value: latest
+              value: develop
             - name: JOB_ANALYZER_MEMORY
               value: 1024Mi
             - name: JOB_EXTRACTOR_IMAGE_NAME
               value: automan-rosbag-extractor
             - name: JOB_EXTRACTOR_IMAGE_TAG
-              value: latest
+              value: develop
             - name: JOB_EXTRACTOR_MEMORY
               value: 1024Mi
       restartPolicy: Always

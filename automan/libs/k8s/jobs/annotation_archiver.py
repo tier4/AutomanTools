@@ -85,7 +85,6 @@ class AnnotationArchiver(BaseJob):
                     command=command,
                     args=args,
                     image=self.REPOSITORY_NAME,
-                    image_pull_policy='IfNotPresent',
                     name=self.IMAGE_NAME,
                     # env=[access_key_env, secret_key_env],
                     volume_mounts=[client.models.V1VolumeMount(mount_path=self.mount_path, name=self.volume_name)],
@@ -98,7 +97,6 @@ class AnnotationArchiver(BaseJob):
                     command=command,
                     args=args,
                     image=self.REPOSITORY_NAME,
-                    image_pull_policy='IfNotPresent',
                     name=self.IMAGE_NAME,
                     resources=client.models.V1ResourceRequirements(limits=system_usage, requests=system_usage),
                 )
