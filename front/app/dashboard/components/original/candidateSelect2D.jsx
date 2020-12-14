@@ -15,14 +15,19 @@ class CandidateSelect2D extends React.Component {
     this.state = {
       candidates: [],
       candidates_2d: [],
+      name: '',
       original: { name: null }
     };
   }
   componentDidMount() {
     const original_id = this.props.original_id;
-    this.props.handleSetJobConfig({ original_id: this.props.original_id });
+    this.props.handleSetJobConfig({
+      name: '',
+      original_id: this.props.original_id
+    });
     const candidates = this.props.handleGetJobConfig('candidates');
-    this.setState({ candidates: candidates });
+    const name = this.props.handleGetJobConfig('name');
+    this.setState({ candidates: candidates, name: name });
     let url =
       `/projects/${this.props.currentProject.id}/originals/` +
       `${original_id}/candidates/?data_type=IMAGE`;
@@ -46,28 +51,49 @@ class CandidateSelect2D extends React.Component {
     this.props.handleSetJobConfig('candidates', candidates);
     this.props.handleSelect(candidates.length != 0);
   };
+  handleChangeName = e => {
+    const name = e.target.value;
+    this.setState({ name: name });
+    this.props.handleSetJobConfig('name', name);
+  };
   render() {
     const { classes } = this.props;
     return (
       <div className={classes.root}>
-        <FormLabel component="legend">2D Candidates</FormLabel>
-        <FormGroup>
-          {this.state.candidates_2d.map((x, index) => {
-            return (
-              <FormControlLabel
-                key={index}
-                control={
-                  <Checkbox
-                    onChange={this.handleChangeCandidate}
-                    value={x.candidate_id.toString()}
-                    checked={this.state.candidates.includes(x.candidate_id)}
-                  />
-                }
-                label={JSON.parse(x.analyzed_info).topic_name}
-              />
-            );
-          })}
-        </FormGroup>
+        <FormControl component="fieldset" className={classes.formControl}>
+          <FormLabel component="legend">Dataset Name</FormLabel>
+          <FormGroup>
+            <FormControlLabel
+              control={
+                <TextField
+                  label="rosbag.bag"
+                  onChange={this.handleChangeName}
+                  value={this.state.name}
+                />
+              }
+            />
+          </FormGroup>
+        </FormControl>
+        <FormControl component="fieldset" className={classes.formControl}>
+          <FormLabel component="legend">2D Candidates</FormLabel>
+          <FormGroup>
+            {this.state.candidates_2d.map((x, index) => {
+              return (
+                <FormControlLabel
+                  key={index}
+                  control={
+                    <Checkbox
+                      onChange={this.handleChangeCandidate}
+                      value={x.candidate_id.toString()}
+                      checked={this.state.candidates.includes(x.candidate_id)}
+                    />
+                  }
+                  label={JSON.parse(x.analyzed_info).topic_name}
+                />
+              );
+            })}
+          </FormGroup>
+        </FormControl>
       </div>
     );
   }
