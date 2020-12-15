@@ -10,9 +10,20 @@ const style = {
   wrapper: {
     margin: 5,
     padding: 5
+  },
+  timestamp: {
+  },
+  timestamp_date: {
+    fontWeight: 'bold'
   }
 };
 
+const timeFormat = date => {
+  const lang = navigator.language;
+  const dateDate = date.toLocaleDateString(lang);
+  const dateTime = date.toLocaleTimeString(lang, { timeZoneName: 'short' });
+  return dateDate + ' ' + dateTime;
+};
 const TimeStamp = (props) => {
   const classes = props.classes;
   const info = props.frameInfo[props.frameNumber];
@@ -27,6 +38,9 @@ const TimeStamp = (props) => {
   const nsecs = ('' + time.nsecs).padStart(9, '0');
   return (
     <Paper className={classes.wrapper}>
+      <div className={classes.timestamp_date}>
+        {timeFormat(date)}
+      </div>
       <div className={classes.timestamp}>
         {time.secs}.{nsecs}
       </div>
