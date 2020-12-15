@@ -24,6 +24,7 @@ import History from 'automan/labeling_tool/history';
 import Clipboard from 'automan/labeling_tool/clipboard';
 import LoadingProgress from 'automan/labeling_tool/base_tool/loading_progress';
 import LockStatus from './lock_status';
+import TimeStamp from './timestamp';
 
 import ImageLabelTool from 'automan/labeling_tool/image_label_tool';
 import PCDLabelTool from 'automan/labeling_tool/pcd_label_tool';
@@ -678,6 +679,9 @@ class Controls extends React.Component {
         >
           <div className={classes.gridItem}>
             {frameNumberForm}
+          </div>
+          <div className={classes.gridItem}>
+            <TimeStamp frameNumber={this.state.frameNumber} />
           </div>
           <div className={classes.gridKlassSet}>
             {this.renderKlassSet(classes)}

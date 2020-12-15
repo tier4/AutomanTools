@@ -1,14 +1,16 @@
 
 import {
   SET_TARGET_LABEL,
-  SET_TARGET_PCD_STATE
+  SET_TARGET_PCD_STATE,
+  SET_FRAME_INFO
 } from '../actions/annotation_action';
 
 const initialState = {
   targetState: null,
   targetLabel: {
     label: null
-  }
+  },
+  frameInfo: []
 };
 
 export default function annotationReducer(state = initialState, action = {}) {
@@ -24,6 +26,13 @@ export default function annotationReducer(state = initialState, action = {}) {
     case SET_TARGET_PCD_STATE:
       newState = {
         targetState: action.state
+      };
+      break;
+    case SET_FRAME_INFO:
+      const newInfo = state.frameInfo.slice();
+      newInfo[action.num] = action.info;
+      newState = {
+        frameInfo: newInfo
       };
       break;
     default:
