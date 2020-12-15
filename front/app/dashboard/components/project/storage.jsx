@@ -18,7 +18,7 @@ class Storage extends React.Component {
       data: [],
       is_loading: true,
       error: null,
-      query: RequestClient.createPageQuery(),
+      query: RequestClient.createPageQuery(true),
       isMemberTableOpen: false,
       formOpen: false
     };

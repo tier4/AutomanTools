@@ -33,7 +33,7 @@ class OriginalTable extends React.Component {
       total_count: 0,
       data: [],
       error: null,
-      query: RequestClient.createPageQuery(),
+      query: RequestClient.createPageQuery(true),
       open: false,
       row_id: null,
       row_name: ''

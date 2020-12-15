@@ -12,12 +12,12 @@ const addJWT = (urlObj, headers) => {
 
 let abortableRequests = new Set();
 class PageQuery {
-  constructor() {
+  constructor(sortRevFlag) {
     this.page = 1;
     this.perPage = 10;
     this.searchText = null;
     this.sortKey = 'id';
-    this.sortReverseFlag = false;
+    this.sortReverseFlag = !!sortRevFlag;
     this.xhr = null;
   }
   abort() {
@@ -250,8 +250,8 @@ const request = (url, data, method, successCB, failCB, options) => {
   return ret;
 }
 const RequestClient = {
-  createPageQuery: () => {
-    return new PageQuery();
+  createPageQuery: (sortRevFlag) => {
+    return new PageQuery(sortRevFlag);
   },
   ajax: (url, data, type, successCB, failCB, opt) => {
     return request(url, data, type.toUpperCase(), successCB, failCB, opt);

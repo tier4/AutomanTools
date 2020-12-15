@@ -39,7 +39,7 @@ class AnnotationTable extends React.Component {
       data: [],
       is_loading: true,
       error: null,
-      query: RequestClient.createPageQuery(),
+      query: RequestClient.createPageQuery(true),
       snackbar: false,
       open: false,
       row_id: null,

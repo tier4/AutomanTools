@@ -38,13 +38,12 @@ class JobTable extends React.Component {
       target: this.props.target,
       level: 0,
       click_disable: false,
-      query: RequestClient.createPageQuery(),
+      query: RequestClient.createPageQuery(true),
       open: false,
       anchorEl: null,
       desc_open: false,
       desc: {},
     };
-    this.state.query.setSortRevFlag(true);
     this.handlePopoverOpen = this.handlePopoverOpen.bind(this);
     this.handlePopoverClose = this.handlePopoverClose.bind(this);
   }
