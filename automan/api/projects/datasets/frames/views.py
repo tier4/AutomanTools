@@ -26,5 +26,5 @@ class DatasetFrameViewSet(viewsets.ModelViewSet):
         user_id = AccountManager.get_id_by_username(username)
         if not Permission.hasPermission(user_id, 'get_dataset', project_id):
             raise PermissionDenied
-        frame = DatasetFrameManager.get_dataset_frame(project_id, dataset_id, frame_id)
+        frame = DatasetFrameManager.get_dataset_frame(project_id, dataset_id, frame_id, 'AZURE')
         return HttpResponse(content=json.dumps(frame), status=200, content_type='application/json')

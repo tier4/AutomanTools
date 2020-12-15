@@ -9,6 +9,7 @@ import LoadingProgress from 'automan/labeling_tool/base_tool/loading_progress';
 
 import RequestClient from 'automan/services/request-client';
 import { setLabelTool } from './actions/tool_action';
+import { setFrameInfo } from './actions/annotation_action';
 
 
 class LabelTool extends React.Component {
@@ -33,7 +34,7 @@ class LabelTool extends React.Component {
     return Promise.resolve();
     // *********
   }
-  
+
 
   getProjectInfo() {
     return this.projectInfo;
@@ -88,7 +89,10 @@ class LabelTool extends React.Component {
               this.getURL('image_url', candidateId, num),
               null,
               res => {
-                resolve(res);
+                resolve(res['image_link']);
+                this.props.dispatchSetFrameInfo(
+                  num, { "time": res['frame'] }
+                );
               },
               e => {
                 reject(e);
@@ -248,9 +252,9 @@ class LabelTool extends React.Component {
         null,
         res => {
           this.projectInfo = res;
-  
+
           this.labelType = res.label_type;
-  
+
           resolve();
         },
         err => {
@@ -299,7 +303,7 @@ class LabelTool extends React.Component {
         null,
         res => {
           this.candidateInfo = res.candidates;
-          
+
           resolve();
         },
         err => {
@@ -314,7 +318,7 @@ class LabelTool extends React.Component {
       .then(() => this.initDataset())
       // .then(() => this.initCandidateInfo())
   }
-  
+
   initializeEvent() {
     this.controls.initEvent();
   }
@@ -356,10 +360,12 @@ class LabelTool extends React.Component {
 };
 
 const mapStateToProps = state => ({
-  labelTool: state.tool.labelTool
+  labelTool: state.tool.labelTool,
+  frameNumber: state.annotation.frameNumber
 });
 const mapDispatchToProps = dispatch => ({
-  dispatchSetLabelTool: target => dispatch(setLabelTool(target))
+  dispatchSetLabelTool: target => dispatch(setLabelTool(target)),
+  dispatchSetFrameInfo: (num, info) => dispatch(setFrameInfo(num, info))
 });
 export default compose(
   connect(

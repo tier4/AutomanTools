@@ -5,6 +5,7 @@ from django.core.exceptions import PermissionDenied
 from rest_framework import viewsets
 from rest_framework.decorators import api_view
 from .dataset_manager import DatasetManager
+from .frames.frame_manager import DatasetFrameManager
 from .serializer import DatasetSerializer
 from api.settings import PER_PAGE, SORT_KEY
 from api.permissions import Permission
@@ -49,7 +50,9 @@ class DatasetViewSet(viewsets.ModelViewSet):
         frame_count = int(request.data.get('frame_count'))
         original_id = request.data.get('original_id', None)
         candidates = request.data.get('candidates')
+        frames = request.data.get('frames')
         dataset_id = dataset_manager.create_dataset(name, file_path, frame_count, original_id, project_id, candidates)
+        frames = DatasetFrameManager.create_dataset_frame(dataset_id, frames)
 
         contents = dataset_manager.get_dataset(user_id, dataset_id)
         return HttpResponse(status=201,
@@ -86,6 +89,37 @@ def __get_extension(candidate_id):
     if msg_type == 'sensor_msgs/PointCloud2':
         return '.pcd'
     return '.jpg'
+
+
+@api_view(['GET'])
+def get_frame(request, project_id, dataset_id, candidate_id, frame):
+    username = request.user
+    user_id = AccountManager.get_id_by_username(username)
+    if not Permission.hasPermission(user_id, 'get_annotationwork', project_id):
+        raise PermissionDenied
+
+    dataset = DatasetManager().get_dataset(user_id, dataset_id)
+    original = OriginalManager().get_original(project_id, dataset['original_id'])
+    storage = StorageSerializer().get_storage(project_id, original['storage_id'])
+
+    if storage['storage_type'] == 'LOCAL_NFS':
+        image_link = request.build_absolute_uri(request.path) + 'image/'
+    elif storage['storage_type'] == 'AWS_S3':
+        ext = __get_extension(candidate_id)
+        key = (dataset['file_path']
+               + candidate_id + '_' + str(frame).zfill(6) + ext)
+        image_link = AwsS3Client().get_s3_down_url(
+            storage['storage_config']['bucket'], key)
+    else:
+        raise UnknownStorageTypeError
+
+    frame = DatasetFrameManager.get_dataset_frame(project_id, dataset_id, frame, storage['storage_type'])
+
+    content = {
+        'image_link': image_link,
+        'frame': frame['frame']
+    }
+    return HttpResponse(status=200, content=json.dumps(content), content_type='application/json')
 
 
 @api_view(['GET'])

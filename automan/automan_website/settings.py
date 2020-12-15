@@ -180,10 +180,10 @@ CONN_MAX_AGE = 100
 # STORAGE
 STORAGE_TYPE = os.environ.get('STORAGE_TYPE')  # Only AZURE
 STORAGE_CONFIG = {
-    'account_name': os.environ.get('AZURE_STORAGE_ACCOUNT'),
-    'account_key': os.environ.get('AZURE_STORAGE_KEY'),
-    'container': os.environ.get('AZURE_STORAGE_CONTAINER'),
-    'base_uri': 'https://' + os.environ.get('AZURE_STORAGE_ACCOUNT') + '.blob.core.windows.net/'
+    'account_name': os.environ.get('AZURE_STORAGE_ACCOUNT', ""),
+    'account_key': os.environ.get('AZURE_STORAGE_KEY', ""),
+    'container': os.environ.get('AZURE_STORAGE_CONTAINER', ""),
+    'base_uri': 'https://' + os.environ.get('AZURE_STORAGE_ACCOUNT', "") + '.blob.core.windows.net/'
 }
 
 # LOGIN
