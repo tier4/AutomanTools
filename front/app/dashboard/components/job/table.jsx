@@ -26,6 +26,13 @@ function statusFormatter(cell, row) {
 function idFormatter(cell, row) {
   return row.id;
 }
+const locale = navigator.locale;
+const dateOption = { timeZoneName: 'short' };
+function preTimeFormatter(arr, name) {
+  for (let it of arr) {
+    it[name] = new Date(it[name]).toLocaleString(locale, dateOption);
+  }
+}
 
 class JobTable extends React.Component {
   constructor(props) {
@@ -102,6 +109,8 @@ class JobTable extends React.Component {
       this.state.query.getData(),
       res => {
         // TODO: reinit this.query's page and per_page.
+        preTimeFormatter(res.records, 'started_at');
+        preTimeFormatter(res.records, 'completed_at');
         this.setState({
           total_count: res.count,
           data: res.records,
