@@ -23,6 +23,13 @@ function valueFormatter(cell, row) {
     </div>
   );
 }
+const locale = navigator.locale;
+const dateOption = { timeZoneName: 'short' };
+function preTimeFormatter(arr, name) {
+  for (let it of arr) {
+    it[name] = new Date(it[name]).toLocaleString(locale, dateOption);
+  }
+}
 
 class CalibrationTable extends React.Component {
   constructor(props) {
@@ -61,6 +68,7 @@ class CalibrationTable extends React.Component {
       url,
       this.state.query.getData(),
       function (res) {
+        preTimeFormatter(res.records, 'created_at');
         that.setState({
           total_count: res.count,
           data: res.records
