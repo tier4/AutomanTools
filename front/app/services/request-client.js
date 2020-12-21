@@ -28,6 +28,10 @@ class PageQuery {
     this.xhr = null;
     abortableRequests.delete(this);
   }
+  assignTableOptions(opt) {
+    opt.sortName = this.getSortKey();
+    opt.sortOrder = this.getSortRevFlag() ? 'desc' : 'asc';
+  }
   getPage() { return this.page; }
   setPage(page) { this.page = Math.max(1, page); }
   getPerPage() { return this.perPage; }

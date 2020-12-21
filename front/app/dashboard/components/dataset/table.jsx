@@ -182,6 +182,7 @@ class DatasetTable extends React.Component {
       clearSearch: true,
       searchDelayTime: 1000
     };
+    this.state.query.assignTableOptions(options);
     const fetchProp = {
       dataTotalSize: this.state.total_count
     };

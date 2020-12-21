@@ -338,6 +338,7 @@ class AnnotationTable extends React.Component {
       clearSearch: true,
       searchDelayTime: 1000
     };
+    this.state.query.assignTableOptions(options);
     options.onRowClick = (row, colIndex, rowIndex) => {
       if (colIndex === 3 || colIndex == null) {
         return; // skip 'actions'

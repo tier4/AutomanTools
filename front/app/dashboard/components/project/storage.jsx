@@ -136,6 +136,7 @@ class Storage extends React.Component {
       clearSearch: true,
       searchDelayTime: 1000
     };
+    this.state.query.assignTableOptions(options);
     return (
       <div>
         <StorageForm

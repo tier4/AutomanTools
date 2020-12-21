@@ -249,6 +249,7 @@ class JobTable extends React.Component {
       clearSearch: true,
       searchDelayTime: 1000
     };
+    this.state.query.assignTableOptions(options);
     options.onRowClick = (row, colIndex, rowIndex) => {};
     const refreshButton = (
       <Tooltip title="Refresh">
