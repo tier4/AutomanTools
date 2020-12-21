@@ -46,7 +46,8 @@ class CalibrationForm extends React.Component {
     this.setState({
       uploadFiles: [],
       targetFileIndex: null,
-      isUploaded: false
+      isUploaded: false,
+      isUploading: false
     });
   };
   progressUpdate = progress => {
@@ -93,7 +94,8 @@ class CalibrationForm extends React.Component {
     this.setState({
       uploadFiles: [],
       targetFileIndex: null,
-      isUploaded: false
+      isUploaded: false,
+      isUploading: false
     });
   };
   render() {
