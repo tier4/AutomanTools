@@ -24,7 +24,7 @@ class CalibrationForm extends React.Component {
     this.state = {
       uploadFiles: [],
       targetFileIndex: null,
-      isUploaded: false
+      uploadState: 'init'
     };
   }
   handleInputFileChange = event => {
@@ -45,7 +45,7 @@ class CalibrationForm extends React.Component {
     this.setState({
       uploadFiles: [],
       targetFileIndex: null,
-      isUploaded: false
+      uploadState: 'init'
     });
   };
   progressUpdate = progress => {
@@ -62,19 +62,20 @@ class CalibrationForm extends React.Component {
     this.setState({ uploadFiles: uploadFiles });
   };
   nextFileUpload = index => {
-    let that = this;
-    if (that.state.uploadFiles.length == index) {
-      that.setState({ isUploaded: true });
+    if (this.state.uploadFiles.length == index) {
+      this.setState({
+        uploadState: 'uploaded'
+      });
       return;
     }
-    that.setState({ targetFileIndex: index });
-    let targetFile = that.state.uploadFiles[index];
+    this.setState({ targetFileIndex: index });
+    let targetFile = this.state.uploadFiles[index];
     let requestPath = `/projects/${this.props.currentProject.id}/calibrations/`;
     LocalStorageClient.upload(
       requestPath,
       targetFile.fileInfo,
-      that.progressUpdate,
-      that.nextFileUpload,
+      this.progressUpdate,
+      this.nextFileUpload,
       index
     );
   };
@@ -82,18 +83,21 @@ class CalibrationForm extends React.Component {
     if (this.state.uploadFiles.length == 0) {
       alert('No raw data is selected.');
     }
+    this.setState({
+      uploadState: 'uploading'
+    });
     this.nextFileUpload(0);
   };
   hide = () => {
-    this.props.hide(this.state.isUploaded);
+    this.props.hide(this.state.uploadState === 'uploaded');
     this.setState({
       uploadFiles: [],
       targetFileIndex: null,
-      isUploaded: false
+      uploadState: 'init'
     });
   };
   render() {
-    const { uploadFiles, isUploaded } = this.state;
+    const { uploadFiles, uploadState } = this.state;
     const isInitialized = this.state.uploadFiles.length == 0;
     const filesContent = (
       <div>
@@ -165,13 +169,16 @@ class CalibrationForm extends React.Component {
         </DialogContent>
         <DialogActions>
           <div>
-            {isUploaded ? (
+            {uploadState === 'uploaded' ? (
               <Button onClick={this.hide}>
                 <CameraAlt />
                 <span>Calibrations Table</span>
               </Button>
             ) : (
-                <Button disabled={isInitialized} onClick={this.handleClickUpload}>
+                <Button
+                  disabled={isInitialized || uploadState === 'uploading'}
+                  onClick={this.handleClickUpload}
+                >
                   <CloudUpload />
                   <span>Upload</span>
                 </Button>
