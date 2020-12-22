@@ -21,6 +21,7 @@ const MIN_MAX = {
 class PCDEditBar extends React.Component {
   constructor(props) {
     super(props);
+    this.changedHistory = null;
   }
   getValue(type, axis) {
     const label = this.props.targetLabel.label;
@@ -34,6 +35,9 @@ class PCDEditBar extends React.Component {
   setValue(val, type, axis) {
     const label = this.props.targetLabel.label;
     const bbox = label.bbox[this.props.candidateId];
+    if (this.changedHistory == null) {
+      this.changedHistory = label.createHistory();
+    }
     if (type === 'yaw') {
       bbox.box[type] = val * Math.PI / 180;
     } else {
@@ -41,6 +45,18 @@ class PCDEditBar extends React.Component {
     }
     bbox.updateParam();
   }
+  handleBlur = () => {
+    if (this.changedHistory != null) {
+      this.changedHistory.addHistory();
+      this.changedHistory = null;
+    }
+  };
+  handleEnter = (e,a,b,c) => {
+    console.log(e,a,b,c);
+    if (e.keyCode === 13) {
+      this.handleBlur();
+    }
+  };
   render() {
     const label = this.props.targetLabel.label;
     if (label == null) {
@@ -66,6 +82,8 @@ class PCDEditBar extends React.Component {
             <Input 
               value={this.getValue(type, axis)}
               onChange={handleInputChange(type, axis)}
+              onBlur={this.handleBlur}
+              onKeyDown={this.handleEnter}
               inputProps={{
                 step: 1,
                 min: minmax[0],
@@ -78,6 +96,8 @@ class PCDEditBar extends React.Component {
             <Input
               value={this.getValue(type, axis)}
               onChange={handleInputChange(type, axis)}
+              onBlur={this.handleBlur}
+              onKeyDown={this.handleEnter}
               inputProps={{
                 step: 0.01,
                 min: minmax[0],
