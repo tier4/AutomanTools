@@ -291,6 +291,7 @@ class OriginalDataForm extends React.Component {
               type="file"
               name="file"
               accept=".bag, .rosbag"
+              multiple
               onChange={this.handleInputFileChange}
             />
             {filesContent}
