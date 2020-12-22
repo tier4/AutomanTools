@@ -24,8 +24,7 @@ class CalibrationForm extends React.Component {
     this.state = {
       uploadFiles: [],
       targetFileIndex: null,
-      isUploading: false,
-      isUploaded: false
+      uploadState: 'init'
     };
   }
   handleInputFileChange = event => {
@@ -46,8 +45,7 @@ class CalibrationForm extends React.Component {
     this.setState({
       uploadFiles: [],
       targetFileIndex: null,
-      isUploaded: false,
-      isUploading: false
+      uploadState: 'init'
     });
   };
   progressUpdate = progress => {
@@ -66,8 +64,7 @@ class CalibrationForm extends React.Component {
   nextFileUpload = index => {
     if (this.state.uploadFiles.length == index) {
       this.setState({
-        isUploaded: true,
-        isUploading: false
+        uploadState: 'uploaded'
       });
       return;
     }
@@ -86,22 +83,22 @@ class CalibrationForm extends React.Component {
     if (this.state.uploadFiles.length == 0) {
       alert('No raw data is selected.');
     }
-    this.setState({ isUploading: true });
+    this.setState({
+      uploadState: 'uploading'
+    });
     this.nextFileUpload(0);
   };
   hide = () => {
-    this.props.hide(this.state.isUploaded);
+    this.props.hide(this.state.uploadState === 'uploaded');
     this.setState({
       uploadFiles: [],
       targetFileIndex: null,
-      isUploaded: false,
-      isUploading: false
+      uploadState: 'init'
     });
   };
   render() {
-    const { uploadFiles, isUploaded } = this.state;
+    const { uploadFiles, uploadState } = this.state;
     const isInitialized = this.state.uploadFiles.length == 0;
-    const isUploading = this.state.isUploading;
     const filesContent = (
       <div>
         {uploadFiles.map((f, index) => {
@@ -172,14 +169,14 @@ class CalibrationForm extends React.Component {
         </DialogContent>
         <DialogActions>
           <div>
-            {isUploaded ? (
+            {uploadState === 'uploaded' ? (
               <Button onClick={this.hide}>
                 <CameraAlt />
                 <span>Calibrations Table</span>
               </Button>
             ) : (
                 <Button
-                  disabled={isInitialized || isUploading}
+                  disabled={isInitialized || uploadState === 'uploading'}
                   onClick={this.handleClickUpload}
                 >
                   <CloudUpload />

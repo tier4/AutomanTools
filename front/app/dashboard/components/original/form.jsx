@@ -35,8 +35,7 @@ class OriginalDataForm extends React.Component {
       storages: [],
       storage_type: 'None',
       targetFileIndex: null,
-      isUploading: false,
-      isUploaded: false
+      uploadState: 'init'
     };
   }
   componentDidMount() {
@@ -93,8 +92,7 @@ class OriginalDataForm extends React.Component {
     this.setState({
       uploadFiles: [],
       targetFileIndex: null,
-      isUploaded: false,
-      isUploading: false
+      uploadState: 'init'
     });
   };
   progressUpdate = progress => {
@@ -133,8 +131,7 @@ class OriginalDataForm extends React.Component {
     }
     if (this.state.uploadFiles.length == index) {
       this.setState({
-        isUploaded: true,
-        isUploading: false
+        uploadState: 'uploaded'
       });
       return;
     }
@@ -178,7 +175,7 @@ class OriginalDataForm extends React.Component {
     } else {
       alert(storageInfo.storage_type + ' is not supported.');
       this.setState({
-        isUploading: false
+        uploadState: 'init'
       });
     }
   };
@@ -186,23 +183,23 @@ class OriginalDataForm extends React.Component {
     if (this.state.uploadFiles.length == 0) {
       alert('No raw data is selected.');
     }
-    this.setState({ isUploading: true });
+    this.setState({
+      uploadState: 'uploading'
+    });
     this.nextFileUpload(0);
   };
   hide = () => {
-    this.props.hide(this.state.isUploaded)
+    this.props.hide(this.state.uploadState === 'uploaded');
     this.setState({
       uploadFiles: [],
       targetFileIndex: null,
-      isUploaded: false,
-      isUploading: false
+      uploadState: 'init'
     });
   };
   render() {
     const { classes } = this.props;
-    const { uploadFiles, isUploaded } = this.state;
+    const { uploadFiles, uploadState } = this.state;
     const isInitialized = this.state.uploadFiles.length == 0;
-    const isUploading = this.state.isUploading;
     const filesContent = (
       <div>
         {uploadFiles.map((f, index) => {
@@ -301,14 +298,14 @@ class OriginalDataForm extends React.Component {
         </DialogContent>
         <DialogActions>
           <div>
-            {isUploaded ? (
+            {uploadState === 'uploaded' ? (
               <Button onClick={this.hide}>
                 <CameraAlt />
                 <span>Raws Table</span>
               </Button>
             ) : (
                 <Button
-                  disabled={isInitialized || isUploading}
+                  disabled={isInitialized || uploadState === 'uploading'}
                   onClick={this.handleClickUpload}
                 >
                   <CloudUpload />
