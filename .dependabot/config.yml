@@ -1,5 +1,15 @@
 version: 1
 
 update_configs:
-  - target_branch: "develop"
+  # to frontend
+  - package_manager: "javascript"
+    directory: "/front"
+    update_schedule: "live"
+    target_branch: "develop"
+
+  # to backend
+  - package_manager: "python"
+    directory: "/automan"
+    update_schedule: "live"
+    target_branch: "develop"
 
