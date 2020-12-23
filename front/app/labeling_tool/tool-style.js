@@ -9,13 +9,18 @@ import grey from '@material-ui/core/colors/grey';
 export const appBarHeight = 54;
 // sidebar status
 export const drawerWidth = 160;
-const toolHeight = 400;
+const toolHeight = `calc(100% - ${appBarHeight}px)`;
 const listHead = 20;
 export const toolStyle = theme => ({
   drawer: {
     width: drawerWidth,
     marginTop: appBarHeight,
     overflow: 'auto'
+  },
+  colorPane: {
+    width: 18,
+    height: 18,
+    borderRadius: 2,
   },
   list: {
     overflow: 'auto',
@@ -40,15 +45,26 @@ export const toolStyle = theme => ({
   },
   gridContainer: {
     height: appBarHeight,
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center',
   },
   gridItem: {
     textAlign: 'center',
+  },
+  gridKlassSet: {
+    flexGrow: 1,
+  },
+  gridExitButton: {
+    marginRight: 5,
   },
   frameNumberParts: {
     color: '#000',
     backgroundColor: '#fff',
     borderRadius: 5,
-    width: 260,
+    width: 280,
+    display: 'flex',
+    marginRight: 5,
     marginLeft: 20
   },
   frameNumber: {
@@ -58,27 +74,27 @@ export const toolStyle = theme => ({
   frameSkip: {
     width: 50
   },
+  annotationWrapper: {
+  },
   toolControlsWrapper: {
     height: toolHeight,
-    overflowY: 'scroll'
+    overflowY: 'none',
+    display: 'flex',
+    flexDirection: 'column'
   },
   toolControls: {
     textAlign: 'center'
   },
   activeTool: {
-    border: 'solid 1px #000'
+    backgroundColor: 'rgba(0, 0, 0, 0.2)'
   },
   labelList: {
-    height: `calc(100% - ${toolHeight})`
+    flexGrow: 1,
+    overflowY: 'auto'
   },
   klassSetList: {
     textAlign: 'center',
     margin: 'auto',
-  },
-  colorPane: {
-    width: 18,
-    height: 18,
-    borderRadius: 2
   },
   content: {
     marginLeft: drawerWidth,

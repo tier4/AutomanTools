@@ -7,9 +7,12 @@ import TextField from '@material-ui/core/TextField';
 import Drawer from '@material-ui/core/Drawer';
 import Divider from '@material-ui/core/Divider';
 import Grid from '@material-ui/core/Grid';
+import List from '@material-ui/core/List';
+import ListItem from '@material-ui/core/ListItem';
 import Button from '@material-ui/core/Button';
 import IconButton from '@material-ui/core/IconButton';
 import { NavigateNext, NavigateBefore, ExitToApp } from '@material-ui/icons';
+import { withSnackbar } from 'notistack';
 import { compose } from 'redux';
 import { connect } from 'react-redux';
 
@@ -19,6 +22,9 @@ import KlassSet from 'automan/labeling_tool/klass_set';
 import Annotation from 'automan/labeling_tool/annotation';
 import History from 'automan/labeling_tool/history';
 import Clipboard from 'automan/labeling_tool/clipboard';
+import LoadingProgress from 'automan/labeling_tool/base_tool/loading_progress';
+import LockStatus from './lock_status';
+import TimeStamp from './timestamp';
 
 import ImageLabelTool from 'automan/labeling_tool/image_label_tool';
 import PCDLabelTool from 'automan/labeling_tool/pcd_label_tool';
@@ -41,7 +47,8 @@ class Controls extends React.Component {
     this.state = {
       frameNumber: 0,
       skipFrameCount: 1,
-      activeTool: 0
+      activeTool: 0,
+      isActivePCD: false
     };
 
     this.frameLength = props.labelTool.frameLength;
@@ -50,14 +57,17 @@ class Controls extends React.Component {
   }
   initTools() {
     // load labeling tools
+    // TODO: get tool name from dataset
     const LABEL_TYPES = {
       BB2D: {
         tools: [ImageLabelTool],
-        names: ['2D']
+        pcdIndex: -1,
+        names: ['Front']
       },
       BB2D3D: {
         tools: [ImageLabelTool, PCDLabelTool],
-        names: ['2D', '3D']
+        pcdIndex: 1,
+        names: ['Front', '3D']
       }
     };
     const type = LABEL_TYPES[this.props.labelTool.labelType];
@@ -66,6 +76,7 @@ class Controls extends React.Component {
       return;
     }
     this.toolNames = type.names;
+    this.pcdToolIndex = type.pcdIndex;
     this.toolComponents = type.tools.map((tool, idx) => {
       const Component = tool;
       const component = (
@@ -101,44 +112,62 @@ class Controls extends React.Component {
     });
   }
   initEvent() {
-    $(window)
-      .keydown(e => {
-        if (e.keyCode == 8 || e.keyCode == 46) {
-          // Backspace or Delete
-          const label = this.getTargetLabel();
-          if (label != null) {
-            this.removeLabel(label);
-          }
-        } else if (e.keyCode == 39) {
-          this.nextFrame();
-        } else if (e.keyCode == 37) {
-          this.previousFrame();
-        } else if (e.keyCode == 90) {
-          // Z key
-          if (e.ctrlKey) {
-            if (e.shiftKey) {
-              this.props.history.redo();
-            } else {
-              this.props.history.undo();
-            }
-          }
-        } else if (e.keyCode == 67) {
-          // C key
-          if (e.ctrlKey) {
-            this.props.clipboard.copy(null);
-          }
-        } else if (e.keyCode == 86) {
-          // V key
-          if (e.ctrlKey) {
-            this.props.clipboard.paste();
-          }
-        } else {
-          this.getTool().handles.keydown(e);
+    const inputTargetCheck = e => {
+      const tag = e.target.tagName.toLowerCase();
+      if (tag === 'textarea' || tag === 'input') {
+        return true;
+      }
+      return false;
+    };
+    window.addEventListener('keydown', e => {
+      if (this.isLoading) {
+        return;
+      }
+      if (inputTargetCheck(e)) {
+        return;
+      }
+      if (e.keyCode == 8 || e.keyCode == 46) {
+        // Backspace or Delete
+        const label = this.getTargetLabel();
+        if (label != null) {
+          this.removeLabel(label);
         }
-      })
-      .keyup(e => {
-        this.getTool().handles.keyup(e);
-      });
+      } else if (e.keyCode == 39) {
+        this.nextFrame();
+      } else if (e.keyCode == 37) {
+        this.previousFrame();
+      } else if (e.keyCode == 90) {
+        // Z key
+        if (e.ctrlKey) {
+          if (e.shiftKey) {
+            this.props.history.redo();
+          } else {
+            this.props.history.undo();
+          }
+        }
+      } else if (e.keyCode == 67) {
+        // C key
+        if (e.ctrlKey) {
+          this.props.clipboard.copy(null);
+        }
+      } else if (e.keyCode == 86) {
+        // V key
+        if (e.ctrlKey) {
+          this.props.clipboard.paste();
+        }
+      } else {
+        this.getTool().handles.keydown(e);
+      }
+    });
+    window.addEventListener('keyup', e => {
+      if (this.isLoading) {
+        return;
+      }
+      if (inputTargetCheck(e)) {
+        return;
+      }
+      this.getTool().handles.keyup(e);
+    });
 
     window.addEventListener('resize', () => {
       this.resize();
@@ -222,8 +251,28 @@ class Controls extends React.Component {
   getTools() {
     return this.props.tools;
   }
+  setPCDActive(isActive) {
+    const prevState = this.state.isActivePCD;
+    const pcdIndex = this.pcdToolIndex;
+    if (pcdIndex < 0 || prevState === isActive) {
+      return;
+    }
+    let prevTool, nextTool;
+    const activeTool = this.state.activeTool;
+    const imageTool = this.props.tools[activeTool];
+    const pcdTool = this.props.tools[pcdIndex];
+    this.setState({isActivePCD: isActive});
+    if (prevState) {
+      pcdTool.setActive(false);
+      imageTool.setActive(true);
+    } else {
+      imageTool.setActive(true, true);
+      pcdTool.setActive(true);
+    }
+  }
   setTool(idx) {
-    const activeTool = this.state.activeTool
+    const isActivePCD = this.state.isActivePCD;
+    const activeTool = this.state.activeTool;
     if (activeTool === idx) {
       return;
     }
@@ -231,11 +280,12 @@ class Controls extends React.Component {
     const nextTool = this.props.tools[idx];
     this.setState({activeTool: idx});
     prevTool.setActive(false);
-    nextTool.setActive(true);
-    // update ??
-    // *********
+    nextTool.setActive(true, isActivePCD);
   }
   getTool() {
+    if (this.state.isActivePCD) {
+      return this.props.tools[this.pcdToolIndex];
+    }
     return this.props.tools[this.state.activeTool];
   }
   getToolFromCandidateId(id) {
@@ -302,8 +352,8 @@ class Controls extends React.Component {
       .then(
         () => {
         },
-        (err) => {
-          console.error(err);
+        err => {
+          this.props.enqueueSnackbar('' + err, { variant: 'error' });
         }
       );
     return true;
@@ -311,10 +361,25 @@ class Controls extends React.Component {
   
   saveFrame() {
     return this.props.annotation.save()
-      .then(() => this.reloadFrame());
+      .then(() => this.loadFrame(this.getFrameNumber()))
+      .then(
+        () => {
+          this.props.enqueueSnackbar('Saved', { variant: 'success' });
+        },
+        err => {
+          this.props.enqueueSnackbar('' + err, { variant: 'error' });
+        }
+      );
   }
   reloadFrame() {
-    return this.loadFrame(this.getFrameNumber());
+    return this.loadFrame(this.getFrameNumber())
+      .then(
+        () => {
+        },
+        err => {
+          this.props.enqueueSnackbar('' + err, { variant: 'error' });
+        }
+      );
   }
   loadFrame(num) {
     if (this.isLoading) {
@@ -327,8 +392,13 @@ class Controls extends React.Component {
     }
 
     this.isLoading = true;
-    return this.props.labelTool.loadBlobURL(num)
+    const labelTool = this.props.labelTool;
+    return Promise.all([
+        labelTool.loadBlobURL(num),
+        num >= 1 && labelTool.loadBlobURL(num - 1)
+      ])
       .then(() => {
+        labelTool.prefetchManage(num);
         return this.props.annotation.load(num);
       })
       .then(() => {
@@ -372,7 +442,7 @@ class Controls extends React.Component {
             if (tool.candidateId >= 0) {
               return;
             }
-            tool.candidateId = info.candidate_id; // TODO: multi candidate_id
+            tool.candidateId = info.id; // TODO: multi candidate_id
             this.props.labelTool.filenames[tool.candidateId] = [];
           }
         });
@@ -390,6 +460,8 @@ class Controls extends React.Component {
       this.init().then(() => {
         this.initialized = true;
         this.props.onload(this);
+      }, err => {
+        this.props.enqueueSnackbar('' + err, { variant: 'error' });
       });
     }
   }
@@ -408,9 +480,15 @@ class Controls extends React.Component {
     );
   };
   onClickNextFrame = (e) => {
+    if (this.isLoading) {
+      return;
+    }
     this.nextFrame();
   };
   onClickPrevFrame = (e) => {
+    if (this.isLoading) {
+      return;
+    }
     this.previousFrame();
   };
   onFrameBlurOrFocus = (e) => {
@@ -439,9 +517,7 @@ class Controls extends React.Component {
 
   renderKlassSet(classes) {
     return (
-      <KlassSet
-        classes={classes}
-      />
+      <KlassSet />
     );
   }
   renderLabels(classes) {
@@ -454,18 +530,41 @@ class Controls extends React.Component {
   renderLeftBar(classes) {
     const toolButtons = [];
     this.toolNames.forEach((name, idx) => {
-      const cls = this.state.activeTool === idx ? classes.activeTool : '';
+      if (idx === this.pcdToolIndex) {
+        return;
+      }
+      const isActive = this.state.activeTool === idx;
+      const cls = isActive ? classes.activeTool : '';
       const button = (
-        <Button
+        <ListItem
           onClick={() => this.setTool(idx)}
+          button={!isActive}
           key={idx}
           className={cls}
         >
           {name}
-        </Button>
+        </ListItem>
       );
       toolButtons.push(button);
     });
+    let pcdButton;
+    if (this.pcdToolIndex >= 0) {
+      pcdButton = (
+        <Button
+          onClick={
+            () => this.setPCDActive(
+              !this.state.isActivePCD
+            )
+          }
+          variant={
+            this.state.isActivePCD ?
+              'contained' : 'outlined'
+          }
+        >
+          3D
+        </Button>
+      );
+    }
     const tool = this.getTool();
     const buttons  = tool == null ? null : tool.getButtons();
     return (
@@ -479,23 +578,23 @@ class Controls extends React.Component {
       >
         <div className={classes.toolControlsWrapper}>
           <div className={classes.toolControls}>
-            Tools
-            <Divider />
             <Grid container alignItems="center">
               <Grid item xs={12}>
-                {toolButtons}
+                Cameras {pcdButton}
+                <Divider />
+                <List>
+                  {toolButtons}
+                </List>
+                <Divider />
+                Tools
                 <Divider />
               </Grid>
               <Grid item xs={12}>
-                <Button onClick={() => this.saveFrame()}>Save</Button>
-                <Button onClick={() => this.reloadFrame()}>Reload</Button>
-              </Grid>
-              <Grid item xs={12}>
-              </Grid>
                 <Clipboard
                   controls={this}
                   classes={classes}
                 />
+              </Grid>
               <Grid item xs={12}>
                 <History
                   controls={this}
@@ -567,6 +666,7 @@ class Controls extends React.Component {
           value={skip === 0 ? '' : skip}
           margin="dense"
         />
+        <LockStatus onClick={() => this.saveFrame()} />
       </div>
     );
     let appBar = (
@@ -574,26 +674,27 @@ class Controls extends React.Component {
         position="relative"
         className={classes.appBar}
       >
-        <Grid
-          container
-          alignItems="center"
+        <div
           className={classes.gridContainer}
         >
-          <Grid item xs={3} className={classes.gridItem}>
+          <div className={classes.gridItem}>
             {frameNumberForm}
-          </Grid>
-          <Grid item xs={8}>
+          </div>
+          <div className={classes.gridItem}>
+            <TimeStamp frameNumber={this.state.frameNumber} />
+          </div>
+          <div className={classes.gridKlassSet}>
             {this.renderKlassSet(classes)}
-          </Grid>
-          <Grid item xs={1}>
+          </div>
+          <div className={classes.gridExitButton}>
             <IconButton
               onClick={this.onClickLogout}
               style={{backgroundColor: '#fff'}}
             >
               <ExitToApp />
             </IconButton>
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </AppBar>
     );
     
@@ -608,6 +709,10 @@ class Controls extends React.Component {
           {this.toolComponents}
         </main>
         {this.renderRightBar(classes)}
+        <LoadingProgress
+          text="Prefetching Files"
+          progress={this.props.loadingState}
+        />
       </div>
     );
   }
@@ -626,6 +731,7 @@ const mapDispatchToProps = dispatch => ({
 });
 export default compose(
   withStyles(toolStyle),
+  withSnackbar,
   connect(
     mapStateToProps,
     mapDispatchToProps 

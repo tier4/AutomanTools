@@ -9,7 +9,7 @@ from projects.storages.models import Storage
 class Original(models.Model):
     name = models.CharField(max_length=255, default='')
     user_id = models.IntegerField(default=0)
-    size = models.IntegerField()
+    size = models.BigIntegerField()
     file_type = models.CharField(max_length=127, default='rosbag')
     registered_at = models.DateTimeField(default=timezone.now)
     uploaded_at = models.DateTimeField(null=True)

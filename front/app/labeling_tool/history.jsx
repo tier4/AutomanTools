@@ -2,7 +2,10 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 
 import Grid from '@material-ui/core/Grid';
+import Tooltip from '@material-ui/core/Tooltip';
 import Button from '@material-ui/core/Button';
+import UndoIcon from '@material-ui/icons/Undo';
+import RedoIcon from '@material-ui/icons/Redo';
 import { compose } from 'redux';
 import { connect } from 'react-redux';
 
@@ -160,8 +163,20 @@ class History extends React.Component {
   render() {
     return (
       <Grid item xs={12}>
-        <Button disabled={!this.hasUndo()} onClick={() => this.undo()}>Undo</Button>
-        <Button disabled={!this.hasRedo()} onClick={() => this.redo()}>Redo</Button>
+        <Tooltip title="Undo">
+          <span>
+            <Button disabled={!this.hasUndo()} onClick={() => this.undo()}>
+              <UndoIcon />
+            </Button>
+          </span>
+        </Tooltip>
+        <Tooltip title="Redo">
+          <span>
+            <Button disabled={!this.hasRedo()} onClick={() => this.redo()}>
+              <RedoIcon />
+            </Button>
+          </span>
+        </Tooltip>
       </Grid>
     );
   }

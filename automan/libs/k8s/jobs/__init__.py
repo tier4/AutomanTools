@@ -16,7 +16,7 @@ class BaseJob(object):
         self.batch_client = client.BatchV1Api()
         self.core_client = client.CoreV1Api()
 
-    def create(self):
+    def create(self, name):
         raise NotImplementedError
 
     def run(self, namespace='default'):

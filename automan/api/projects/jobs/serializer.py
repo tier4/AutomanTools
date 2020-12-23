@@ -15,10 +15,11 @@ from projects.jobs.const import STATUS_MAP, UNKNOWN_LIMIT_TIME
 from projects.project_manager import ProjectManager
 from projects.originals.original_manager import OriginalManager
 from projects.datasets.dataset_manager import DatasetManager
-from projects.storages.serializer import StorageSerializer
+from projects.storages.storage_manager import StorageManager
 from api.settings import PER_PAGE
 from api.common import validation_check
 from accounts.account_manager import AccountManager
+from automan_website import settings
 
 
 class JobSerializer(serializers.ModelSerializer):
@@ -63,7 +64,7 @@ class JobSerializer(serializers.ModelSerializer):
                 if job.status == STATUS_MAP['failed']:
                     namespace = cls.__generate_job_namespace()
                     pod_log = BaseJob().logs(cls.__generate_job_name(job.id, job.job_type), namespace)
-                    job.pod_log = pod_log
+                    job.pod_log = pod_log[0:min(len(pod_log), 1023)]
                 job.save()
             record['status'] = job.status
             record['started_at'] = str(job.started_at) if job.started_at else ''
@@ -101,16 +102,23 @@ class JobSerializer(serializers.ModelSerializer):
 
     @classmethod
     @transaction.atomic
-    def archive(cls, user_id, project_id, dataset_id, original_id, annotation_id):
+    def archive(cls, user_id, project_id, dataset_id, original_id, annotation_id, include_image: bool):
         original = OriginalManager().get_original(project_id, original_id, status='analyzed')
-        storage = StorageSerializer().get_storage(project_id, original['storage_id'])
-        storage_config = copy.deepcopy(storage['storage_config'])
-
+        storage_manager = StorageManager(project_id, original['storage_id'])
+        storage_config = copy.deepcopy(storage_manager.storage['storage_config'])
+        original_path = storage_manager.get_original_filepath(original['name'])
+        storage_config.update({
+            'path': original_path,
+            'storage_id': original['storage_id']})
         automan_config = cls.__get_automan_config(user_id)
-        automan_config.update({'path': '/projects/' + str(project_id) + '/annotations/' + str(annotation_id) + '/'})
-        archive_config = cls.__get_archive_info(user_id, project_id, dataset_id, annotation_id, original_id)
+        automan_config.update({
+            'path': '/projects/' + str(project_id) + '/annotations/' + str(annotation_id) + '/',
+            'presigned': '/projects/' + str(project_id) + '/storages/upload/'})
+
+        archive_config = cls.__get_archive_info(
+            storage_manager.storage['storage_type'], user_id, project_id, dataset_id, annotation_id, original_id, include_image)
         job_config = {
-            'storage_type': storage['storage_type'],
+            'storage_type': storage_manager.storage['storage_type'],
             'storage_config': storage_config,
             'automan_config': automan_config,
             'archive_config': archive_config,
@@ -124,43 +132,51 @@ class JobSerializer(serializers.ModelSerializer):
         new_job.save()
         job = AnnotationArchiver(**job_config)
         job.create(cls.__generate_job_name(new_job.id, 'archiver'))
-        res = job.run()
+        res = job.run(namespace=settings.JOB_NAMESPACE)
         return res
 
-    def __get_archive_info(user_id, project_id, dataset_id, annotation_id, original_id):
+    @staticmethod
+    def __get_archive_info(storage_type, user_id, project_id, dataset_id, annotation_id, original_id, include_image):
         dataset = DatasetManager().get_dataset(user_id, dataset_id)
         file_path = dataset['file_path'].rsplit('/', 2)
         archive_name = file_path[1] + '_' + datetime.now().strftime('%s')
-        archive_config = {
+        archive_dir = file_path[0]
+        if storage_type == 'AWS_S3':
+            archive_dir = dataset['file_path'].replace('datasets', 'archives')
+
+        return {
             'project_id': project_id,
             'dataset_id': dataset_id,
             'annotation_id': annotation_id,
             'original_id': original_id,
-            'archive_dir': file_path[0],
+            'archive_dir': archive_dir,
             'archive_name': archive_name,
+            'include_image': include_image,
         }
-        return archive_config
 
     @classmethod
     @transaction.atomic
-    def extract(cls, user_id, project_id, original_id, candidates):
+    def extract(cls, user_id, project_id, original_id, candidates, name):
         original = OriginalManager().get_original(project_id, original_id, status='analyzed')
-        storage = StorageSerializer().get_storage(project_id, original['storage_id'])
-        storage_config = copy.deepcopy(storage['storage_config'])
-        original_path = StorageSerializer.get_original_path(
-            storage['storage_type'], storage['storage_config'], original['name'])
-        storage_config.update({'path': original_path})
-        output_dir = StorageSerializer.get_dataset_output_dir(
-            storage['storage_type'], storage['storage_config'], original['name'], candidates)
-        storage_config.update({'output_dir': output_dir})
+        storage_manager = StorageManager(project_id, original['storage_id'])
+        storage_config = copy.deepcopy(storage_manager.storage['storage_config'])
+        original_path = storage_manager.get_original_filepath(original['name'])
+        output_dir = storage_manager.get_dataset_dirname(original['name'], candidates)
+        print('output_dirname: ' + output_dir)
+        storage_config.update({
+            'path': original_path,
+            'output_dir': output_dir,
+            'storage_id': original['storage_id']})
         automan_config = cls.__get_automan_config(user_id)
-        automan_config.update({'path': '/projects/' + project_id + '/datasets/'})
-        raw_data_config = cls.__get_raw_data_config(project_id, original_id, candidates)
+        automan_config.update({
+            'path': '/projects/' + project_id + '/datasets/',
+            'presigned': '/projects/' + project_id + '/storages/upload/'})
+        raw_data_config = cls.__get_raw_data_config(project_id, original_id, candidates, name)
         job_config = {
-            'storage_type': storage['storage_type'],
+            'storage_type': storage_manager.storage['storage_type'],
             'storage_config': storage_config,
             'automan_config': automan_config,
-            'raw_data_config': raw_data_config
+            'raw_data_config': raw_data_config,
         }
 
         job_config_json = json.dumps(job_config)
@@ -174,7 +190,7 @@ class JobSerializer(serializers.ModelSerializer):
         if original['file_type'] == 'rosbag':
             job = RosbagExtractor(**job_config)
             job.create(cls.__generate_job_name(new_job.id, 'extractor'))
-            res = job.run()
+            res = job.run(namespace=settings.JOB_NAMESPACE)
             return res
         else:
             raise ValidationError()
@@ -185,17 +201,17 @@ class JobSerializer(serializers.ModelSerializer):
         project = ProjectManager().get_project(project_id, user_id)
         label_type = project['label_type']
         original = OriginalManager().get_original(project_id, original_id, status='uploaded')
-        storage = StorageSerializer().get_storage(project_id, original['storage_id'])
-        storage_config = copy.deepcopy(storage['storage_config'])
-        original_path = StorageSerializer.get_original_path(
-            storage['storage_type'], storage['storage_config'], original['name'])
+        storage_manager = StorageManager(project_id, original['storage_id'])
+        original_path = storage_manager.get_original_filepath(original['name'])
+        storage_config = copy.deepcopy(storage_manager.storage['storage_config'])
         storage_config.update({'path': original_path})
         automan_config = cls.__get_automan_config(user_id)
-        automan_config.update({'path': '/projects/' + project_id + '/originals/' + str(original_id) + '/', 'label_type': label_type})
+        automan_config.update({'path': '/projects/' + project_id + '/originals/' + str(original_id) + '/',
+                               'label_type': label_type})
         job_config = {
-            'storage_type': storage['storage_type'],
+            'storage_type': storage_manager.storage['storage_type'],
             'storage_config': storage_config,
-            'automan_config': automan_config
+            'automan_config': automan_config,
         }
         job_config_json = json.dumps(job_config)
         new_job = Job(
@@ -207,7 +223,7 @@ class JobSerializer(serializers.ModelSerializer):
         if original['file_type'] == 'rosbag':
             job = RosbagAnalyzer(**job_config)
             job.create(cls.__generate_job_name(new_job.id, 'analyzer'))
-            res = job.run()
+            res = job.run(namespace=settings.JOB_NAMESPACE)
             return res
         else:
             raise ValidationError()
@@ -225,7 +241,7 @@ class JobSerializer(serializers.ModelSerializer):
         return automan_config
 
     @staticmethod
-    def __get_raw_data_config(project_id, original_id, candidates):
+    def __get_raw_data_config(project_id, original_id, candidates, name):
         records = {}
         for candidate_id in candidates:
             original_manager = OriginalManager()
@@ -238,6 +254,7 @@ class JobSerializer(serializers.ModelSerializer):
             'original_id': original_id,
             'candidates': candidates,
             'records': records,
+            'name': name,
         }
         return raw_data_config
 
@@ -253,7 +270,10 @@ class JobSerializer(serializers.ModelSerializer):
     @classmethod
     def __get_job_status(cls, id, job_type):
         namespace = cls.__generate_job_namespace()
-        res = BaseJob().fetch(cls.__generate_job_name(id, job_type), namespace)
+        try:
+            res = BaseJob().fetch(cls.__generate_job_name(id, job_type), namespace)
+        except Exception:
+            return None, None, None
         if res['is_succeeded']:
             content = res['content']
             status = cls.__get_status_from_k8s_response(content)
@@ -278,5 +298,5 @@ class JobSerializer(serializers.ModelSerializer):
 
     # FIXME: Consider security
     @staticmethod
-    def __generate_job_namespace(key=None):
-        return key is not None if key else 'default'
+    def __generate_job_namespace():
+        return settings.JOB_NAMESPACE

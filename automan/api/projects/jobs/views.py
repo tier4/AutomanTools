@@ -24,7 +24,7 @@ class JobViewSet(viewsets.ModelViewSet):
                 raise PermissionDenied
             job_config = request.data['job_config']
             original_id = int(job_config['original_id'])
-            content = JobSerializer.analyze(user_id, project_id, original_id)
+            JobSerializer.analyze(user_id, project_id, original_id)
         elif job_type == 'EXTRACTOR':
             if not Permission.hasPermission(user_id, 'get_original', project_id):
                 raise PermissionDenied
@@ -33,7 +33,8 @@ class JobViewSet(viewsets.ModelViewSet):
             job_config = request.data['job_config']
             original_id = int(job_config['original_id'])
             candidates = job_config['candidates']
-            content = JobSerializer.extract(user_id, project_id, original_id, candidates)
+            name = job_config['name']
+            JobSerializer.extract(user_id, project_id, original_id, candidates, name)
         elif job_type == 'ARCHIVER':
             if not Permission.hasPermission(user_id, 'get_original', project_id):
                 raise PermissionDenied
@@ -43,11 +44,12 @@ class JobViewSet(viewsets.ModelViewSet):
             original_id = int(job_config['original_id'])
             dataset_id = int(job_config['dataset_id'])
             annotation_id = int(job_config['annotation_id'])
-            content = JobSerializer.archive(user_id, int(project_id), dataset_id, original_id, annotation_id)
+            is_include_image = bool(job_config['include_image'])
+            JobSerializer.archive(user_id, int(project_id), dataset_id, original_id, annotation_id, is_include_image)
         else:
             raise ValidationError
 
-        return HttpResponse(status=201, content=content, content_type='application/json')
+        return HttpResponse(status=201, content=json.dumps({}), content_type='application/json')
 
     def list(self, request, project_id):
         username = request.user

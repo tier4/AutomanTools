@@ -9,36 +9,22 @@ ENV APP_PATH /opt/automan
 # install python
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    apt-transport-https \
     default-libmysqlclient-dev \
-    ca-certificates \
+    default-mysql-client \
     curl \
     build-essential \
-    iputils-ping \
-    gnupg2 \
-    libbz2-dev \
-    libffi-dev \
-    liblzma-dev \
-    libncurses5-dev \
-    libncursesw5-dev \
-    libreadline-dev \
-    libsqlite3-dev \
-    libssl-dev \
-    llvm \
-    default-mysql-client \
-    tk-dev \
-    wget \
-    xz-utils \
-    zlib1g-dev && \
-    pip install --no-cache-dir pipenv && \
+    tk-dev && \
     curl -sL https://deb.nodesource.com/setup_10.x | bash - && \
-    apt-get install -y nodejs && \
     curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
     echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list && \
     apt-get update && \
-    apt-get install -y yarn && \
+    apt-get install -y \
+    nodejs \
+    yarn && \
+    apt-get autoremove -y && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    pip install --no-cache-dir pipenv
 
 # setup pipenv
 COPY automan/Pipfile* /tmp/automan/

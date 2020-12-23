@@ -3,7 +3,9 @@ import json
 from django.http import HttpResponse
 from django.core.exceptions import ValidationError, PermissionDenied
 from rest_framework import viewsets
+from rest_framework.decorators import action
 from .serializer import StorageSerializer
+from .storage_manager import StorageManager
 from api.permissions import Permission
 from api.settings import PER_PAGE, SORT_KEY
 from accounts.account_manager import AccountManager
@@ -26,8 +28,9 @@ class StorageViewSet(viewsets.ModelViewSet):
         })
         if not serializer.is_valid():
             raise ValidationError
-        content = serializer.save()
-        return HttpResponse(status=201, content=content, content_type='application/json')
+        serializer.save()
+        content = StorageSerializer.list(project_id)
+        return HttpResponse(status=201, content=json.dumps(content), content_type='application/json')
 
     def list(self, request, project_id):
         username = request.user
@@ -44,5 +47,17 @@ class StorageViewSet(viewsets.ModelViewSet):
 
         contents = StorageSerializer.list(project_id, sort_key, is_reverse, per_page, page, search_keyword)
         return HttpResponse(content=json.dumps(contents),
+                            status=200,
+                            content_type='application/json')
+
+    @action(methods=['post'], detail=False)
+    def upload(self, request, project_id):
+        # TODO s3 validation
+        storage_id = int(request.data.get('storage_id'))
+        key = request.data.get('key')
+        storage_manager = StorageManager(project_id, storage_id)
+        bucket = storage_manager.storage['storage_config']['bucket']
+        res = storage_manager.get_s3_presigned_url(bucket, key)
+        return HttpResponse(content=json.dumps(res),
                             status=200,
                             content_type='application/json')

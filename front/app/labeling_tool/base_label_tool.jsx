@@ -5,9 +5,11 @@ import { compose } from 'redux';
 import { connect } from 'react-redux';
 
 import Controls from 'automan/labeling_tool/controls';
+import LoadingProgress from 'automan/labeling_tool/base_tool/loading_progress';
 
 import RequestClient from 'automan/services/request-client';
 import { setLabelTool } from './actions/tool_action';
+import { setFrameInfo } from './actions/annotation_action';
 
 
 class LabelTool extends React.Component {
@@ -21,88 +23,54 @@ class LabelTool extends React.Component {
   datasetId = null;       // from 'annotation'
   originalId = null;      // from 'dataset'
   labelType = null;
-  // progress
-  loaded = false;
   // file status
   filenames = {};
   frameLength = -1;
+  loadedFileSet = new Set();
   // error
   errorMessage = null;
 
-  isLoaded() {
-    return this.loaded;
-  }
-  loadFrame(num) {
-    if (!this.isLoaded()) {
-      return Promise.reject('Duplicate loading');
-    }
-
-    // TODO: check 'num'
-    // TODO: decide move or not
-    let savePromise;
-    if (LabelTool.isChanged()) {
-      const TEXT_SAVE = 'Do you want to save?';
-      const TEXT_MOVE = 'Do you want to leave from this frame WITHOUT SAVING?';
-      if ( window.confirm(TEXT_SAVE) ) {
-        savePromise = annotation.save();
-      } else if ( window.confirm(TEXT_MOVE) ) {
-        savePromise = Promise.resolve();
-      } else {
-        return Promise.resolve();
-      }
-    } else {
-      savePromise = Promise.resolve();
-    }
-
-    this.controls.selectLabel(null);
-
-    this.loaded = false;
-    return savePromise.then(() => {
-      return this.controls.setFrameNumber(num);
-    }).then(() => {
-      return Promise.all(/* load all */);
-    }).then(() => {
-      this.loaded = true;
-      return Promise.resolve();
-    }).catch(e => {
-      // error toast
-      this.loaded = true;
-      return Promise.reject();
-    });
-    // *********
-  }
-  reloadFrame() {
-    this.loaded = false;
-
-
-    return this.controls.loadFrame().then(
-      () => {
-         this.loaded = true;
-      },
-      e => {
-         this.loaded = true;
-         return Promise.reject(e);
-      }
-    );
-    // *********
-  }
-  saveFrame() {
-    if (!this.isLoaded()) {
-      return Promise.reject('Duplicate save');
-    }
-    return this.saveStatus()
-      .then(() => this.controls.save())
-      .then(() => this.reloadFrame());
-    // *********
-  }
   saveStateus() {
     return Promise.resolve();
     // *********
   }
-  
+
 
   getProjectInfo() {
     return this.projectInfo;
+  }
+  prefetchManage(num) {
+    const len = this.PREFETCH_LEN;
+    const start = Math.max(num - len, 0),
+          end = Math.min(num + len, this.frameLength - 1);
+    const prefetchNum = [];
+    for (let i=start; i<=end; ++i) {
+      prefetchNum.push(i);
+    }
+    const loaded = this.loadedFileSet;
+    for (let it of prefetchNum) {
+      if (!loaded.delete(it)) {
+        this.loadBlobURL(it);
+      }
+    }
+    for (let it of loaded) {
+      this.unloadBlobURL(it);
+    }
+    this.loadedFileSet = new Set(prefetchNum);
+  }
+  unloadBlobURL(num) {
+    this.controls.getTools().forEach(
+      tool => {
+        const candidateId = tool.candidateId;
+        const fname = this.filenames[candidateId][num];
+        if (typeof fname === 'string') {
+          tool.unload(num);
+        } else if (fname instanceof Promise) {
+          fname.then();
+        }
+        this.filenames[candidateId][num] = null;
+      }
+    );
   }
   loadBlobURL(num) {
     // load something (image, pcd) by URL
@@ -113,13 +81,18 @@ class LabelTool extends React.Component {
           const fname = this.filenames[candidateId][num];
           if (typeof fname === 'string') {
             return Promise.resolve();
+          } else if (fname instanceof Promise) {
+            return fname;
           }
-          return (new Promise((resolve, reject) => {
+          const ret = (new Promise((resolve, reject) => {
             RequestClient.get(
               this.getURL('image_url', candidateId, num),
               null,
               res => {
-                resolve(res);
+                resolve(res['image_link']);
+                this.props.dispatchSetFrameInfo(
+                  num, { "time": res['frame'] }
+                );
               },
               e => {
                 reject(e);
@@ -138,7 +111,9 @@ class LabelTool extends React.Component {
                 }
               );
             });
-          })
+          });
+          this.filenames[candidateId][num] = ret;
+          return ret;
         }
       )
     );
@@ -165,7 +140,7 @@ class LabelTool extends React.Component {
       case 'candidate_info': {
         const dataType = args[0];
         ret =
-          PROJECT_ROOT + 'originals/' + this.originalId + '/candidates/';
+          PROJECT_ROOT + 'datasets/' + this.datasetId + '/candidates/';
         if (dataType != null) {
           ret += '?data_type=' + dataType;
         }
@@ -187,6 +162,7 @@ class LabelTool extends React.Component {
         const candidateId = args[0];
         const frameNumber = args[1] + 1;
         ret = this.filenames[candidateId][frameNumber-1];
+        // TODO: string check
         break;
       }
       case 'unlock':
@@ -209,7 +185,9 @@ class LabelTool extends React.Component {
     super(props);
     this.state = {
       isLoaded: false,
-      isInitialized: false
+      isInitialized: false,
+      loadingState: -1,
+      loadingCnt: 0,
     };
 
     props.dispatchSetLabelTool(this);
@@ -227,6 +205,7 @@ class LabelTool extends React.Component {
           this.setState({isInitialized: true});
         });
       })
+      .then(() => this.prefetchBlobs())
       .then(() => {
         this.initializeEvent();
 
@@ -238,6 +217,32 @@ class LabelTool extends React.Component {
         // ******
       });
   }
+  PREFETCH_LEN = 5;
+  prefetchBlobs() {
+    const len = Math.min(
+      this.PREFETCH_LEN,
+      this.frameLength
+    );
+    const requests = [];
+    this.setState({
+      loadingState: 0,
+      loadingCnt: this.frameLength,
+    });
+    for(let i=0; i<=len; ++i) {
+      requests.push(
+        this.loadBlobURL(i).then(() => {
+          this.setState(state => ({
+            loadingState: state.loadingState + 1
+          }));
+        })
+      );
+    }
+    return Promise.all(requests).then(() => {
+      this.setState({
+        loadingState: -1
+      });
+    });
+  }
 
   // get project information
   initProject() {
@@ -247,9 +252,9 @@ class LabelTool extends React.Component {
         null,
         res => {
           this.projectInfo = res;
-  
+
           this.labelType = res.label_type;
-  
+
           resolve();
         },
         err => {
@@ -282,6 +287,7 @@ class LabelTool extends React.Component {
         res => {
           this.originalId = res.original_id;
           this.frameLength = res.frame_count;
+          this.candidateInfo = res.candidates;
           resolve();
         },
         err => {
@@ -296,8 +302,8 @@ class LabelTool extends React.Component {
         this.getURL('candidate_info'),
         null,
         res => {
-          this.candidateInfo = res.records;
-          
+          this.candidateInfo = res.candidates;
+
           resolve();
         },
         err => {
@@ -310,9 +316,9 @@ class LabelTool extends React.Component {
     return this.initProject()
       .then(() => this.initAnnotation())
       .then(() => this.initDataset())
-      .then(() => this.initCandidateInfo())
+      // .then(() => this.initCandidateInfo())
   }
-  
+
   initializeEvent() {
     this.controls.initEvent();
   }
@@ -336,22 +342,30 @@ class LabelTool extends React.Component {
       );
     }
     if (!this.isInitialized()) {
-      return <div>Loading</div>;
+      return (
+        <LoadingProgress
+          text="Tool initializing"
+          progress={null}
+        />
+      );
     }
     return (
       <Controls
         labelTool={this}
         onload={this.controlsDidMount}
+        loadingState={this.state.loadingState / this.state.loadingCnt}
       />
     );
   }
 };
 
 const mapStateToProps = state => ({
-  labelTool: state.tool.labelTool
+  labelTool: state.tool.labelTool,
+  frameNumber: state.annotation.frameNumber
 });
 const mapDispatchToProps = dispatch => ({
-  dispatchSetLabelTool: target => dispatch(setLabelTool(target))
+  dispatchSetLabelTool: target => dispatch(setLabelTool(target)),
+  dispatchSetFrameInfo: (num, info) => dispatch(setFrameInfo(num, info))
 });
 export default compose(
   connect(

@@ -22,6 +22,9 @@ class StorageSerializer(serializers.ModelSerializer):
                 storage_config = self.__local_storage_config(validated_data.get('project').id)
             else:
                 raise Exception  # FIXME
+        elif validated_data.get('storage_type') == 'AWS_S3':
+            storage_config = self.__aws_s3_config(
+                storage_config, validated_data.get('project').id)
         else:
             raise NotImplementedError  # FIXME
 
@@ -91,27 +94,17 @@ class StorageSerializer(serializers.ModelSerializer):
             records.append(record)
         return records
 
-    @staticmethod
-    def get_original_path(storage_type, storage_config, name):
-        if storage_type == 'LOCAL_NFS':
-            return storage_config['mount_path'] + storage_config['base_dir'] + '/' + name + '/raw/' + name
-        else:
-            raise NotImplementedError  # FIXME
-
-    @staticmethod
-    def get_dataset_output_dir(storage_type, storage_config, name, candidates):
-        if storage_type == 'LOCAL_NFS':
-            candidates_str = '_'.join(map(str, candidates))
-            return (storage_config['mount_path'] + storage_config['base_dir']
-                    + '/dataset_' + candidates_str + '_'
-                    + datetime.now().strftime('%s') + '/')
-        else:
-            raise NotImplementedError  # FIXME
-
     def __local_storage_config(self, project_id):
         return json.dumps({
             'mount_path': MOUNT_PATH,
             'volume_name': VOLUME_NAME,
             'claim_name': CLAIM_NAME,
+            'base_dir': '/' + str(project_id),
+        })
+
+    def __aws_s3_config(self, storage_config_json, project_id):
+        config = json.loads(storage_config_json)
+        return json.dumps({
+            'bucket': config['bucket'],
             'base_dir': '/' + str(project_id),
         })

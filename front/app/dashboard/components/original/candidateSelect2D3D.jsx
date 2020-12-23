@@ -9,6 +9,7 @@ import FormGroup from '@material-ui/core/FormGroup';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Checkbox from '@material-ui/core/Checkbox';
 import { mainStyle } from 'automan/assets/main-style';
+import TextField from '@material-ui/core/TextField';
 
 class CandidateSelect2D3D extends React.Component {
   constructor(props) {
@@ -17,14 +18,19 @@ class CandidateSelect2D3D extends React.Component {
       candidates: [],
       candidates_2d: [],
       candidates_3d: [],
+      name: '',
       original: { name: null }
     };
   }
   componentDidMount() {
     const original_id = this.props.original_id;
-    this.props.handleSetJobConfig({ original_id: this.props.original_id });
+    this.props.handleSetJobConfig({
+      name: '',
+      original_id: this.props.original_id
+    });
     const candidates = this.props.handleGetJobConfig('candidates');
-    this.setState({ candidates: candidates });
+    const name = this.props.handleGetJobConfig('name');
+    this.setState({ candidates: candidates, name: name });
     let urlBase =
       `/projects/${this.props.currentProject.id}/originals/${original_id}`;
     let imgUrl = urlBase + '/candidates/?data_type=IMAGE';
@@ -62,10 +68,29 @@ class CandidateSelect2D3D extends React.Component {
       x => candidates.includes(x.candidate_id));
     this.props.handleSelect(is_2d_selected && is_3d_selected);
   };
+  handleChangeName = e => {
+    const name = e.target.value;
+    this.setState({ name: name });
+    this.props.handleSetJobConfig('name', name);
+  };
   render() {
     const { classes } = this.props;
     return (
       <div className={classes.root}>
+        <FormControl component="fieldset" className={classes.formControl}>
+          <FormLabel component="legend">Dataset Name</FormLabel>
+          <FormGroup>
+            <FormControlLabel
+              control={
+                <TextField
+                  label="rosbag.bag"
+                  onChange={this.handleChangeName}
+                  value={this.state.name}
+                />
+              }
+            />
+          </FormGroup>
+        </FormControl>
         <FormControl component="fieldset" className={classes.formControl}>
           <FormLabel component="legend">2D Candidates</FormLabel>
           <FormGroup>

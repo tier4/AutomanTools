@@ -7,10 +7,12 @@ import {
   SET_TOOL_CONTROLS,
   SET_TOOL_LABEL_TOOL,
   ADD_TOOL_WITH_INDEX,
+  SET_TOOL_LOCK,
 } from '../actions/tool_action';
 
 const initialState = {
   annotation: null,
+  annotationLock: null,
   klassSet: null,
   history: null,
   clipboard: null,
@@ -59,6 +61,11 @@ export default function toolReducer(state = initialState, action = {}) {
         tools: newTools,
         toolsCnt: state.toolsCnt + 1
       }
+      break;
+    case SET_TOOL_LOCK:
+      newState = {
+        annotationLock: action.lockInfo
+      };
       break;
     default:
       return state;

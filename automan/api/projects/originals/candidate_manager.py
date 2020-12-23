@@ -12,3 +12,13 @@ class CandidateManager(object):
         candidates = DatasetCandidate.objects.filter(original=original_id)
         for candidate in candidates:
             candidate.delete()
+
+    def get_candidate(self, candidate_id):
+        candidate = DatasetCandidate.objects.filter(id=candidate_id).first()
+        content = {}
+        if candidate is not None:
+            content['id'] = candidate_id
+            content['data_type'] = str(candidate.data_type)
+            content['framme_count'] = candidate.frame_count
+            content['analyzed_info'] = str(candidate.analyzed_info)
+        return content

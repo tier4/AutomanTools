@@ -9,10 +9,15 @@ from django.db.models import Q
 from django.utils import timezone
 from projects.originals.models import Original, FileType, RelatedFile, DatasetCandidate
 from projects.storages.serializer import StorageSerializer
+from projects.storages.aws_s3 import AwsS3Client
+from projects.storages.storage_manager import StorageManager
 from projects.datasets.dataset_manager import DatasetManager
 from api.common import validation_check
 from api.settings import SORT_KEY, PER_PAGE
 from automan_website.settings import STORAGE_CONFIG
+
+class FileNotFoundError(Exception):
+    pass
 
 
 class OriginalManager(object):
@@ -20,18 +25,23 @@ class OriginalManager(object):
     def __init__(self):
         pass
 
-    def register_original(self, project_id, user_id, name, file_type, size, storage_id):
+    def register_original(self, project_id, user_id, filename, file_type, size, storage_id):
+        storage_manager = StorageManager(project_id, storage_id)
+        if not storage_manager.original_file_exists(filename):
+            raise FileNotFoundError
+
         new_original = Original(
-            name=name,  # FIXME: name validation
+            name=filename,  # FIXME: name validation
             project_id=project_id,
             user_id=user_id,
             file_type=file_type,
             size=size,
+            status='uploaded',
+            uploaded_at=timezone.datetime.now(),
             storage_id=storage_id)
         new_original.save()
-        storage_config = copy.deepcopy(STORAGE_CONFIG)
-        storage_config.update({'blob': name})
         original = self.get_original(project_id, new_original.id)
+
         return original
 
     @transaction.atomic
@@ -154,30 +164,16 @@ class OriginalManager(object):
         originals = Original.objects.filter(project_id=project_id)
         return originals.count()
 
-    def save_file(self, project_id, original_id, file):
+    def save_file(self, project_id, file):
         # if target files is existed and the limit time has passed, delete it.
-        original = self.get_original(project_id, original_id, status='registered')
-        storage = StorageSerializer().get_storage(project_id, original['storage_id'])
+        storage = StorageSerializer().get_storages(project_id)[0]
         if storage['storage_type'] != 'LOCAL_NFS':
             raise ValidationError()
-        dir_path = (storage['storage_config']['mount_path']
-                    + storage['storage_config']['base_dir']
-                    + '/' + original['name'] + '/raw/')  # FIXME: Rule Aggregation
-        file_path = dir_path + file.name
-        try:
-            os.makedirs(dir_path)
-        except Exception:
-            original = Original.objects.filter(id=original_id).first()
-            if original is None:
-                raise ObjectDoesNotExist()
-            file_name = file.name + '_' + datetime.now().strftime('%s')
-            dir_path = storage['storage_config']['mount_path']
-            + storage['storage_config']['base_dir']
-            + '/' + file_name + '/raw/'  # FIXME: Rule Aggregation
-            os.makedirs(dir_path)
-            original.name = file_name
-            original.save()
-            file_path = dir_path + file_name
+
+        storage_manager = StorageManager(project_id, storage['id'])
+        dir_path = storage_manager.original_dirname 
+        file_path = storage_manager.get_original_filepath(file.name)
+        os.makedirs(dir_path, exist_ok=True)
 
         # write
         with open(file_path, 'ab') as destination:
@@ -202,9 +198,7 @@ class OriginalManager(object):
             raise ObjectDoesNotExist()
 
         storage = StorageSerializer().get_storage(project_id, rosbag.storage_id)
-        dir_path = (storage['storage_config']['mount_path']
-                    + storage['storage_config']['base_dir']
-                    + '/' + rosbag.name + '/')
+        config = storage['storage_config']
 
         dataset_manager = DatasetManager()
         if dataset_manager.get_datasets_count_by_original(original_id) == 0:
@@ -213,5 +207,11 @@ class OriginalManager(object):
                 candidate.delete()
 
         rosbag.delete()
-        shutil.rmtree(dir_path)
+        if storage['storage_type'] == 'LOCAL_NFS':
+            path = (config['mount_path'] + config['base_dir']
+                    + '/' + rosbag.name + '/')
+            shutil.rmtree(path)
+        elif storage['storage_type'] == 'AWS_S3':
+            key = config['base_dir'] + '/raws/' + rosbag.name
+            AwsS3Client().delete_s3_files(config['bucket'], key)
         return True

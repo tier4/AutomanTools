@@ -10,9 +10,11 @@ from django.core.exceptions import (
 from projects.annotations.models import DatasetObject, DatasetObjectAnnotation, AnnotationProgress
 from projects.annotations.helpers.label_types.bb2d import BB2D
 from projects.annotations.helpers.label_types.bb2d3d import BB2D3D
+from projects.annotations.helpers.memo import MemoValidator
 from .models import Annotation, ArchivedLabelDataset, FrameLock
 from projects.datasets.models import LabelDataset
 from projects.models import Projects
+from projects.storages.aws_s3 import AwsS3Client
 from api.settings import PER_PAGE, SORT_KEY
 from api.common import validation_check
 from api.errors import UnknownLabelTypeError
@@ -102,18 +104,21 @@ class AnnotationManager(object):
             raise ObjectDoesNotExist()
         return newest_annotation
 
-    def delete_annotation(self, annotation_id):
+    def delete_annotation(self, annotation_id, storage):
         archives = ArchivedLabelDataset.objects.filter(annotation_id=annotation_id)
         for archive in archives:
-            path = archive.file_path + '/' + archive.file_name
-            os.remove(path)
+            path = archive.file_path.rstrip('/') + '/' + archive.file_name
+            if storage['storage_type'] == 'LOCAL_NFS':
+                os.remove(path)
+            elif storage['storage_type'] == 'AWS_S3':
+                AwsS3Client().delete_s3_files(storage['storage_config']['bucket'], path)
         annotation = Annotation.objects.filter(id=annotation_id).first()
         annotation.delete()
 
-    def delete_annotations(self, dataset_id):
+    def delete_annotations(self, dataset_id, storage):
         annotations = Annotation.objects.filter(dataset_id=dataset_id)
         for annotation in annotations:
-            self.delete_annotation(annotation.id)
+            self.delete_annotation(annotation.id, storage)
 
     def get_frame_labels(self, project_id, user_id, try_lock, annotation_id, frame):
         objects = DatasetObject.objects.filter(
@@ -144,6 +149,15 @@ class AnnotationManager(object):
             try_lock, user_id, annotation_id, frame)
         return labels
 
+    def content_validate(self, label_class, content):
+        for k, v in content.items():
+            if k == 'memo':
+                if not MemoValidator.validate(v):
+                    return False
+            elif not label_class.validate(v):
+                return False
+        return True
+
     @transaction.atomic
     def set_frame_label(
             self, user_id, project_id, annotation_id, frame, created_list, edited_list, deleted_list):
@@ -161,9 +175,8 @@ class AnnotationManager(object):
 
         # TODO: bulk insert (try to use bulk_create method)
         for label in created_list:
-            for v in label['content'].values():
-                if not LabelClass.validate(v):
-                    raise ValidationError("Label content is invalid.")
+            if not self.content_validate(LabelClass, label['content']):
+                raise ValidationError("Label content is invalid.")
             new_object = DatasetObject(
                 annotation_id=annotation_id,
                 frame=frame,
@@ -176,9 +189,8 @@ class AnnotationManager(object):
             new_label.save()
 
         for label in edited_list:
-            for v in label['content'].values():
-                if not LabelClass.validate(v):
-                    raise ValidationError("Label content is invalid.")
+            if not self.content_validate(LabelClass, label['content']):
+                raise ValidationError("Label content is invalid.")
             edited_label = DatasetObjectAnnotation(
                 object_id=label['object_id'],
                 name=label['name'],
@@ -256,7 +268,7 @@ class AnnotationManager(object):
     def get_archive_path(self, annotation_id):
         archive = ArchivedLabelDataset.objects.filter(
             annotation_id=annotation_id).order_by('-date').first()
-        archive_path = archive.file_path + '/' + archive.file_name
+        archive_path = archive.file_path.rstrip('/') + '/' + archive.file_name
         return archive_path
 
     def get_instances(self, annotation_id):
@@ -298,7 +310,7 @@ class AnnotationManager(object):
         try:
             UUID(uuid4, version=4)
             return True
-        except:
+        except ValueError:
             return False
 
     def get_lock(self, try_lock, user_id, annotation_id, frame):

@@ -1,6 +1,7 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom';
+import { withStyles } from '@material-ui/core/styles';
 
 import { compose } from 'redux';
 import { connect } from 'react-redux';
@@ -8,12 +9,49 @@ import { connect } from 'react-redux';
 import { addTool } from './actions/tool_action';
 
 import ImageBBox from './image_tool/image_bbox';
+import CommonEditBar from './common_edit_bar';
 
+const imageToolStyle = {
+  wrapper: {
+    position: 'relative',
+    height: '100%'
+  },
+  main: {
+    transformOrigin: 'left top'
+  },
+  wipe: {
+    position: 'absolute',
+    transformOrigin: 'left bottom',
+    bottom: 0,
+    left: 0,
+    borderTop: 'solid 2px #fff',
+    borderRight: 'solid 2px #fff'
+  },
+  wipeText: {
+    transformOrigin: 'left top',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    backgroundColor: '#fff',
+    padding: '0px 7px'
+  },
+  guard: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    height: '100%',
+    width: '100%'
+  }
+};
+
+const MAIN_SCREEN_SCALE = 0.68;
+const WIPE_SCREEN_SCALE = 1 - MAIN_SCREEN_SCALE;
 class ImageLabelTool extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      scale: 1.0
+      scale: 1.0,
+      isWipe: false
     };
     this._element = React.createRef();
     this._wipeElement = React.createRef();
@@ -27,55 +65,76 @@ class ImageLabelTool extends React.Component {
     return null;
   }
   getEditor() {
-    return null; 
+    return (
+      <CommonEditBar />
+    );
   }
   render() {
-    const mainStyle = {
-      transform: `scale(${this.state.scale})`,
-      transformOrigin: 'left top'
-    };
-    const wipeScale = this.state.scale * 0.32;
-    const wipeStyle = {
-      position: 'absolute',
+    const classes = this.props.classes;
+    const mainScale = this.state.scale * MAIN_SCREEN_SCALE;
+    const wipeScale = this.state.scale * WIPE_SCREEN_SCALE;
+    const mainMargin = this._wrapperSize.width - this._imageSize.width * mainScale;
+    const wipeWidth = this._imageSize.width * wipeScale;
+    const ml = Math.min(mainMargin, wipeWidth);
+
+    const wrapperStyle = this.state.isWipe ? {
+      transformOrigin: 'left top',
       transform: `scale(${wipeScale})`,
-      transformOrigin: 'left bottom',
-      bottom: 0,
-      left: 0,
-      borderTop: 'solid 2px #fff',
-      borderRight: 'solid 2px #fff'
+      position: 'absolute',
+      zIndex: 100
+    } : {};
+    const mainStyle = {
+      transform: `scale(${mainScale})`,
+      marginLeft: isFinite(ml) ? ml : 0
+    };
+    const wipeStyle = {
+      transform: `scale(${wipeScale})`
     };
     const wipeTextStyle = {
-      transform: `scale(${1 / wipeScale})`,
-      transformOrigin: 'left top',
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      backgroundColor: '#fff',
-      padding: '0px 7px'
+      transform: `scale(${1 / wipeScale})`
+    };
+    const guardStyle = {};
+    if (this.state.isWipe) {
+      wipeStyle['display'] = 'none';
+      guardStyle['width'] = this._imageSize.width + 'px';
+      guardStyle['height'] = this._imageSize.height + 'px';
+      Object.assign(mainStyle, {
+        transform: 'scale(1)',
+        marginLeft: 0,
+        borderRight: 'solid 2px white',
+        borderBottom: 'solid 2px white'
+      });
+    } else {
+      guardStyle['display'] = 'none';
     }
     return (
       <div
         ref={this._wrapperElement}
-        style={{
-          position: 'relative',
-          height: '100%'
-        }}
+        className={classes.wrapper}
+        style={wrapperStyle}
       >
         <div
           ref={this._element}
+          className={classes.main}
           style={mainStyle}
         />
         <div
           ref={this._wipeElement}
+          className={classes.wipe}
           style={wipeStyle}
           onClick={() => this.props.controls.previousFrame()}
         >
           <div
+            className={classes.wipeText}
             style={wipeTextStyle}
           >
             Prev
           </div>
         </div>
+        <div
+          className={classes.guard}
+          style={guardStyle}
+        />
       </div>
     );
   }
@@ -144,6 +203,8 @@ class ImageLabelTool extends React.Component {
       resolve();
     });
   }
+  unload(frame) {
+  }
   handles = {
     resize: size => {
       this._wrapperSize = size;
@@ -154,8 +215,11 @@ class ImageLabelTool extends React.Component {
     keyup: e =>{
     }
   };
-  setActive(isActive) {
-    if ( isActive ) {
+  setActive(isActive, isWipe=false) {
+    if (isWipe !== this.state.isWipe) {
+      this.setState({ isWipe: isWipe });
+    }
+    if (isActive) {
       this._wrapper.show();
     } else {
       this._wrapper.hide();
@@ -190,9 +254,6 @@ class ImageLabelTool extends React.Component {
   disposeBBox(bbox) {
     bbox.remove();
   }
-  updateBBox(label) {
-    // TODO: recreate all
-  }
   updateTarget(prev, next) {
     const id = this.candidateId;
     if (prev != null && prev.has(id)) {
@@ -207,17 +268,32 @@ class ImageLabelTool extends React.Component {
       this._decoration.hide();
     }
   }
+  getMainScale() {
+    return this.state.scale * MAIN_SCREEN_SCALE;
+  }
 
 
 
+  _getScale() {
+    const widthRatio = this._wrapperSize.width / this._imageSize.width;
+    const heightRatio = this._wrapperSize.height / this._imageSize.height;
+    const aspectRatio = widthRatio / heightRatio;
+
+    if (aspectRatio < MAIN_SCREEN_SCALE) {
+      return widthRatio / MAIN_SCREEN_SCALE;
+    } else if (aspectRatio < 1) {
+      return heightRatio;
+    } else if (aspectRatio <= 1 / MAIN_SCREEN_SCALE) {
+      return widthRatio;
+    } else {
+      return heightRatio / MAIN_SCREEN_SCALE;
+    }
+  }
   _resize() {
     const paper = this._paper;
     const wipePaper = this._wipePaper;
 
-    let scale = Math.min(
-      this._wrapperSize.width / this._imageSize.width,
-      this._wrapperSize.height / this._imageSize.height
-    );
+    const scale = this._getScale();
     paper.setSize(
       this._imageSize.width,
       this._imageSize.height
@@ -234,10 +310,8 @@ class ImageLabelTool extends React.Component {
       this._wipeImage = null;
     }
     if (url == null) {
-      this._wipeElement.current.style.display = 'none';
       return;
     }
-    this._wipeElement.current.style.display = '';
     const paper = this._wipePaper;
     const image = paper.image(url, 0, 0, "100%", "100%");
     image.toBack();
@@ -277,8 +351,9 @@ class ImageLabelTool extends React.Component {
   _creatingBox = null;
   _imageDragMove = (dx, dy) => {
     const klass = this.props.controls.getTargetKlass();
-    dx = dx / this.state.scale | 0;
-    dy = dy / this.state.scale | 0;
+    const mainScale = this.state.scale * MAIN_SCREEN_SCALE;
+    dx = dx / mainScale | 0;
+    dy = dy / mainScale | 0;
     if (this._creatingRect == null) {
       const posDiff = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
       if (posDiff >= 10) {
@@ -311,9 +386,10 @@ class ImageLabelTool extends React.Component {
     if (e.button !== 0) { return; } // not left click
     this.props.controls.selectLabel(null);
     const offset = this._container.offset();
+    const mainScale = this.state.scale * MAIN_SCREEN_SCALE;
     this._creatingBox = {
-      sx: (x - offset.left) / this.state.scale | 0,
-      sy: (y - offset.top) / this.state.scale | 0,
+      sx: (x - offset.left) / mainScale | 0,
+      sy: (y - offset.top) / mainScale | 0,
       ex: 0, ey: 0
     };
   };
@@ -445,6 +521,7 @@ const mapDispatchToProps = dispatch => ({
   dispatchAddTool: (idx, target) => dispatch(addTool(idx, target))
 });
 export default compose(
+  withStyles(imageToolStyle),
   connect(
     mapStateToProps,
     mapDispatchToProps

@@ -13,8 +13,7 @@ import classNames from 'classnames';
 
 import RequestClient from 'automan/services/request-client';
 import { setTargetLabel } from './actions/annotation_action';
-import { setAnnotation } from './actions/tool_action';
-
+import { setAnnotation, setLockInfo } from './actions/tool_action';
 
 class Annotation extends React.Component {
   // data
@@ -69,6 +68,7 @@ class Annotation extends React.Component {
               instanceId: obj.instance_id,
               klass: klass,
               bbox: bboxes,
+              memo: obj.content.memo,
               select(flag) {
                 for(let id in this.bbox) {
                   this.bbox[id].select(flag);
@@ -105,6 +105,9 @@ class Annotation extends React.Component {
             const labels = new Map(), instanceIds = new Map();
             const isLocked = res.is_locked,
                   expiresAt = res.expires_at;
+            this.props.dispatchSetLockInfo({
+              expiresAt: new Date(expiresAt * 1000)
+            });
             res.records.forEach(obj => {
               let klass = this.props.klassSet.getByName(obj.name);
               let bboxes = {};
@@ -114,7 +117,11 @@ class Annotation extends React.Component {
                   bboxes[id] = tool.createBBox(obj.content[id]);
                 }
               });
-              let label = new Label(this, obj.object_id, obj.instance_id, klass, bboxes);
+              let memo = obj.content.memo;
+              if (memo == null) {
+                memo = '';
+              }
+              let label = new Label(this, obj.object_id, obj.instance_id, klass, bboxes, memo);
               labels.set(label.id, label);
               if (label.instanceId != null) {
                 instanceIds.set(label.instanceId, label);
@@ -187,12 +194,13 @@ class Annotation extends React.Component {
     });
   }
   getTarget() {
-    return this.props.targetLabel;
+    return this.props.targetLabel.label;
   }
   setTarget(tgt) {
     let next = this.getLabel(tgt),
-      prev = this.props.targetLabel;
+      prev = this.getTarget();
     if (prev != null && next != null && next.id === prev.id) {
+      this.props.dispatchSetTargetLabel(prev);
       return prev;
     }
     if (prev != null) {
@@ -214,7 +222,7 @@ class Annotation extends React.Component {
       this.props.controls.error(txt);
       return null;
     }
-    const label = new Label(this, this._nextId--, null, klass, bbox);
+    const label = new Label(this, this._nextId--, null, klass, bbox, '');
     this.props.history.addHistory([label], 'create');
     this.setState(state => {
       const labels = new Map(state.labels);
@@ -235,10 +243,8 @@ class Annotation extends React.Component {
       this.props.controls.error(txt);
       return;
     }
+    this.props.history.addHistory([label], 'change');
     label.setKlass(klass);
-    this.getTools().forEach(tool => {
-      tool.updateBBox(label);
-    });
   }
   attachBBox(id, candidateId, bbox) {
     let label = this.getLabel(id);
@@ -284,7 +290,7 @@ class Annotation extends React.Component {
         tool.disposeBBox(label.bbox[tool.candidateId]);
       }
     });
-    const tgt = this.props.targetLabel;
+    const tgt = this.getTarget();
     if (tgt != null && label.id === tgt.id) {
       this.props.dispatchSetTargetLabel(null);
       tgt.setTarget(false);
@@ -338,7 +344,8 @@ class Annotation extends React.Component {
           bboxes[id] = tool.createBBox(obj.content[id]);
         }
       });
-      let label = new Label(this, obj.id, obj.instanceId, obj.klass, bboxes);
+      const memo = obj.content.memo;
+      let label = new Label(this, obj.id, obj.instanceId, obj.klass, bboxes, memo);
       if (label.id >= 0) {
         this._deleted = this._deleted.filter(id => id != label.id);
       }
@@ -359,7 +366,7 @@ class Annotation extends React.Component {
   }
   removeFromHistory(objects) {
     const tools = this.getTools();
-    const tgt = this.props.targetLabel;
+    const tgt = this.getTarget();
     const removeIds = [], removeInstanceIds = [];
     for (let obj of objects) {
       let label = this.getLabel(obj.id);
@@ -403,8 +410,8 @@ class Annotation extends React.Component {
     let target = [];
     if (isAll) {
       target = Array.from(this.state.labels.values());
-    } else if (this.props.targetLabel != null) {
-      target = [this.props.targetLabel];
+    } else if (this.getTarget() != null) {
+      target = [this.getTarget()];
     }
     return target.map(label => label.toObject());
   }
@@ -425,7 +432,8 @@ class Annotation extends React.Component {
           bboxes[id] = tool.createBBox(obj.content[id]);
         }
       });
-      let label = new Label(this, this._nextId--, instanceId, klass, bboxes);
+      const memo = obj.content.memo;
+      let label = new Label(this, this._nextId--, instanceId, klass, bboxes, memo);
       labels.set(label.id, label);
       pastedLabels.push(label);
     });
@@ -498,21 +506,24 @@ class Annotation extends React.Component {
   render() {
     const classes = this.props.classes;
     return (
-      <List
-        className={classes.list}
-        subheader={
-          <ListSubheader
-            className={classes.listHead}
-          >
-            Bounding Box
-          </ListSubheader>
-        }
-      >
-        {this.renderList(classes)}
-      </List>
+      <div className={classes.annotationWrapper}>
+        <List
+          className={classes.list}
+          subheader={
+            <ListSubheader
+              className={classes.listHead}
+            >
+              Bounding Box
+            </ListSubheader>
+          }
+        >
+          {this.renderList(classes)}
+        </List>
+      </div>
     );
   }
 }
+
 const mapStateToProps = state => ({
   targetLabel: state.annotation.targetLabel,
   labelTool: state.tool.labelTool,
@@ -522,7 +533,8 @@ const mapStateToProps = state => ({
 });
 const mapDispatchToProps = dispatch => ({
   dispatchSetTargetLabel: target => dispatch(setTargetLabel(target)),
-  dispatchSetAnnotation: target => dispatch(setAnnotation(target))
+  dispatchSetAnnotation: target => dispatch(setAnnotation(target)),
+  dispatchSetLockInfo: info => dispatch(setLockInfo(info))
 });
 export default compose(
   connect(
@@ -578,8 +590,9 @@ class Label {
   klass = null;
   minSize = null;
   bbox = null;
+  memo = '';
 
-  constructor(annotationTool, id, instanceId, klass, bbox) {
+  constructor(annotationTool, id, instanceId, klass, bbox, memo) {
     this._annotationTool = annotationTool;
     this.id = id;
     this.instanceId = instanceId;
@@ -591,6 +604,7 @@ class Label {
     this.isTarget = false;
     this.klass = klass;
     this.minSize = klass.getMinSize();
+    this.memo = memo;
     this.bbox = {};
 
     this._annotationTool.getTools().forEach(tool => {
@@ -618,6 +632,10 @@ class Label {
     this._annotationTool.addHistory();
   }
 
+  setMemo(memo) {
+    this.isChanged = true;
+    this.memo = memo;
+  }
   setKlass(klass) {
     this.klass = klass;
     this.isChanged = true;
@@ -681,6 +699,7 @@ class Label {
       this.bbox[id].toContent(content);
       ret.content[id] = content;
     });
+    ret.content.memo = this.memo;
     return ret;
   }
   toHistory() {
@@ -699,13 +718,16 @@ class Label {
       this.bbox[id].toContent(content);
       ret.content[id] = content;
     });
+    ret.content.memo = this.memo;
     return ret;
   }
   fromHistory(obj) {
     if (this.id !== obj.id) {
       throw new Error('history id error');
     }
-    this.klass = obj.klass;
+    if (this.klass !== obj.klass) {
+      this.setKlass(obj.klass);
+    }
     this.instanceId = obj.instanceId;
     this._annotationTool.getTools().forEach(tool => {
       const id = tool.candidateId;
@@ -716,5 +738,6 @@ class Label {
       this.bbox[id].fromContent(content);
       this.bbox[id].updateParam();
     });
+    this.memo = obj.content.memo;
   }
 }

@@ -22,6 +22,8 @@ import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import LinearProgress from "@material-ui/core/LinearProgress";
 
+import ArchiveDialog from "./archive_dialog";
+
 function progressFormatter(cell, row) {
   return row.progress;
 }
@@ -42,6 +44,7 @@ class AnnotationTable extends React.Component {
       open: false,
       row_id: null,
       row_name: '',
+      archive_row: null,
     };
   }
   show = () => {
@@ -137,7 +140,14 @@ class AnnotationTable extends React.Component {
   handleClick(index) {
     this.props.onClickAnnotation(this.state.data[index].id);
   }
-  handleArchive(row) {
+  handleArchiveClose() {
+    this.setState({archive_row: null});
+  }
+  handleArchiveOpen(row) {
+    this.setState({archive_row: row});
+  }
+  handleArchive(opt) {
+    const row = this.state.archive_row;
     const datasetUrl =
       `/projects/${this.props.currentProject.id}` +
       `/datasets/${row.dataset_id}/`;
@@ -149,6 +159,7 @@ class AnnotationTable extends React.Component {
           data = {
             job_type: 'ARCHIVER',
             job_config: {
+              include_image: opt.include_image_flag,
               original_id: datasetInfo.original_id,
               dataset_id: row.dataset_id,
               annotation_id: row.id
@@ -158,10 +169,12 @@ class AnnotationTable extends React.Component {
           url,
           data,
           res => {
+            this.handleArchiveClose();
             this.show();
           },
           mes => {
             this.setState({
+              archive_row: null,
               error: mes.message
             });
           }
@@ -169,6 +182,7 @@ class AnnotationTable extends React.Component {
       },
       mes => {
         this.setState({
+          archive_row: null,
           error: mes.message
         });
       }
@@ -201,7 +215,7 @@ class AnnotationTable extends React.Component {
                 <Tooltip title="Archive">
                   <Button
                     classes={{ root: classes.tableActionButton }}
-                    onClick={e => this.handleArchive(row)}
+                    onClick={e => this.handleArchiveOpen(row)}
                     className={classes.button}>
                     <Archive fontSize="small" />
                   </Button>
@@ -209,14 +223,21 @@ class AnnotationTable extends React.Component {
                 <Tooltip title="Download">
                   <Button
                     classes={{ root: classes.tableActionButton }}
-                    onClick={() => {
-                      RequestClient.getBinaryAsURL(row.archive_url, (url) => {
-                        let a = document.createElement('a');
-                        a.download = row.file_name;
-                        a.href = url;
-                        a.click();
-                      }, () => { });
-                    }}
+                    onClick={() => RequestClient.get(
+                      row.archive_url,
+                      null,
+                      res => {
+                        RequestClient.getBinaryAsURL(res, (url) => {
+                          let a = document.createElement('a');
+                          a.download = row.file_name;
+                          a.href = url;
+                          a.click();
+                        }, () => { });
+                      },
+                      e => {
+                        reject(e);
+                      }
+                    )}
                     className={classes.button}>
                     <CloudDownload fontSize="small" />
                   </Button>
@@ -240,7 +261,7 @@ class AnnotationTable extends React.Component {
                   <Tooltip title="Archive">
                     <Button
                       classes={{ root: classes.tableActionButton }}
-                      onClick={e => this.handleArchive(row)}
+                      onClick={e => this.handleArchiveOpen(row)}
                       className={classes.button}
                       color={row.progress == 100 ? "primary" : "default"}>
                       <Archive fontSize="small" />
@@ -400,6 +421,11 @@ class AnnotationTable extends React.Component {
             </Button>
           </DialogActions>
         </Dialog>
+        <ArchiveDialog
+          open={this.state.archive_row !== null}
+          onClose={() => this.handleArchiveClose()}
+          onArchive={opt => this.handleArchive(opt)}
+        />
       </div>
     );
   }

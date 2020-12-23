@@ -2,7 +2,11 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 
 import Grid from '@material-ui/core/Grid';
+import Tooltip from '@material-ui/core/Tooltip';
 import Button from '@material-ui/core/Button';
+import FileCopyIcon from '@material-ui/icons/FileCopy';
+import PermMediaIcon from '@material-ui/icons/PermMedia';
+import AssignmentIcon from '@material-ui/icons/Assignment';
 import { compose } from 'redux';
 import { connect } from 'react-redux';
 
@@ -40,9 +44,30 @@ class Clipboard extends React.Component {
   render() {
     return (
       <Grid item xs={12}>
-        <Button onClick={() => this.copy(false)}>Copy</Button>
-        <Button onClick={() => this.copy(true)}>Copy ALL</Button>
-        <Button onClick={() => this.paste()} disabled={!this.hasCopy()}>Paste</Button>
+        <Tooltip title="Copy">
+          <Button
+            onClick={() => this.copy(false)}
+          >
+            <FileCopyIcon />
+          </Button>
+        </Tooltip>
+        <Tooltip title="Copy ALL">
+          <Button
+            onClick={() => this.copy(true)}
+          >
+            <PermMediaIcon />
+          </Button>
+        </Tooltip>
+        <Tooltip title="Paste">
+          <span>
+            <Button
+              onClick={() => this.paste()}
+              disabled={!this.hasCopy()}
+            >
+              <AssignmentIcon />
+            </Button>
+          </span>
+        </Tooltip>
       </Grid>
     );
   }

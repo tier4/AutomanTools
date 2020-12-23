@@ -10,13 +10,13 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.11/ref/settings/
 """
 
+from libs.secret import secret
 import os
 import sys
 import datetime
 from dotenv import load_dotenv
-from os.path import join
 
-dotenv_path = join(os.path.dirname(os.path.abspath(__file__)), '../conf/.env')
+dotenv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../conf/.env')
 load_dotenv(dotenv_path)
 sys.path.append(os.path.join(os.path.dirname(__file__), 'libs'))
 sys.path.append(os.path.join(os.path.dirname(__file__), 'middlewares'))
@@ -24,6 +24,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'middlewares'))
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(BASE_DIR, "api"))
+sys.path.append(os.path.join(BASE_DIR, 'libs'))
 UPLOAD_FORM_DIRS = os.path.join(BASE_DIR, 'upload_form')
 
 
@@ -112,12 +113,13 @@ WSGI_APPLICATION = 'automan_website.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
 # MySQL
+mysql_access_dict = secret.get_mysql_username_password()
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': os.environ.get("MYSQL_DB_NAME"),
-        'USER': os.environ.get("MYSQL_USER"),
-        'PASSWORD': os.environ.get("MYSQL_PASSWORD"),
+        'USER': mysql_access_dict["MYSQL_USER"],
+        'PASSWORD': mysql_access_dict["MYSQL_PASSWORD"],
         'HOST': os.environ.get("MYSQL_HOST"),
         'PORT': '3306',
     }
@@ -159,8 +161,6 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
 
-STATIC_ROOT = ''
-
 STATIC_URL = '/static/'
 
 
@@ -180,10 +180,10 @@ CONN_MAX_AGE = 100
 # STORAGE
 STORAGE_TYPE = os.environ.get('STORAGE_TYPE')  # Only AZURE
 STORAGE_CONFIG = {
-    'account_name': os.environ.get('AZURE_STORAGE_ACCOUNT'),
-    'account_key': os.environ.get('AZURE_STORAGE_KEY'),
-    'container': os.environ.get('AZURE_STORAGE_CONTAINER'),
-    'base_uri': 'https://' + os.environ.get('AZURE_STORAGE_ACCOUNT') + '.blob.core.windows.net/'
+    'account_name': os.environ.get('AZURE_STORAGE_ACCOUNT', ""),
+    'account_key': os.environ.get('AZURE_STORAGE_KEY', ""),
+    'container': os.environ.get('AZURE_STORAGE_CONTAINER', ""),
+    'base_uri': 'https://' + os.environ.get('AZURE_STORAGE_ACCOUNT', "") + '.blob.core.windows.net/'
 }
 
 # LOGIN
@@ -198,4 +198,27 @@ AUTOMAN_PORT = os.environ.get("AUTOMAN_PORT")
 SWAGGER_SETTINGS = {
     'SECURITY_DEFINITIONS': None,  # FIXME
     'USE_SESSION_AUTH': False,
+}
+
+# JOB
+JOB_DOCKER_REGISTRY_HOST = os.environ.get('JOB_DOCKER_REGISTRY_HOST', None)
+JOB_DEFAULT_MEMORY = os.environ.get('JOB_DEFAULT_MEMORY', '1024Mi')
+JOB_NAMESPACE = os.environ.get('JOB_NAMESPACE', 'default')
+
+JOB = {
+    'ARCHIVER': {
+        'IMAGE_NAME': os.environ.get('JOB_ARCHIVER_IMAGE_NAME'),
+        'IMAGE_TAG': os.environ.get('JOB_ARCHIVER_IMAGE_TAG'),
+        'MEMORY': os.environ.get('JOB_ARCHIVER_MEMORY'),
+    },
+    'ANALYZER': {
+        'IMAGE_NAME': os.environ.get('JOB_ANALYZER_IMAGE_NAME'),
+        'IMAGE_TAG': os.environ.get('JOB_ANALYZER_IMAGE_TAG'),
+        'MEMORY': os.environ.get('JOB_ANALYZER_MEMORY'),
+    },
+    'EXTRACTOR': {
+        'IMAGE_NAME': os.environ.get('JOB_EXTRACTOR_IMAGE_NAME'),
+        'IMAGE_TAG': os.environ.get('JOB_EXTRACTOR_IMAGE_TAG'),
+        'MEMORY': os.environ.get('JOB_EXTRACTOR_MEMORY'),
+    },
 }
