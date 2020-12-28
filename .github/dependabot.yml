@@ -4,9 +4,11 @@ updates:
     directory: "/front"
     schedule:
       interval: "daily"
+    target-branch: "develop"
 
   - package-ecosystem: "pip"
     directory: "/automan"
     schedule:
       interval: "daily"
+    target-branch: "develop"
 
