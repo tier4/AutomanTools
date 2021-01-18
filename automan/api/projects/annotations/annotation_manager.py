@@ -122,9 +122,9 @@ class AnnotationManager(object):
 
     def get_active_frame(
             self, project_id, user_id, annotation_id,
-            frame, order_flag):
+            frame, order_rev_flag):
         objects = None
-        if order_flag:
+        if not order_rev_flag:
             objects = DatasetObject.objects.filter(
                 annotation_id=annotation_id, frame__gt=frame
             ).order_by('frame')

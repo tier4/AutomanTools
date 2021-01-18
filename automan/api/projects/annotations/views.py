@@ -102,8 +102,8 @@ def closest_active_frame(request, project_id, annotation_id, frame):
     annotation_manager = AnnotationManager()
     if not Permission.hasPermission(user_id, 'get_label', project_id):
         raise PermissionDenied
-    next_frame = annotation_manager.get_active_frame(project_id, user_id, annotation_id, frame, True)
-    prev_frame = annotation_manager.get_active_frame(project_id, user_id, annotation_id, frame, False)
+    next_frame = annotation_manager.get_active_frame(project_id, user_id, annotation_id, frame, False)
+    prev_frame = annotation_manager.get_active_frame(project_id, user_id, annotation_id, frame, True)
     result = {
         'next_frame': next_frame,
         'prev_frame': prev_frame
