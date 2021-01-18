@@ -120,6 +120,30 @@ class AnnotationManager(object):
         for annotation in annotations:
             self.delete_annotation(annotation.id, storage)
 
+    def get_active_frame(
+            self, project_id, user_id, annotation_id,
+            frame, order_flag):
+        objects = None
+        if order_flag:
+            objects = DatasetObject.objects.filter(
+                annotation_id=annotation_id, frame__gt=frame
+            ).order_by('frame')
+        else:
+            objects = DatasetObject.objects.filter(
+                annotation_id=annotation_id, frame__lt=frame
+            ).order_by('-frame')
+        if objects is None:
+            raise ObjectDoesNotExist()
+
+        for o in objects:
+            exists = DatasetObjectAnnotation.objects.filter(
+                object_id=o.id).order_by('-created_at').first()
+            if exists.delete_flag is True:
+                continue
+            return o.frame
+        return -1
+
+
     def get_frame_labels(self, project_id, user_id, try_lock, annotation_id, frame):
         objects = DatasetObject.objects.filter(
             annotation_id=annotation_id, frame=frame)
