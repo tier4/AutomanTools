@@ -229,7 +229,17 @@ class AnnotationTable extends React.Component {
                       res => {
                         RequestClient.getBinaryAsURL(res, (url) => {
                           let a = document.createElement('a');
-                          a.download = row.file_name;
+                          const filename = row.file_name;
+                          let download = row.name;
+                          if (filename.match(/\.tar\.gz$/)) {
+                            download += '.tar.gz';
+                          } else {
+                            const ext = filename.lastIndexOf('.');
+                            if (ext >= 0) {
+                              download += filename.slice(ext);
+                            }
+                          }
+                          a.download = download;
                           a.href = url;
                           a.click();
                         }, () => { });
