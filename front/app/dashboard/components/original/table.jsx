@@ -162,6 +162,7 @@ class OriginalTable extends React.Component {
         </div>
       );
       return {
+        id: row.id,
         index: index,
         name: row.name,
         size: Math.round(row.size / (1024 * 1024) * 10) / 10,
@@ -210,7 +211,10 @@ class OriginalTable extends React.Component {
           remote={true}
           fetchInfo={fetchProp}
         >
-          <TableHeaderColumn width="" dataField="name" isKey dataSort={true}>
+          <TableHeaderColumn width="5%" dataField="id" isKey dataSort={true}>
+            #
+          </TableHeaderColumn>
+          <TableHeaderColumn width="" dataField="name" dataSort={true}>
             Name
           </TableHeaderColumn>
           <TableHeaderColumn width="10%" dataField="size" dataSort={true}>
