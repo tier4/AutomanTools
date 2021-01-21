@@ -32,7 +32,7 @@ class CalibrationTable extends React.Component {
       total_count: 0,
       data: [],
       error: null,
-      query: RequestClient.createPageQuery(),
+      query: RequestClient.createPageQuery(true),
       desc_open: false,
       desc: {}
     };
@@ -172,6 +172,7 @@ class CalibrationTable extends React.Component {
       clearSearch: true,
       searchDelayTime: 1000
     };
+    this.state.query.assignTableOptions(options);
     const fetchProp = {
       dataTotalSize: this.state.total_count
     };
