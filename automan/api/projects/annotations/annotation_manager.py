@@ -4,7 +4,7 @@ import os
 from uuid import UUID
 from datetime import datetime, timedelta, timezone
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, OuterRef, Subquery, Min, Max
 from django.core.exceptions import (
     ValidationError, ObjectDoesNotExist, PermissionDenied, FieldError)
 from projects.annotations.models import DatasetObject, DatasetObjectAnnotation, AnnotationProgress
@@ -123,42 +123,56 @@ class AnnotationManager(object):
     def get_active_frame(
             self, project_id, user_id, annotation_id,
             frame, order_rev_flag):
-        objects = None
-        if not order_rev_flag:
-            objects = DatasetObject.objects.filter(
-                annotation_id=annotation_id, frame__gt=frame
-            ).order_by('frame')
-        else:
-            objects = DatasetObject.objects.filter(
-                annotation_id=annotation_id, frame__lt=frame
-            ).order_by('-frame')
-        if objects is None:
-            raise ObjectDoesNotExist()
+        annotation_queryset = DatasetObjectAnnotation.objects.filter(
+            object=OuterRef('pk')
+        ).order_by('-created_at').values('delete_flag')[:1]
 
-        for o in objects:
-            exists = DatasetObjectAnnotation.objects.filter(
-                object_id=o.id).order_by('-created_at').first()
-            if exists.delete_flag is True:
-                continue
-            return o.frame
-        return -1
+
+        if not order_rev_flag:
+            active_frame = DatasetObject.objects.filter(
+                annotation_id=annotation_id, frame__gt=frame
+            ).annotate(
+                delete_flag=Subquery(annotation_queryset)
+            ).filter(delete_flag=False).aggregate(
+                active_frame=Min('frame')
+            )
+        else:
+            active_frame = DatasetObject.objects.filter(
+                annotation_id=annotation_id, frame__lt=frame
+            ).annotate(
+                delete_flag=Subquery(annotation_queryset)
+            ).filter(delete_flag=False).aggregate(
+                active_frame=Max('frame')
+            )
+
+        result = active_frame['active_frame']
+        if result is None:
+            return -1
+        return result
 
 
     def get_frame_labels(self, project_id, user_id, try_lock, annotation_id, frame):
-        objects = DatasetObject.objects.filter(
-            annotation_id=annotation_id, frame=frame)
-        if objects is None:
-            raise ObjectDoesNotExist()
+        annotation_queryset = DatasetObjectAnnotation.objects.filter(
+            object=OuterRef('pk')
+        ).order_by('-created_at')
+
+        objects_queryset = DatasetObject.objects.filter(
+            annotation_id=annotation_id, frame=frame
+        ).annotate(
+            delete_flag=Subquery(annotation_queryset.values('delete_flag')[:1]),
+            anno_id=Subquery(annotation_queryset.values('id')[:1])
+        ).filter(delete_flag=False)
+
+        annotations = DatasetObjectAnnotation.objects.filter(
+            id__in=Subquery(objects_queryset.values('anno_id'))
+        ).select_related('object')
+
         if try_lock:
             self.release_lock(user_id, annotation_id)
-
         records = []
         count = 0
-        for object in objects:
-            label = DatasetObjectAnnotation.objects.filter(
-                object_id=object.id).order_by('-created_at').first()
-            if label.delete_flag is True:
-                continue
+        for label in annotations:
+            object = label.object
             record = {}
             record['object_id'] = object.id
             record['name'] = label.name
