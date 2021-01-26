@@ -249,11 +249,9 @@ class AnnotationManager(object):
 
         annotation = Annotation.objects.filter(id=annotation_id).first()
         objects = DatasetObject.objects.filter(annotation_id=annotation_id)
-        frames = []
-        for object in objects:
-            frames.append(object.frame)
+        frame_cnt = objects.order_by('frame').values('frame').distinct().count()
         try:
-            progress = len(set(frames)) / annotation.frame * 100
+            progress = frame_cnt / annotation.frame * 100
         except ZeroDivisionError:
             progress = -1
         state = 'editing' if progress < 100 else 'finished'
@@ -323,15 +321,24 @@ class AnnotationManager(object):
         if self.is_valid_uuid4(instance_id) is not True:
             raise ValidationError("instance_id is invalid")
 
-        objects = DatasetObject.objects.filter(
-            annotation_id=annotation_id, instance=instance_id)
+        annotation_queryset = DatasetObjectAnnotation.objects.filter(
+            object=OuterRef('pk')
+        ).order_by('-created_at')
+
+        objects_queryset = DatasetObject.objects.filter(
+            annotation_id=annotation_id, instance=instance_id
+        ).annotate(
+            delete_flag=Subquery(annotation_queryset.values('delete_flag')[:1]),
+            anno_id=Subquery(annotation_queryset.values('id')[:1])
+        ).filter(delete_flag=False)
+
+        annotations = DatasetObjectAnnotation.objects.filter(
+            id__in=Subquery(objects_queryset.values('anno_id'))
+        ).select_related('object')
 
         records = []
-        for object in objects:
-            label = DatasetObjectAnnotation.objects.filter(
-                object_id=object.id).order_by('-created_at').first()
-            if label.delete_flag is True:
-                continue
+        for label in annotations:
+            object = label.object
             record = {}
             record['object_id'] = object.id
             record['name'] = label.name
