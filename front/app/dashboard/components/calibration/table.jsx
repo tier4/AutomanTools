@@ -12,6 +12,7 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 
 import ResizableTable from 'automan/dashboard/components/parts/resizable_table';
 import { mainStyle } from 'automan/assets/main-style';
+import { preTimeFormatter } from 'automan/services/timeutil';
 
 function nameFormatter(cell, row) {
   return row.name;
@@ -22,13 +23,6 @@ function valueFormatter(cell, row) {
       {row.value}
     </div>
   );
-}
-const locale = navigator.locale;
-const dateOption = { timeZoneName: 'short' };
-function preTimeFormatter(arr, name) {
-  for (let it of arr) {
-    it[name] = new Date(it[name]).toLocaleString(locale, dateOption);
-  }
 }
 
 class CalibrationTable extends React.Component {

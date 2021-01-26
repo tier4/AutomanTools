@@ -17,6 +17,7 @@ import Tooltip from '@material-ui/core/Tooltip';
 import RefreshIcon from '@material-ui/icons/Refresh';
 
 import { mainStyle } from 'automan/assets/main-style';
+import { preTimeFormatter } from 'automan/services/timeutil';
 import ResizableTable from 'automan/dashboard/components/parts/resizable_table';
 import { JOB_STATUS_MAP } from 'automan/services/const';
 
@@ -25,13 +26,6 @@ function statusFormatter(cell, row) {
 }
 function idFormatter(cell, row) {
   return row.id;
-}
-const locale = navigator.locale;
-const dateOption = { timeZoneName: 'short' };
-function preTimeFormatter(arr, name) {
-  for (let it of arr) {
-    it[name] = new Date(it[name]).toLocaleString(locale, dateOption);
-  }
 }
 
 class JobTable extends React.Component {
