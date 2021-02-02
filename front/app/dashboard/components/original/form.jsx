@@ -153,7 +153,7 @@ class OriginalDataForm extends React.Component {
           console.log(data);
           storageInfo = data.result;
           AWSS3StorageClient.upload(
-            data.url,
+            data.result.url,
             targetFile.fileInfo,
             this.progressUpdate,
             this.nextFileUpload,
