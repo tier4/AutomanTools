@@ -10,7 +10,7 @@ flake8 = "*"
 [packages]
 djangorestframework = "==3.12.2"
 djangorestframework-jwt = "==1.11.0"
-mysql-connector = "==2.1.7"
+mysql-connector = "==2.2.9"
 python-dotenv = "==0.15.0"
 django-webpack-loader = "==0.7.0"
 mysqlclient = "*"
