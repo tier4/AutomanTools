@@ -63,18 +63,35 @@ class Controls extends React.Component {
     this.initTools();
   }
   initTools() {
+
+    // Return if candidate-info is not available
+    if (!this.props.labelTool.candidateInfo) {
+      return
+    }
+
+    // Select tools
+    const imageTools = this.props.labelTool.candidateInfo.filter((item) => {
+      return item.data_type === 'IMAGE'
+    }).map(() => {
+      return ImageLabelTool
+    });
+    const PCDTools = this.props.labelTool.candidateInfo.filter((item) => {
+      return item.data_type === 'PCD'
+    }).map(() => {
+      return PCDLabelTool
+    });
+
     // load labeling tools
-    // TODO: get tool name from dataset
     const LABEL_TYPES = {
       BB2D: {
-        tools: [ImageLabelTool],
+        tools: imageTools,
         pcdIndex: -1,
-        names: ['Front']
+        names: imageTools.map(()=>'undefined')
       },
       BB2D3D: {
-        tools: [ImageLabelTool, PCDLabelTool],
-        pcdIndex: 1,
-        names: ['Front', '3D']
+        tools: imageTools.concat(PCDTools),
+        pcdIndex: imageTools.length,
+        names: imageTools.concat(PCDTools).map(()=>'undefined')
       }
     };
     const type = LABEL_TYPES[this.props.labelTool.labelType];
@@ -379,7 +396,7 @@ class Controls extends React.Component {
       );
     return true;
   }
-  
+
   saveFrame() {
     return this.props.annotation.save()
       .then(() => this.loadFrame(this.getFrameNumber()))
@@ -450,7 +467,7 @@ class Controls extends React.Component {
   getFrameNumber() {
     return this.state.frameNumber;
   }
-  
+
 
   initialized = false;
   isAllComponentsReady() {
@@ -470,16 +487,30 @@ class Controls extends React.Component {
   componentDidMount() { }
   componentDidUpdate(prevProps, prevState) {
     if (this.isToolReady()) {
+      if (this.props.labelTool.candidateInfo.length !== this.getTools().length) {
+        this.initTools();
+      }
+
       this.props.labelTool.candidateInfo.forEach(info => {
-        this.getTools().forEach(tool => {
+        // Parse analyzed_info
+        const analyzedInfo = JSON.parse(info.analyzed_info);
+
+        // Select a suitable tool and set properties of it
+        this.getTools().forEach((tool, toolIndex) => {
+          if (this.getTools().map((t) => t.candidateId).includes(info.id)) {
+            return;
+          }
+
+          // Get an available tool
           if (tool.dataType === info.data_type) {
             if (tool.candidateId >= 0) {
               return;
             }
             tool.candidateId = info.id; // TODO: multi candidate_id
             this.props.labelTool.filenames[tool.candidateId] = [];
+            this.toolNames[toolIndex] = analyzedInfo['topic_name'];
           }
-        });
+        }, analyzedInfo);
       });
 
       this.props.tools[this.state.activeTool].setActive(true);
@@ -765,7 +796,7 @@ class Controls extends React.Component {
         </div>
       </AppBar>
     );
-    
+
     return (
       <div>
         {appBar}
@@ -802,7 +833,7 @@ export default compose(
   withSnackbar,
   connect(
     mapStateToProps,
-    mapDispatchToProps 
+    mapDispatchToProps
   )
 )(Controls);
 
