@@ -17,6 +17,7 @@ import Tooltip from '@material-ui/core/Tooltip';
 import RefreshIcon from '@material-ui/icons/Refresh';
 
 import { mainStyle } from 'automan/assets/main-style';
+import { preTimeFormatter } from 'automan/services/timeutil';
 import ResizableTable from 'automan/dashboard/components/parts/resizable_table';
 import { JOB_STATUS_MAP } from 'automan/services/const';
 
@@ -101,6 +102,8 @@ class JobTable extends React.Component {
       this.state.query.getData(),
       res => {
         // TODO: reinit this.query's page and per_page.
+        preTimeFormatter(res.records, 'started_at');
+        preTimeFormatter(res.records, 'completed_at');
         this.setState({
           total_count: res.count,
           data: res.records,

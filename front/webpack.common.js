@@ -1,5 +1,5 @@
-const path = require('path')
-const JSX_PATH = __dirname + '/app';
+const path = require('path');
+const JSX_PATH = path.resolve(__dirname, '/app');
 
 module.exports = {
   entry: {
@@ -16,17 +16,17 @@ module.exports = {
         test: /\.jsx?$/,
         exclude: /node_modules/,
         loader: 'babel-loader',
-        query: {
+        options: {
           presets: ['react', 'stage-1']
         }
-      },
+      }
     ]
   },
   resolve: {
     modules: ['node_modules'],
     extensions: ['.js', '.jsx'],
     alias: {
-      "automan": JSX_PATH,
-    },
+      automan: JSX_PATH
+    }
   }
-}
+};

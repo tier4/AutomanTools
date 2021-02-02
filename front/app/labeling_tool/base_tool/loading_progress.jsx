@@ -28,7 +28,7 @@ const LoadingProgress = ({classes, text, progress}) => (
             <CircularProgress />
           ) : (
             <CircularProgress
-              variant="static"
+              variant="determinate"
               value={progress * 100}
             />
           )

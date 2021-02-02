@@ -1,6 +1,6 @@
 export const styles = theme => ({
   nested: {
-    paddingLeft: theme.spacing.unit * 8
+    paddingLeft: theme.spacing(8)
   },
   listSubHeader: {
     color: '#000000',

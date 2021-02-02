@@ -46,7 +46,7 @@ class AnnotationPage extends React.Component {
   render() {
     const { classes } = this.props;
     return (
-      <Grid container spacing={24}>
+      <Grid container spacing={3}>
         <Grid item xs={12}>
           <Paper className={classes.root}>
             <AnnotationTable

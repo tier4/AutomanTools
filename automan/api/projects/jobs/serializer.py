@@ -67,9 +67,9 @@ class JobSerializer(serializers.ModelSerializer):
                     job.pod_log = pod_log[0:min(len(pod_log), 1023)]
                 job.save()
             record['status'] = job.status
-            record['started_at'] = str(job.started_at) if job.started_at else ''
-            record['completed_at'] = str(job.completed_at) if job.completed_at else ''
-            record['registered_at'] = str(job.registered_at)
+            record['started_at'] = job.started_at.isoformat() if job.started_at else ''
+            record['completed_at'] = job.completed_at.isoformat() if job.completed_at else ''
+            record['registered_at'] = job.registered_at.isoformat()
             record['description'] = cls.get_job_description(job.job_type, job.job_config)
             record['pod_log'] = job.pod_log
             record['user_id'] = job.user_id

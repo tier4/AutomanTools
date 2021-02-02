@@ -146,10 +146,16 @@ class LabelTool extends React.Component {
         }
         break;
       }
-      case 'frame_labels':
+      case 'frame_labels': {
         const frameNumber = args[0] + 1;
         ret = `${ANNOTATION_ROOT}frames/${frameNumber}/objects/`;
         break;
+      }
+      case 'closest_active_frame': {
+        const frameNumber = args[0] + 1;
+        ret = `${ANNOTATION_ROOT}frames/${frameNumber}/closest_active_frame/`;
+        break;
+      }
       case 'image_url': {
         const candidateId = args[0];
         const frameNumber = args[1] + 1;

@@ -12,6 +12,7 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 
 import ResizableTable from 'automan/dashboard/components/parts/resizable_table';
 import { mainStyle } from 'automan/assets/main-style';
+import { preTimeFormatter } from 'automan/services/timeutil';
 
 function nameFormatter(cell, row) {
   return row.name;
@@ -61,6 +62,7 @@ class CalibrationTable extends React.Component {
       url,
       this.state.query.getData(),
       function (res) {
+        preTimeFormatter(res.records, 'created_at');
         that.setState({
           total_count: res.count,
           data: res.records
