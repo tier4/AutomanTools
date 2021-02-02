@@ -55,7 +55,7 @@ class MyPage extends React.Component {
       return <p />;
     }
     return (
-      <Grid container spacing={24}>
+      <Grid container spacing={3}>
         <Grid item xs={12}>
           <h2>My page</h2>
           <div />

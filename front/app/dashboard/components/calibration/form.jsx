@@ -103,7 +103,7 @@ class CalibrationForm extends React.Component {
       <div>
         {uploadFiles.map((f, index) => {
           return (
-            <Grid key={index} container spacing={24}>
+            <Grid key={index} container spacing={3}>
               <Grid item xs={4}>
                 <p>{f.fileInfo.name}</p>
               </Grid>
