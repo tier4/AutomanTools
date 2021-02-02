@@ -83,6 +83,8 @@ const createErrorMessage = code => {
     return 'Object does not exist';
   } else if (code === 405) {
     return 'Method not allowed';
+  } else if (code === 409) {
+    return 'Conflict';
   } else if (code === 500 || code === 501) {
     return 'Internal server error';
   } else if (501 < code && code < 600) {
