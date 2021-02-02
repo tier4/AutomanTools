@@ -95,6 +95,21 @@ def frame(request, project_id, annotation_id, frame):
         annotation_manager.set_frame_label(user_id, project_id, annotation_id, frame, created, edited, deleted)
         return HttpResponse(status=201, content=json.dumps({}), content_type='application/json')
 
+@api_view(['GET'])
+def closest_active_frame(request, project_id, annotation_id, frame):
+    username = request.user
+    user_id = AccountManager.get_id_by_username(username)
+    annotation_manager = AnnotationManager()
+    if not Permission.hasPermission(user_id, 'get_label', project_id):
+        raise PermissionDenied
+    next_frame = annotation_manager.get_active_frame(project_id, user_id, annotation_id, frame, False)
+    prev_frame = annotation_manager.get_active_frame(project_id, user_id, annotation_id, frame, True)
+    result = {
+        'next_frame': next_frame,
+        'prev_frame': prev_frame
+    }
+    return HttpResponse(content=json.dumps(result), status=200, content_type='application/json')
+
 
 @api_view(['GET'])
 def download_archived_link(request, project_id, annotation_id):

@@ -11,7 +11,12 @@ import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
 import Button from '@material-ui/core/Button';
 import IconButton from '@material-ui/core/IconButton';
-import { NavigateNext, NavigateBefore, ExitToApp } from '@material-ui/icons';
+import {
+  NavigateNext, NavigateBefore,
+  SkipNext, SkipPrevious,
+  ExitToApp
+} from '@material-ui/icons';
+import Tooltip from '@material-ui/core/Tooltip';
 import { withSnackbar } from 'notistack';
 import { compose } from 'redux';
 import { connect } from 'react-redux';
@@ -48,6 +53,8 @@ class Controls extends React.Component {
       frameNumber: 0,
       skipFrameCount: 1,
       activeTool: 0,
+      nextActiveFrame: -1,
+      prevActiveFrame: -1,
       isActivePCD: false
     };
 
@@ -312,6 +319,20 @@ class Controls extends React.Component {
     }
     this.moveFrame(-count);
   }
+  moveToNextActiveFrame() {
+    if (this.state.nextActiveFrame >= 0) {
+      const newFrame = this.state.nextActiveFrame - 1;
+      return this.setFrameNumber(newFrame);
+    }
+    return false;
+  }
+  moveToPrevActiveFrame() {
+    if (this.state.prevActiveFrame >= 0) {
+      const newFrame = this.state.prevActiveFrame - 1;
+      return this.setFrameNumber(newFrame);
+    }
+    return false;
+  }
   moveFrame(cnt) {
     // TODO: check type of'cnt'
     let newFrame = this.state.frameNumber + cnt;
@@ -381,6 +402,18 @@ class Controls extends React.Component {
         }
       );
   }
+  getClosestActiveFrame(num) {
+    return new Promise((resolve, reject) => {
+      RequestClient.get(
+        this.props.labelTool.getURL('closest_active_frame', num), {},
+        res => {
+          this.setState({
+            nextActiveFrame: res.next_frame,
+            prevActiveFrame: res.prev_frame
+          }, () => resolve());
+        });
+    });
+  }
   loadFrame(num) {
     if (this.isLoading) {
       return Promise.reject('duplicate loading');
@@ -394,6 +427,7 @@ class Controls extends React.Component {
     this.isLoading = true;
     const labelTool = this.props.labelTool;
     return Promise.all([
+        this.getClosestActiveFrame(num),
         labelTool.loadBlobURL(num),
         num >= 1 && labelTool.loadBlobURL(num - 1)
       ])
@@ -478,6 +512,18 @@ class Controls extends React.Component {
       err => {
       }
     );
+  };
+  onClickNextActiveFrame = (e) => {
+    if (this.isLoading) {
+      return;
+    }
+    this.moveToNextActiveFrame();
+  };
+  onClickPrevActiveFrame = (e) => {
+    if (this.isLoading) {
+      return;
+    }
+    this.moveToPrevActiveFrame();
   };
   onClickNextFrame = (e) => {
     if (this.isLoading) {
@@ -636,6 +682,17 @@ class Controls extends React.Component {
     let skip = this.state.skipFrameCount;
     let frameNumberForm = (
       <div className={classes.frameNumberParts}>
+        <Tooltip title="Jump to active frame">
+          <span>
+            <IconButton
+              color="inherit"
+              disabled={this.state.prevActiveFrame <= 0}
+              onClick={this.onClickPrevActiveFrame}
+            >
+              <SkipPrevious />
+            </IconButton>
+          </span>
+        </Tooltip>
         <IconButton
           color="inherit"
           onClick={this.onClickPrevFrame}
@@ -657,6 +714,17 @@ class Controls extends React.Component {
         >
           <NavigateNext />
         </IconButton>
+        <Tooltip title="Jump to active frame">
+          <span>
+            <IconButton
+              color="inherit"
+              disabled={this.state.nextActiveFrame <= 0}
+              onClick={this.onClickNextActiveFrame}
+            >
+              <SkipNext />
+            </IconButton>
+          </span>
+        </Tooltip>
         <TextField
           label="skip step"
           type="text"

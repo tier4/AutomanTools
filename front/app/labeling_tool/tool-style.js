@@ -62,8 +62,9 @@ export const toolStyle = theme => ({
     color: '#000',
     backgroundColor: '#fff',
     borderRadius: 5,
-    width: 280,
+    width: 360,
     display: 'flex',
+    alignItems: 'center',
     marginRight: 5,
     marginLeft: 20
   },
