@@ -57,7 +57,18 @@ class StorageViewSet(viewsets.ModelViewSet):
         key = request.data.get('key')
         storage_manager = StorageManager(project_id, storage_id)
         bucket = storage_manager.storage['storage_config']['bucket']
-        res = storage_manager.get_s3_presigned_url(bucket, key)
+        if storage_manager.original_file_exists(key):
+            res = {
+                'can_upload': False,
+                'message': 'the file exists'
+            }
+            return HttpResponse(status=200,
+                            content=json.dumps(res),
+                            content_type='application/json')
+        res = {
+            'can_upload': True,
+            'result': storage_manager.get_s3_presigned_url(bucket, key)
+        }
         return HttpResponse(content=json.dumps(res),
                             status=200,
                             content_type='application/json')

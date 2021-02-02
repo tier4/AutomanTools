@@ -18,6 +18,7 @@ import Cancel from '@material-ui/icons/Cancel';
 import Close from '@material-ui/icons/Close';
 import CloudUpload from '@material-ui/icons/CloudUpload';
 import CardHeader from '@material-ui/core/CardHeader';
+import Typography from '@material-ui/core/Typography';
 
 import { mainStyle } from 'automan/assets/main-style';
 
@@ -35,6 +36,7 @@ class OriginalDataForm extends React.Component {
       storages: [],
       storage_type: 'None',
       targetFileIndex: null,
+      message: null,
       uploadState: 'init'
     };
   }
@@ -149,7 +151,14 @@ class OriginalDataForm extends React.Component {
         uploadInfo,
         data => {
           console.log(data);
-          storageInfo = data;
+          if (!data.can_upload) {
+            this.setState({
+              message: `${data.message} in "${targetFile.fileInfo.name}".`,
+              uploadState: 'uploaded'
+            });
+            return;
+          }
+          storageInfo = data.result;
           AWSS3StorageClient.upload(
             data.url,
             targetFile.fileInfo,
@@ -193,6 +202,7 @@ class OriginalDataForm extends React.Component {
     this.setState({
       uploadFiles: [],
       targetFileIndex: null,
+      message: null,
       uploadState: 'init'
     });
   };
@@ -296,6 +306,11 @@ class OriginalDataForm extends React.Component {
             />
             {filesContent}
           </form>
+          {this.state.message != null ? (
+            <Typography color="error">
+              {this.state.message}
+            </Typography>
+          ) : null}
         </DialogContent>
         <DialogActions>
           <div>
