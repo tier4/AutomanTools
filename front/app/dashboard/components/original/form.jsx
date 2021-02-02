@@ -151,13 +151,6 @@ class OriginalDataForm extends React.Component {
         uploadInfo,
         data => {
           console.log(data);
-          if (!data.can_upload) {
-            this.setState({
-              message: `${data.message} in "${targetFile.fileInfo.name}".`,
-              uploadState: 'uploaded'
-            });
-            return;
-          }
           storageInfo = data.result;
           AWSS3StorageClient.upload(
             data.url,
@@ -168,7 +161,12 @@ class OriginalDataForm extends React.Component {
           );
           this.updateFileStateKeyValue(index, 'name', uploadInfo.key);
         },
-        () => { }
+        err => {
+          this.setState({
+            message: `${err.message} in "${targetFile.fileInfo.name}".`,
+            uploadState: 'uploaded'
+          });
+        }
       )
     } else if (storage_type == 'LOCAL_NFS') {
       let requestPath =
