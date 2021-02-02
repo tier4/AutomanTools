@@ -1,7 +1,7 @@
 module.exports = {
   rules: {
     "prettier/prettier": "error",
-    "indent": ["error", 2, {"SwitchCase": 1}],
+    "indent": ["error", 2, {"SwitchCase": 1, "ignoredNodes": ["TemplateLiteral"]}],
     "strict": [2, "never"],
     "no-undef": 2,
     "no-var": 1,
@@ -17,7 +17,7 @@ module.exports = {
     "react/no-did-mount-set-state": 0,
     "react/no-did-update-set-state": 0,
     "react/no-find-dom-node": 0,
-    "no-color-literals": 1
+    "template-curly-spacing": ['off']
   },
   globals: {
     "pending": false
