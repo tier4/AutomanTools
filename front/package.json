@@ -25,7 +25,7 @@
     "jquery": "^3.5.0",
     "notistack": "^0.9.11",
     "prop-types": "^15.6.2",
-    "react": "^16.13.1",
+    "react": "^16.14.0",
     "react-bootstrap-table": "^4.3.1",
     "react-color": "^2.14.1",
     "react-dom": "^16.13.1",
