@@ -90,6 +90,7 @@ class RosbagExtractor(BaseJob):
                     args=args,
                     image=self.REPOSITORY_NAME,
                     name=self.IMAGE_NAME,
+                    image_pull_policy="IfNotPresent",
                     # env=[access_key_env, secret_key_env],
                     volume_mounts=[client.models.V1VolumeMount(mount_path=self.mount_path, name=self.volume_name)],
                     resources=client.models.V1ResourceRequirements(limits=system_usage, requests=system_usage),
