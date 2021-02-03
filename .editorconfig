@@ -11,7 +11,7 @@ charset = utf-8
 [*.py]
 max_line_length = 119
 
-[*.{js,css,html}]
+[*.{js,css,html,jsx}]
 indent_size = 2
 
 [*.json]
