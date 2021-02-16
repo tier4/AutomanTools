@@ -206,6 +206,9 @@ class DatasetTable extends React.Component {
           <TableHeaderColumn dataField="name" width="" dataSort={true}>
             Name
           </TableHeaderColumn>
+          <TableHeaderColumn dataField="original_name" width="" dataSort={true}>
+            Raw Name
+          </TableHeaderColumn>
           <TableHeaderColumn
             dataField="frame_count"
             width="20%"
