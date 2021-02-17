@@ -152,6 +152,7 @@ class DatasetTable extends React.Component {
         return {
           id: row.id,
           name: row.name,
+          original_name: row.original_name,
           frame_count: row.frame_count >= 1 ? row.frame_count : null,
           actions: actions
         };
