@@ -5,7 +5,8 @@ from django.core.exceptions import ObjectDoesNotExist, FieldError
 from api.common import validation_check
 from api.settings import SORT_KEY, PER_PAGE
 from .models import LabelDataset, DatasetDatasetCandidate
-from projects.originals.candidate_manager import CandidateManager, Original
+from projects.originals.candidate_manager import CandidateManager
+from projects.originals.models import Original
 from projects.annotations.annotation_manager import AnnotationManager
 from projects.storages.aws_s3 import AwsS3Client
 
