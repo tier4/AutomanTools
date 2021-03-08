@@ -5,13 +5,13 @@ import Divider from '@material-ui/core/Divider';
 import Grid from '@material-ui/core/Grid';
 import Button from '@material-ui/core/Button';
 import { RotateLeft, RotateRight } from '@material-ui/icons';
-import Slider from '@material-ui/core/Slider';
 import Input from '@material-ui/core/Input';
 import InputAdornment from '@material-ui/core/InputAdornment';
 
 import { compose } from 'redux';
 import { connect } from 'react-redux';
 import CommonEditBar from '../common_edit_bar';
+import CandidateEditor from './candidate_editor';
 
 const MIN_MAX = {
   pos: [-100, 100],
@@ -60,7 +60,7 @@ class PCDEditBar extends React.Component {
   render() {
     const label = this.props.targetLabel.label;
     if (label == null) {
-      return null;
+      return <CandidateEditor />;
     }
     const bbox = label.bbox[this.props.candidateId];
     if (bbox == null) {

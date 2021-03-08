@@ -47,3 +47,6 @@ class DatasetCandidate(models.Model):
     data_type = models.CharField(max_length=255, default='')
     frame_count = models.IntegerField()
     analyzed_info = models.CharField(max_length=255, default='')
+    #TODO: add calibration_type
+    calibration_info = models.CharField(max_length=255, default='')
+

@@ -9,7 +9,7 @@ import LoadingProgress from 'automan/labeling_tool/base_tool/loading_progress';
 
 import RequestClient from 'automan/services/request-client';
 import { setLabelTool } from './actions/tool_action';
-import { setFrameInfo } from './actions/annotation_action';
+import { setFrameInfo, setCandidateInfo } from './actions/annotation_action';
 
 
 class LabelTool extends React.Component {
@@ -74,10 +74,16 @@ class LabelTool extends React.Component {
   }
   loadBlobURL(num) {
     // load something (image, pcd) by URL
+    let candidateIds = [];
+    this.controls.getTools().forEach(tool => {
+      if (tool.candidateIds) {
+        candidateIds = candidateIds.concat(tool.candidateIds);
+      } else {
+        candidateIds.push(tool.candidateId);
+      }
+    });
     return Promise.all(
-      this.controls.getTools().map(
-        tool => {
-          const candidateId = tool.candidateId;
+      candidateIds.map(candidateId => {
           const fname = this.filenames[candidateId][num];
           if (typeof fname === 'string') {
             return Promise.resolve();
@@ -125,7 +131,9 @@ class LabelTool extends React.Component {
     const PROJECT_ROOT = '/projects/' + projectId + '/';
     const ANNOTATION_ROOT = PROJECT_ROOT + 'annotations/' + annotationId + '/';
     const DATASET_ROOT =
-      PROJECT_ROOT + 'datasets/' + this.datasetId + '/';
+      `${PROJECT_ROOT}datasets/${this.datasetId}/`;
+    const ORIGINAL_ROOT =
+      `${PROJECT_ROOT}originals/${this.originalId}/`;
     let ret = null;
     switch (type) {
       case 'project':
@@ -144,6 +152,11 @@ class LabelTool extends React.Component {
         if (dataType != null) {
           ret += '?data_type=' + dataType;
         }
+        break;
+      }
+      case 'set_candidate_info': {
+        const candidateId = args[0];
+        ret = `${ORIGINAL_ROOT}candidates/${candidateId}/`;
         break;
       }
       case 'frame_labels': {
@@ -293,23 +306,7 @@ class LabelTool extends React.Component {
         res => {
           this.originalId = res.original_id;
           this.frameLength = res.frame_count;
-          this.candidateInfo = res.candidates;
-          resolve();
-        },
-        err => {
-          reject(err);
-        }
-      );
-    });
-  }
-  initCandidateInfo() {
-    return new Promise((resolve, reject) => {
-      RequestClient.get(
-        this.getURL('candidate_info'),
-        null,
-        res => {
-          this.candidateInfo = res.candidates;
-
+          this.props.dispatchSetCandidateInfo(res.candidates);
           resolve();
         },
         err => {
@@ -322,7 +319,6 @@ class LabelTool extends React.Component {
     return this.initProject()
       .then(() => this.initAnnotation())
       .then(() => this.initDataset())
-      // .then(() => this.initCandidateInfo())
   }
 
   initializeEvent() {
@@ -371,7 +367,8 @@ const mapStateToProps = state => ({
 });
 const mapDispatchToProps = dispatch => ({
   dispatchSetLabelTool: target => dispatch(setLabelTool(target)),
-  dispatchSetFrameInfo: (num, info) => dispatch(setFrameInfo(num, info))
+  dispatchSetFrameInfo: (num, info) => dispatch(setFrameInfo(num, info)),
+  dispatchSetCandidateInfo: (info) => dispatch(setCandidateInfo(info))
 });
 export default compose(
   connect(
