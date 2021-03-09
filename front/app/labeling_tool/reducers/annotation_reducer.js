@@ -42,11 +42,19 @@ export default function annotationReducer(state = initialState, action = {}) {
       for (let candidate of action.info) {
         const obj = Object.assign({}, candidate);
         const calib = candidate.calibration_info;
+        const analy = candidate.analyzed_info;
         if (typeof calib === 'string') {
           if (calib.length === 0) {
             obj.calibration_info = null;
           } else {
             obj.calibration_info = JSON.parse(calib);
+          }
+        }
+        if (typeof analy === 'string') {
+          if (analy.length === 0) {
+            obj.analyzed_info = null;
+          } else {
+            obj.analyzed_info = JSON.parse(analy);
           }
         }
         info.push(obj);

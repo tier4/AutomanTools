@@ -7,6 +7,7 @@ import Checkbox from '@material-ui/core/Checkbox';
 import Button from '@material-ui/core/Button';
 import VisibilityIcon from '@material-ui/icons/Visibility';
 import VisibilityOffIcon from '@material-ui/icons/VisibilityOff';
+import Tooltip from '@material-ui/core/Tooltip';
 
 import { compose } from 'redux';
 import { connect } from 'react-redux';
@@ -45,7 +46,14 @@ class PCDToolControl extends React.Component {
     const topics = this.props.topics;
     const topicItems = [];
     const target = this.getTargetCandidateId();
-    for (let id in topics) {
+    const candidates = this.props.candidateInfo;
+    for (let candidate of candidates) {
+      const id = candidate.id;
+      if (!(id in topics)) {
+        continue;
+      }
+      const topicName = candidate.analyzed_info.topic_name;
+      const shortName = topicName.slice(topicName.lastIndexOf('/'));
       topicItems.push(
         <Grid item xs={12} key={id}>
           <Checkbox
@@ -55,14 +63,18 @@ class PCDToolControl extends React.Component {
             icon={<VisibilityOffIcon/>}
             checkedIcon={<VisibilityIcon/>}
           />
-          <Button
-            size="small"
-            variant={target == id ? 'contained' : 'outlined'}
-            color={target == id ? 'primary' : 'default'}
-            onClick={() => this.setTarget(id)}
+          <Tooltip
+            title={id + ': ' + topicName}
           >
-            {id}
-          </Button>
+            <Button
+              size="small"
+              variant={target == id ? 'contained' : 'outlined'}
+              color={target == id ? 'primary' : 'default'}
+              onClick={() => this.setTarget(id)}
+            >
+              {shortName}
+            </Button>
+          </Tooltip>
         </Grid>
       );
     }

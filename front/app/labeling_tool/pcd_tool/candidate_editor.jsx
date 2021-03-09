@@ -33,7 +33,10 @@ class CandidateEditor extends React.Component {
     const targetId = candidate.id;
     const info = Object.assign({},
       candidate,
-      { calibration_info: JSON.stringify(candidate.calibration_info) }
+      {
+        calibration_info: JSON.stringify(candidate.calibration_info),
+        analyzed_info: JSON.stringify(candidate.analyzed_info)
+      }
     );
     RequestClient.post(
       this.props.labelTool.getURL('set_candidate_info', targetId),
@@ -100,6 +103,8 @@ class CandidateEditor extends React.Component {
           <Grid item xs={12}>
             {'Calibration: '}
             {this.getCandidateInfo().id}
+            <Divider />
+            {this.getCandidateInfo().analyzed_info.topic_name}
             <Divider />
           </Grid>
           {this.renderInput('x', 'x')}
