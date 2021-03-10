@@ -144,6 +144,7 @@ class OriginalManager(object):
             record['original_id'] = dataset_candidate.original
             record['data_type'] = dataset_candidate.data_type
             record['analyzed_info'] = dataset_candidate.analyzed_info
+            record['calibration_info'] = dataset_candidate.calibration_info
             record['frame_count'] = dataset_candidate.frame_count
             records.append(record)
         return {'count': len(records), 'records': records}
@@ -157,8 +158,16 @@ class OriginalManager(object):
         record['original_id'] = dataset_candidate.original
         record['data_type'] = dataset_candidate.data_type
         record['analyzed_info'] = dataset_candidate.analyzed_info
+        record['calibration_info'] = dataset_candidate.calibration_info
         record['frame_count'] = dataset_candidate.frame_count
         return record
+
+    def set_calibration_info(self, candidate_id, info):
+        dataset_candidate = DatasetCandidate.objects.filter(id=candidate_id).first()
+        if dataset_candidate is not None:
+            dataset_candidate.calibration_info = info
+            dataset_candidate.save()
+
 
     def original_total_count(self, project_id):
         originals = Original.objects.filter(project_id=project_id)

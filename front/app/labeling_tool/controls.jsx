@@ -30,6 +30,7 @@ import Clipboard from 'automan/labeling_tool/clipboard';
 import LoadingProgress from 'automan/labeling_tool/base_tool/loading_progress';
 import LockStatus from './lock_status';
 import TimeStamp from './timestamp';
+import PCDToolControl from './pcd_tool/tool_control';
 
 import ImageLabelTool from 'automan/labeling_tool/image_label_tool';
 import PCDLabelTool from 'automan/labeling_tool/pcd_label_tool';
@@ -470,13 +471,17 @@ class Controls extends React.Component {
   componentDidMount() { }
   componentDidUpdate(prevProps, prevState) {
     if (this.isToolReady()) {
-      this.props.labelTool.candidateInfo.forEach(info => {
+      this.props.candidateInfo.forEach(info => {
         this.getTools().forEach(tool => {
           if (tool.dataType === info.data_type) {
             if (tool.candidateId >= 0) {
+              if (tool.addOtherCandidateId) {
+                tool.addOtherCandidateId(info.id);
+                this.props.labelTool.filenames[info.id] = [];
+              }
               return;
             }
-            tool.candidateId = info.id; // TODO: multi candidate_id
+            tool.setCandidateId(info.id);
             this.props.labelTool.filenames[tool.candidateId] = [];
           }
         });
@@ -629,7 +634,11 @@ class Controls extends React.Component {
                 Cameras {pcdButton}
                 <Divider />
                 <List>
-                  {toolButtons}
+                  {this.state.isActivePCD ? (
+                    <PCDToolControl />
+                  ) : (
+                    toolButtons
+                  )}
                 </List>
                 <Divider />
                 Tools
@@ -792,7 +801,8 @@ const mapStateToProps = state => ({
   history: state.tool.history,
   clipboard: state.tool.clipboard,
   tools: state.tool.tools,
-  toolsCnt: state.tool.toolsCnt
+  toolsCnt: state.tool.toolsCnt,
+  candidateInfo: state.annotation.candidateInfo
 });
 const mapDispatchToProps = dispatch => ({
   dispatchSetControls: target => dispatch(setControls(target))

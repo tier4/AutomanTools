@@ -58,3 +58,4 @@ export function setLockInfo(lockInfo) {
     lockInfo: lockInfo
   };
 }
+

@@ -106,3 +106,13 @@ def candidate_info(request, project_id, original_id):
     return HttpResponse(content=json.dumps(contents),
                         status=200,
                         content_type='application/json')
+
+@api_view(['POST'])
+def set_candidate_info(request, project_id, original_id, candidate_id):
+    calibration_info = request.data.get('calibration_info')
+    original_manager = OriginalManager()
+    original_manager.set_calibration_info(candidate_id, calibration_info)
+    return HttpResponse(content=json.dumps({}),
+                        status=200,
+                        content_type='application/json')
+

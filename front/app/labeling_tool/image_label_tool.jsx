@@ -165,6 +165,9 @@ class ImageLabelTool extends React.Component {
   name = 'Image';
   dataType = 'IMAGE';
   candidateId = -1;
+  setCandidateId(id) {
+    this.candidateId = id;
+  }
 
   isLoaded() {
     return this._loaded;

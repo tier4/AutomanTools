@@ -7,6 +7,7 @@ import { compose } from 'redux';
 import { connect } from 'react-redux';
 
 import { addTool } from './actions/tool_action';
+import { setTopic } from './actions/pcd_tool_action';
 import { setTargetState } from './actions/annotation_action';
 
 import BoxFrameObject from './pcd_tool/box_frame_object';
@@ -55,6 +56,10 @@ class PCDLabelTool extends React.Component {
       padding: 2,
       backgroundColor: '#ccc'
     };
+    this.setVisibleTo(this._currentPointMesh);
+    this.setVisibleTo(this._currentWipePointMesh);
+    this.setCalibration(this._currentPointMesh);
+    this.setCalibration(this._currentWipePointMesh);
     return (
       <div
         ref={this._wrapperElement}
@@ -154,13 +159,23 @@ class PCDLabelTool extends React.Component {
   name = 'PCD';
   dataType = 'PCD';
   candidateId = -1;
+  candidateIds = [];
+  setCandidateId(id) {
+    this.candidateId = id;
+    this.addOtherCandidateId(id);
+  }
+  addOtherCandidateId(id) {
+    this.candidateIds.push(id);
+    this.props.dispatchSetTopic(id, true);
+  }
   pcdBBoxes = new Set();
 
   isLoaded() {
     return this._loaded;
   }
   isTargetCandidate(id) {
-    return this.candidateId == id;
+    if (this.candidateId == id) { return true; }
+    return this.candidateIds.some(i => i == id);
   }
   init() {
     if ( !Detector.webgl ) {
@@ -180,17 +195,56 @@ class PCDLabelTool extends React.Component {
   isLoadedFrame(frame) {
     return this._pointMeshes[frame] != null;
   }
-  setVisibleTo(mesh, val) {
-    if (mesh != null) {
-      mesh.visible = val;
+  setCalibration(meshes) {
+    if (meshes == null) {
+      return;
+    }
+    const candidateInfo = this.props.candidateInfo;
+    for (let id of this.candidateIds) {
+      const info = candidateInfo.filter(info => info.id == id)[0];
+      if (info != null && info.calibration_info != null) {
+        const mesh = meshes[id];
+        const v = info.calibration_info;
+        const prevPos = mesh.position.clone();
+        const prevRot = mesh.rotation.clone();
+        mesh.position.set(v.x, v.y, v.z);
+        mesh.rotation.set(v.roll, v.pitch, v.yaw);
+        if (!prevPos.equals(mesh.position) ||
+            !prevRot.equals(mesh.rotation)) {
+          this.redrawRequest();
+        }
+      }
     }
   }
-  setPointMesh(frame, mesh) {
-    this._pointMeshes[frame] = mesh;
+  setVisibleTo(meshes, val) {
+    if (meshes == null) {
+      return;
+    }
+    if (typeof val === 'boolean') {
+      for (let id of this.candidateIds) {
+        meshes[id].visible = val;
+      }
+    } else {
+      const visibles = this.props.topics;
+      for (let id of this.candidateIds) {
+        meshes[id].visible = visibles[id];
+      }
+    }
+    this.redrawRequest();
+  }
+  setPointMesh(frame, mesh, candidateId) {
+    if (this._pointMeshes[frame] == null) {
+      this._pointMeshes[frame] = {};
+    }
+
+    this._pointMeshes[frame][candidateId] = mesh;
     mesh.visible = false;
     this._scene.add(mesh);
     const wipeMesh = mesh.clone();
-    this._wipePointMeshes[frame] = wipeMesh;
+    if (this._wipePointMeshes[frame] == null) {
+      this._wipePointMeshes[frame] = {};
+    }
+    this._wipePointMeshes[frame][candidateId] = wipeMesh;
     this._wipeScene.add(wipeMesh);
     return wipeMesh;
   }
@@ -198,31 +252,28 @@ class PCDLabelTool extends React.Component {
     if (!this.isLoadedFrame(frame)) {
       return;
     }
-    const mesh = this._pointMeshes[frame];
-    const wipeMesh = this._wipePointMeshes[frame];
-    this._scene.remove(mesh);
-    this._wipeScene.remove(wipeMesh);
-    mesh.material.dispose();
-    mesh.geometry.dispose();
-    wipeMesh.material.dispose();
-    wipeMesh.geometry.dispose();
+    const pointMeshes = this._pointMeshes[frame];
+    const wipeMeshes = this._wipePointMeshes[frame];
+    for (let id of this.candidateIds) {
+      const mesh = pointMeshes[id]
+      const wipeMesh = wipeMeshes[id];
+      this._scene.remove(mesh);
+      this._wipeScene.remove(wipeMesh);
+      mesh.material.dispose();
+      mesh.geometry.dispose();
+      wipeMesh.material.dispose();
+      wipeMesh.geometry.dispose();
+    }
     this._pointMeshes[frame] = null;
     this._wipePointMeshes[frame] = null;
   }
-  pcdLoad(frame) {
-    if (this.isLoadedFrame(frame)) {
-      return Promise.resolve({
-        mesh: this._pointMeshes[frame],
-        wipeMesh: this._wipePointMeshes[frame]
-      });
-    }
-    const url = this.props.labelTool.getURL('frame_blob', this.candidateId, frame);
+  pcdLoadById(frame, id) {
+    const url = this.props.labelTool.getURL('frame_blob', id, frame);
     return new Promise((resolve, reject) => {
       this._pcdLoader.load(url, mesh => {
-        const wipeMesh = this.setPointMesh(frame, mesh);
+        const wipeMesh = this.setPointMesh(frame, mesh, id);
         resolve({
-          mesh,
-          wipeMesh
+          id, mesh, wipeMesh
         });
       }, () => { // in progress
       }, (e) => { // error
@@ -230,23 +281,49 @@ class PCDLabelTool extends React.Component {
       });
     });
   }
+  pcdLoad(frame) {
+    if (this.isLoadedFrame(frame)) {
+      return Promise.resolve({
+        meshes: this._pointMeshes[frame],
+        wipeMeshes: this._wipePointMeshes[frame]
+      });
+    }
+
+    const loaderes = [];
+    for (let id of this.candidateIds) {
+      loaderes.push(this.pcdLoadById(frame, id));
+    }
+    return Promise.all(loaderes).then((results) => {
+      const meshes = {}, wipeMeshes = {};
+      for (let result of results) {
+        const id = result.id
+        meshes[id] = result.mesh;
+        wipeMeshes[id] = result.wipeMesh;
+      }
+      return { meshes, wipeMeshes };
+    });
+  }
   loadWipe(frame) {
-    this.setVisibleTo(this._currentWipePointMesh, false);
+    const curr = this._currentWipePointMesh;
+    this.setVisibleTo(curr, false);
     this._currentWipePointMesh = null;
     const wipeFrame = frame - 1;
     if (wipeFrame < 0) {
       return Promise.resolve();
     }
-    return this.pcdLoad(wipeFrame).then(({ wipeMesh }) => {
-      this._currentWipePointMesh = wipeMesh;
-      wipeMesh.visible = true;
+    return this.pcdLoad(wipeFrame).then(({ wipeMeshes }) => {
+      this._currentWipePointMesh = wipeMeshes;
+      this.setCalibration(wipeMeshes);
+      this.setVisibleTo(wipeMeshes);
     });
   }
   loadMain(frame) {
-    this.setVisibleTo(this._currentPointMesh, false);
-    return this.pcdLoad(frame).then(({ mesh }) => {
-      this._currentPointMesh = mesh;
-      mesh.visible = true;
+    const curr = this._currentPointMesh;
+    this.setVisibleTo(curr, false);
+    return this.pcdLoad(frame).then(({ meshes }) => {
+      this._currentPointMesh = meshes;
+      this.setCalibration(meshes);
+      this.setVisibleTo(meshes);
     });
   }
   load(frame) {
@@ -362,7 +439,8 @@ class PCDLabelTool extends React.Component {
     } else {
       bboxes = Array.from(this.pcdBBoxes);
     }
-    const posArray = this._currentPointMesh.geometry.getAttribute('position').array;
+    const keys = Object.keys(this._currentPointMesh); // TODO: check all
+    const posArray = this._currentPointMesh[keys[0]].geometry.getAttribute('position').array;
     let changedLabel = null;
     let existIncludePoint = false;
     for (let i=0; i<bboxes.length; ++i) {
@@ -1416,9 +1494,12 @@ function createModeMethods(pcdTool) {
 
 const mapStateToProps = state => ({
   controls: state.tool.controls,
-  labelTool: state.tool.labelTool
+  topics: state.pcdTool.topics,
+  labelTool: state.tool.labelTool,
+  candidateInfo: state.annotation.candidateInfo
 });
 const mapDispatchToProps = dispatch => ({
+  dispatchSetTopic: (topic, val) => dispatch(setTopic(topic, val)),
   dispatchSetTargetState: (state) => dispatch(setTargetState(state)),
   dispatchAddTool: (idx, target) => dispatch(addTool(idx, target))
 });
