@@ -8,7 +8,7 @@ pep8 = "*"
 flake8 = "*"
 
 [packages]
-djangorestframework = "==3.11.0"
+djangorestframework = "==3.11.2"
 djangorestframework-jwt = "==1.11.0"
 mysql-connector = "==2.1.7"
 python-dotenv = "==0.9.1"
