@@ -115,7 +115,10 @@ class PagesRoute extends React.Component {
               <Route exact path={path + '/originals/'}>
                 <OriginalPage {...pageProps} />
               </Route>
-              <Route exact path={path + '/datasets/*'}>
+              <Route exact path={path + '/datasets/'}>
+                <DatasetPage {...pageProps} />
+              </Route>
+              <Route exact path={path + '/datasets/q=*'}>
                 <DatasetPage {...pageProps} />
               </Route>
               <Route exact path={path + '/annotations/'}>

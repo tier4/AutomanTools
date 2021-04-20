@@ -70,9 +70,11 @@ class DatasetTable extends React.Component {
     if (txt === query.getSearch()) {
       return;
     }
-    let url = "q=" + txt;
-    //this.handleSearchURL(url);
-    this.props.historyPush(url);
+    let url = "datasets/";
+    if(txt != "") {
+        url = "q=" + txt;
+        this.handleSearchURL(url);
+    }
     query.setSearch(txt);
     query.setPage(1);
     this.updatePage();
@@ -258,10 +260,10 @@ const mapStateToProps = state => {
   };
 };
 export default compose(
-    withStyles(mainStyle, { name: 'DatasetTable' }),
-    connect(
-      mapStateToProps,
-      null
-    )
-  )(DatasetTable);
+  withStyles(mainStyle, { name: 'DatasetTable' }),
+  connect(
+    mapStateToProps,
+    null
+  )
+)(DatasetTable);
 
