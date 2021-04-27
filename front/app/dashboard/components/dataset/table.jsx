@@ -70,11 +70,8 @@ class DatasetTable extends React.Component {
     if (txt === query.getSearch()) {
       return;
     }
-    let url = "datasets/";
-    if(txt != "") {
-        url = "q=" + txt;
-        this.handleSearchURL(url);
-    }
+    let url = "?q=" + txt;
+    this.handleSearchURL(url);
     query.setSearch(txt);
     query.setPage(1);
     this.updatePage();
@@ -195,6 +192,14 @@ class DatasetTable extends React.Component {
     const fetchProp = {
       dataTotalSize: this.state.total_count
     };
+    if (!this.props.location.search) {
+        let params = new URLSearchParams(this.props.location.search);
+        let q = params.get("q");
+        if(!q) {
+            this.handleSearchChange(q);
+        }
+    }
+    
 
     return (
       <div className={classes.tableWrapper}>
