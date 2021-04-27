@@ -192,13 +192,11 @@ class DatasetTable extends React.Component {
     const fetchProp = {
       dataTotalSize: this.state.total_count
     };
-    if (!this.props.location.search) {
-        let params = new URLSearchParams(this.props.location.search);
-        let q = params.get("q");
-        if(!q) {
-            this.handleSearchChange(q);
-        }
-    }
+    //if (!this.props.location.search) {
+        const params = new URLSearchParams(this.props.location.search);
+        const q = params.get("q");
+        this.handleSearchChange(q);
+    //}
     
 
     return (
