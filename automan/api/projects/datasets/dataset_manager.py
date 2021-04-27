@@ -50,6 +50,9 @@ class DatasetManager(object):
         datasets = LabelDataset.objects.filter(original=original_id)
         return datasets.count()
 
+    def get_datasets_by_original(self, original_id):
+        return LabelDataset.objects.filter(original=original_id)
+
     def dataset_total_count(self, project_id):
         datasets = LabelDataset.objects.filter(project_id=project_id)
         return datasets.count()
