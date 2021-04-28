@@ -206,9 +206,6 @@ class OriginalManager(object):
             for candidate in candidates:
                 candidate.delete()
 
-        datasets = dataset_manager.get_datasets_by_original(original_id)
-        datasets.update(original_name='')
-
         rosbag.delete()
         if storage['storage_type'] == 'LOCAL_NFS':
             path = (config['mount_path'] + config['base_dir']
