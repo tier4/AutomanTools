@@ -166,10 +166,11 @@ class OriginalTable extends React.Component {
           </Tooltip>
         </div>
       );
+      let datasetPage = React.forwardRef((props, ref) => (<a ref={ref} {...props}>{props.children}</a>));
       let dataset_link = "/" + this.props.currentProject.id + "/datasets/?q=" + row.name;
       let links = (
         <div>
-          <Link to={dataset_link}>link</Link>
+          <Link to={dataset_link} component={datasetPage}>link</Link>
         </div>
       );
       return {
