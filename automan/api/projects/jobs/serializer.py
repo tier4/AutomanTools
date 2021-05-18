@@ -64,7 +64,10 @@ class JobSerializer(serializers.ModelSerializer):
                 if job.status == STATUS_MAP['failed']:
                     namespace = cls.__generate_job_namespace()
                     pod_log = BaseJob().logs(cls.__generate_job_name(job.id, job.job_type), namespace)
-                    job.pod_log = pod_log[0:min(len(pod_log), 1023)]
+                    if pod_log is None:
+                        job.pod_log = []
+                    else:
+                        job.pod_log = pod_log[0:min(len(pod_log), 1023)]
                 job.save()
             record['status'] = job.status
             record['started_at'] = job.started_at.isoformat() if job.started_at else ''
@@ -192,6 +195,11 @@ class JobSerializer(serializers.ModelSerializer):
             job.create(cls.__generate_job_name(new_job.id, 'extractor'))
             res = job.run(namespace=settings.JOB_NAMESPACE)
             return res
+        elif original['file_type'] == 'rosbag2':
+            job = RosbagExtractor(**job_config)
+            job.create(cls.__generate_job_name(new_job.id, 'extractor'))
+            res = job.run(namespace=settings.JOB_NAMESPACE)
+            return res
         else:
             raise ValidationError()
 
@@ -200,11 +208,18 @@ class JobSerializer(serializers.ModelSerializer):
     def analyze(cls, user_id, project_id, original_id):
         project = ProjectManager().get_project(project_id, user_id)
         label_type = project['label_type']
-        original = OriginalManager().get_original(project_id, original_id, status='uploaded')
+        original_manager = OriginalManager()
+        original = original_manager.get_original(project_id, original_id, status='uploaded')
         storage_manager = StorageManager(project_id, original['storage_id'])
         original_path = storage_manager.get_original_filepath(original['name'])
         storage_config = copy.deepcopy(storage_manager.storage['storage_config'])
+        subfile = original_manager.get_related_file(original['id'])
         storage_config.update({'path': original_path})
+        if subfile is not None:
+            sub_file_path = storage_manager.get_original_filepath(subfile.file_path)
+        else:
+            sub_file_path = None
+        storage_config.update({'sub_file_path': sub_file_path})
         automan_config = cls.__get_automan_config(user_id)
         automan_config.update({'path': '/projects/' + project_id + '/originals/' + str(original_id) + '/',
                                'label_type': label_type})
@@ -221,6 +236,11 @@ class JobSerializer(serializers.ModelSerializer):
             job_config=job_config_json)
         new_job.save()
         if original['file_type'] == 'rosbag':
+            job = RosbagAnalyzer(**job_config)
+            job.create(cls.__generate_job_name(new_job.id, 'analyzer'))
+            res = job.run(namespace=settings.JOB_NAMESPACE)
+            return res
+        elif original['file_type'] == 'rosbag2':
             job = RosbagAnalyzer(**job_config)
             job.create(cls.__generate_job_name(new_job.id, 'analyzer'))
             res = job.run(namespace=settings.JOB_NAMESPACE)

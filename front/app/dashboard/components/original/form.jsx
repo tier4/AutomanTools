@@ -9,6 +9,7 @@ import DialogContent from '@material-ui/core/DialogContent';
 import DialogActions from '@material-ui/core/DialogActions';
 import FormControl from '@material-ui/core/FormControl';
 import Grid from '@material-ui/core/Grid';
+import Paper from '@material-ui/core/Paper';
 import InputLabel from '@material-ui/core/InputLabel';
 import LinearProgress from '@material-ui/core/LinearProgress';
 import MenuItem from '@material-ui/core/MenuItem';
@@ -70,13 +71,18 @@ class OriginalDataForm extends React.Component {
       () => {}
     );
   }
+  handleSubFileChange = index => event => {
+    this.updateFileStateKeyValue(index, 'subFile', event.target.files[0]);
+  };
   handleInputFileChange = event => {
     this.setState({
       uploadFiles: [
         ...this.state.uploadFiles,
         ...[...event.target.files].map(file => {
           return {
+            name: file.name,
             fileInfo: file,
+            subFile: null,
             progress: 0
           };
         })
@@ -98,7 +104,6 @@ class OriginalDataForm extends React.Component {
     });
   };
   progressUpdate = progress => {
-    console.log(progress);
     this.updateFileStateKeyValue(
       this.state.targetFileIndex,
       'progress',
@@ -106,94 +111,123 @@ class OriginalDataForm extends React.Component {
     );
   };
   updateFileStateKeyValue = (index, key, value) => {
-    let uploadFiles = Object.assign([], this.state.uploadFiles);
+    const uploadFiles = this.state.uploadFiles.slice();
     uploadFiles[index][key] = value;
     this.setState({ uploadFiles: uploadFiles });
   };
-  nextFileUpload = index => {
-    if (index > 0) {
-      let prevIndex = index - 1;
-      let targetFile = this.state.uploadFiles[prevIndex];
-      let key = targetFile.hasOwnProperty("name") ? targetFile.name : targetFile.fileInfo.name;
-      let registerInfo = {
-        name: key,
-        size: targetFile.fileInfo.size,
-        file_type: 'rosbag',
-        file_codec: 'gz',
-        storage_id: this.state.storage.id
-      };
-      console.log(registerInfo);
-      let storageInfo;
-      RequestClient.post(
-        '/projects/' + this.props.currentProject.id + '/originals/',
-        registerInfo,
-        data => { },
-        () => { }
-      )
-    }
-    if (this.state.uploadFiles.length == index) {
-      this.setState({
-        uploadState: 'uploaded'
-      });
-      return;
-    }
-    this.setState({ targetFileIndex: index });
-    let targetFile = this.state.uploadFiles[index];
-    let storageInfo;
-    let storage_type = this.state.storage.storage_type
-    if (storage_type == 'AWS_S3') {
-      let uploadInfo = {
-        storage_id: this.state.storage.id,
-        key: this.props.currentProject.id + '/bags/' + targetFile.fileInfo.name
+  uploadFileSet = async () => {
+    const length = this.state.uploadFiles.length;
+    for (let index=0; index<length; ++index) {
+      this.setState({ targetFileIndex: index });
+      const targetFile = this.state.uploadFiles[index];
+
+      const key = await this.uploadFile(index, targetFile.fileInfo);
+      this.updateFileStateKeyValue(index, 'name', key);
+      const original = await this.registerUploadedFile(index, targetFile, key);
+
+      if (targetFile.subFile != null) {
+        const subFileName = targetFile.fileInfo.name + '.metadata.yaml';
+        const subFile = new File([targetFile.subFile], subFileName);
+        const subkey = await this.uploadFile(index, subFile);
+        this.updateFileStateKeyValue(index, 'subname', subkey);
+        await this.registerUploadedSubFile(index, targetFile, subkey, original);
       }
-      RequestClient.post(
-        '/projects/' + this.props.currentProject.id + '/storages/upload/',
-        uploadInfo,
-        data => {
-          console.log(data);
-          storageInfo = data.result;
-          AWSS3StorageClient.upload(
-            data.result.url,
-            targetFile.fileInfo,
-            this.progressUpdate,
-            this.nextFileUpload,
-            index
-          );
-          this.updateFileStateKeyValue(index, 'name', uploadInfo.key);
-        },
-        err => {
-          this.setState({
-            message: `${err.message} in "${targetFile.fileInfo.name}".`,
-            uploadState: 'uploaded'
-          });
-        }
-      )
-    } else if (storage_type == 'LOCAL_NFS') {
-      let requestPath =
-        `/projects/${this.props.currentProject.id}` +
-        `/originals/file_upload/`;
-      LocalStorageClient.upload(
-        requestPath,
-        targetFile.fileInfo,
-        this.progressUpdate,
-        this.nextFileUpload,
-        index
-      );
-    } else {
-      alert(storageInfo.storage_type + ' is not supported.');
-      this.setState({
-        uploadState: 'init'
-      });
     }
   };
+  uploadFile = (index, targetFile) => {
+    const storage_type = this.state.storage.storage_type;
+    const projectId = this.props.currentProject.id;
+    if (storage_type === 'AWS_S3') {
+      const uploadInfo = {
+        storage_id: this.state.storage.id,
+        key: projectId + '/bags/' + targetFile.name
+      }
+      return new Promise((res, rej) => {
+        RequestClient.post(
+          `/projects/${projectId}/storages/upload/`,
+          uploadInfo,
+          data => res(data),
+          err => {
+            rej({message: `${err.message} in "${targetFile.name}".`});
+          }
+        );
+      }).then(data => new Promise((res, rej) => {
+        AWSS3StorageClient.upload(
+          data.result.url,
+          targetFile,
+          this.progressUpdate,
+          () => res(uploadInfo.key),
+          index
+        );
+      }));
+    } else if (storage_type === 'LOCAL_NFS') {
+      return new Promise((res, rej) => {
+        const requestPath =
+          `/projects/${projectId}/originals/file_upload/`;
+        LocalStorageClient.upload(
+          requestPath,
+          targetFile,
+          this.progressUpdate,
+          () => res(targetFile.name),
+          index
+        );
+      });
+    }
+
+    return Promise.reject({
+      message: `"${storage_type}" is not supported.`
+    });
+  }
+  registerUploadedFile = (index, targetFile, key) => new Promise((res, rej) => {
+    const registerInfo = {
+      name: key,
+      size: targetFile.fileInfo.size,
+      file_type: this.requiredSubFile(targetFile.fileInfo.name) ? 'rosbag2' : 'rosbag',
+      file_codec: 'gz',
+      storage_id: this.state.storage.id
+    };
+    RequestClient.post(
+      `/projects/${this.props.currentProject.id}/originals/`,
+      registerInfo,
+      data => res(data),
+      e => rej(e)
+    );
+  });
+  registerUploadedSubFile = (index, targetFile, key, original) => new Promise((res, rej) => {
+    const registerInfo = {
+      original: original.id,
+      name: key,
+      size: targetFile.subFile.size,
+      file_type: 'yaml',
+      file_codec: 'gz',
+      storage_id: this.state.storage.id
+    };
+    RequestClient.post(
+      `/projects/${this.props.currentProject.id}/originals/subfile/`,
+      registerInfo,
+      data => res(data),
+      e => rej(e)
+    );
+  });
   handleClickUpload = event => {
     if (this.state.uploadFiles.length == 0) {
       alert('No raw data is selected.');
     }
     this.setState({
+      message: null,
       uploadState: 'uploading'
     });
-    this.nextFileUpload(0);
+
+    this.uploadFileSet().then(() => {
+      this.setState({
+        uploadState: 'uploaded'
+      });
+    }, err => {
+      this.setState({
+        message: err.message,
+        uploadState: 'init'
+      });
+    });
   };
   hide = () => {
     this.props.hide(this.state.uploadState === 'uploaded');
@@ -204,31 +238,58 @@ class OriginalDataForm extends React.Component {
       uploadState: 'init'
     });
   };
+  requiredSubFile = (fname) => {
+    return fname.slice(-4) === '.db3';
+  };
+  hasAllSubFile() {
+    return this.state.uploadFiles.every(f => (
+      !this.requiredSubFile(f.fileInfo.name)
+      || f.subFile != null
+    ));
+  }
   render() {
     const { classes } = this.props;
     const { uploadFiles, uploadState } = this.state;
-    const isInitialized = this.state.uploadFiles.length == 0;
+    const isInitialized = this.state.uploadFiles.length == 0
+        || !this.hasAllSubFile();
     const filesContent = (
       <div>
         {uploadFiles.map((f, index) => {
           return (
-            <Grid key={index} container spacing={3}>
-              <Grid item xs={4}>
-                <p>{f.fileInfo.name}</p>
+            <Paper
+              key={index}
+              elevation={2}
+              className={classes.dialogPaper}
+            >
+              <Grid container alignItems="center">
+                <Grid item xs={4}>
+                  <p>{f.fileInfo.name}</p>
+                  {this.requiredSubFile(f.fileInfo.name) ? (
+                    <p>
+                      {'Add a metadata file'}
+                      <input
+                        type="file"
+                        name="file"
+                        accept=".yaml"
+                        onChange={this.handleSubFileChange(index)}
+                      />
+                    </p>
+                  ) : null}
+                </Grid>
+                <Grid item xs={6}>
+                  <LinearProgress variant="determinate" value={f.progress} />
+                </Grid>
+                <Grid item xs={2}>
+                  <Button
+                    disabled={f.progress == 100}
+                    onClick={this.handleClickTargetCancel}
+                  >
+                    <Cancel />
+                    <span>Cancel</span>
+                  </Button>
+                </Grid>
               </Grid>
-              <Grid item xs={6}>
-                <LinearProgress variant="determinate" value={f.progress} />
-              </Grid>
-              <Grid item xs={2}>
-                <Button
-                  disabled={f.progress == 100}
-                  onClick={this.handleClickTargetCancel}
-                >
-                  <Cancel />
-                  <span>Cancel</span>
-                </Button>
-              </Grid>
-            </Grid>
+            </Paper>
           );
         })}
       </div>
@@ -298,7 +359,7 @@ class OriginalDataForm extends React.Component {
             <input
               type="file"
               name="file"
-              accept=".bag, .rosbag"
+              accept=".bag, .rosbag, .db3"
               multiple
               onChange={this.handleInputFileChange}
             />
