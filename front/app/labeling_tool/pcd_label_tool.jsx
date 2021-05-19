@@ -591,6 +591,26 @@ class PCDLabelTool extends React.Component {
       this._scene.add(camera);
       return camera;
     });
+
+    this._projectionCameraControls = [0,1,2].map(idx => {
+      const projectionCamera = this._projectionCameras[idx]
+      const projectionRenderer = this._projectionRendereres[idx]
+      const projectionControls = new THREE.OrbitControls(projectionCamera, projectionRenderer.domElement);
+      projectionControls.zoomSpeed = 0.3;
+      projectionControls.panSpeed = 0.2;
+      projectionControls.enableZoom = true;
+      projectionControls.enablePan = true;
+      projectionControls.enableRotate = false;
+      projectionControls.enableDamping = false;
+      projectionControls.dampingFactor = 0.3;
+      projectionControls.minDistance = 0.3;
+      projectionControls.maxDistance = 0.3 * 100;
+      projectionControls.noKey = true;
+      projectionControls.enabled = true;
+      projectionControls.target.set( 1, 0, 0);
+      projectionControls.update();
+      return projectionControls;
+    });
   }
   _initDom() {
     const wrapper = $(this._wrapperElement.current);
@@ -1472,6 +1492,7 @@ function createModeMethods(pcdTool) {
       animate: function() {
         pcdTool.redrawRequest();
         pcdTool._cameraControls.update();
+	for (let i=0; i<3; ++i) { pcdTool._projectionCameraControls[i].update() }
       },
       mouseDown: function(e, v) {
         pcdTool.modeBusyChange(true);
@@ -1482,9 +1503,11 @@ function createModeMethods(pcdTool) {
       },
       changeFrom: function() {
         pcdTool._cameraControls.enabled = false;
+        for (let i=0; i<3; ++i) { pcdTool._projectionCameraControls[i].enabled = false; }
       },
       changeTo: function() {
         pcdTool._cameraControls.enabled = true;
+        for (let i=0; i<3; ++i) { pcdTool._projectionCameraControls[i].enabled = true; }
         //pcdTool._main.css('cursor', 'all-scroll');
       },
     },
