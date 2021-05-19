@@ -8,7 +8,9 @@ from rest_framework import serializers
 from libs.k8s.jobs import BaseJob
 from libs.k8s.jobs.annotation_archiver import AnnotationArchiver
 from libs.k8s.jobs.rosbag_extractor import RosbagExtractor
+from libs.k8s.jobs.rosbag2_extractor import Rosbag2Extractor
 from libs.k8s.jobs.rosbag_analyzer import RosbagAnalyzer
+from libs.k8s.jobs.rosbag2_analyzer import Rosbag2Analyzer
 from datetime import datetime, timezone
 from projects.jobs.models import Job
 from projects.jobs.const import STATUS_MAP, UNKNOWN_LIMIT_TIME
@@ -196,7 +198,7 @@ class JobSerializer(serializers.ModelSerializer):
             res = job.run(namespace=settings.JOB_NAMESPACE)
             return res
         elif original['file_type'] == 'rosbag2':
-            job = RosbagExtractor(**job_config)
+            job = Rosbag2Extractor(**job_config)
             job.create(cls.__generate_job_name(new_job.id, 'extractor'))
             res = job.run(namespace=settings.JOB_NAMESPACE)
             return res
@@ -241,7 +243,7 @@ class JobSerializer(serializers.ModelSerializer):
             res = job.run(namespace=settings.JOB_NAMESPACE)
             return res
         elif original['file_type'] == 'rosbag2':
-            job = RosbagAnalyzer(**job_config)
+            job = Rosbag2Analyzer(**job_config)
             job.create(cls.__generate_job_name(new_job.id, 'analyzer'))
             res = job.run(namespace=settings.JOB_NAMESPACE)
             return res
