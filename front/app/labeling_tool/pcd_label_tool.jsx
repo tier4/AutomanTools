@@ -1492,7 +1492,7 @@ function createModeMethods(pcdTool) {
       animate: function() {
         pcdTool.redrawRequest();
         pcdTool._cameraControls.update();
-	for (let i=0; i<3; ++i) { pcdTool._projectionCameraControls[i].update() }
+        for (let i=0; i<3; ++i) { pcdTool._projectionCameraControls[i].update(); }
       },
       mouseDown: function(e, v) {
         pcdTool.modeBusyChange(true);
