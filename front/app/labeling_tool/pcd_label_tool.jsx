@@ -606,8 +606,7 @@ class PCDLabelTool extends React.Component {
       projectionControls.minDistance = 0.3;
       projectionControls.maxDistance = 0.3 * 100;
       projectionControls.noKey = true;
-      projectionControls.enabled = true;
-      projectionControls.target.set( 1, 0, 0);
+      projectionControls.enabled = false;
       projectionControls.update();
       return projectionControls;
     });
@@ -819,10 +818,12 @@ class PCDLabelTool extends React.Component {
     for (let i=0; i<3; ++i) {
       const p = poses[i];
       const camera = this._projectionCameras[i];
+      const control = this._projectionCameraControls[i];
       camera.position.set(
         pos.x + p[0], pos.y + p[1], pos.z + p[2]
       );
       camera.lookAt(pos);
+      control.target.set(pos.x, pos.y, pos.z);
       if (sizes) {
         const s = sizes[i];
         camera.left = -s[0];
@@ -1492,7 +1493,7 @@ function createModeMethods(pcdTool) {
       animate: function() {
         pcdTool.redrawRequest();
         pcdTool._cameraControls.update();
-        for (let i=0; i<3; ++i) { pcdTool._projectionCameraControls[i].update(); }
+       // for (let i=0; i<3; ++i) { pcdTool._projectionCameraControls[i].update(); }
       },
       mouseDown: function(e, v) {
         pcdTool.modeBusyChange(true);
