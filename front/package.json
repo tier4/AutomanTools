@@ -36,7 +36,7 @@
     "redux": "^4.1.0",
     "redux-thunk": "^2.3.0",
     "webpack": "v4",
-    "webpack-bundle-tracker": "^0.4.3",
+    "webpack-bundle-tracker": "^1.0.0",
     "webpack-merge": "^5.7.3"
   },
   "devDependencies": {
