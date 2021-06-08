@@ -22,7 +22,7 @@
     "babel-preset-react": "^6.24.1",
     "classnames": "^2.3.1",
     "create-react-class": "^15.7.0",
-    "jquery": "^3.5.0",
+    "jquery": "^3.6.0",
     "notistack": "^0.9.11",
     "prop-types": "^15.6.2",
     "react": "^16.14.0",
