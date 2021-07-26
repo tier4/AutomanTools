@@ -23,7 +23,7 @@
     "classnames": "^2.3.1",
     "create-react-class": "^15.7.0",
     "jquery": "^3.6.0",
-    "notistack": "^1.0.9",
+    "notistack": "^1.0.10",
     "prop-types": "^15.6.2",
     "react": "^16.14.0",
     "react-bootstrap-table": "^4.3.1",
