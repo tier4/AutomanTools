@@ -189,6 +189,9 @@ export default class PCDBBox {
     const mesh = this.cube.mesh;
     // TODO: check change flag
     // TODO: clamp() all
+    box.yaw %= Math.PI * 2;
+    if (box.yaw < -Math.PI) { box.yaw += Math.PI * 2; }
+    else if (box.yaw > Math.PI) { box.yaw -= Math.PI * 2; }
     mesh.position.set(box.pos.x, box.pos.y, box.pos.z);
     mesh.scale.set(box.size.x, box.size.y, box.size.z);
     mesh.rotation.z = box.yaw;
