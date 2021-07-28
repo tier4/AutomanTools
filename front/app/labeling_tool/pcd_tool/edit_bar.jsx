@@ -16,7 +16,7 @@ import CandidateEditor from './candidate_editor';
 const MIN_MAX = {
   pos: [-100, 100],
   size: [0.1, 100],
-  yaw: [-180, 180],
+  yaw: [-Math.PI, Math.PI],
 };
 class PCDEditBar extends React.Component {
   constructor(props) {
@@ -27,7 +27,7 @@ class PCDEditBar extends React.Component {
     const label = this.props.targetLabel.label;
     const box = label.bbox[this.props.candidateId].box;
     if (type === 'yaw') {
-      return box[type] * 180 / Math.PI;
+      return box[type];
     } else {
       return box[type][axis];
     }
@@ -39,7 +39,10 @@ class PCDEditBar extends React.Component {
       this.changedHistory = label.createHistory();
     }
     if (type === 'yaw') {
-      bbox.box[type] = val * Math.PI / 180;
+      let v = val % (Math.PI * 2);
+      if (v < -Math.PI) { v += Math.PI * 2; }
+      else if (v > Math.PI) { v -= Math.PI * 2; }
+      bbox.box[type] = v ;
     } else {
       bbox.box[type][axis] = val;
     }
@@ -85,13 +88,13 @@ class PCDEditBar extends React.Component {
               onBlur={this.handleBlur}
               onKeyDown={this.handleEnter}
               inputProps={{
-                step: 1,
+                step: 0.01,
                 min: minmax[0],
                 max: minmax[1],
                 type: 'number',
               }}
               startAdornment={<InputAdornment position="start">{' '}</InputAdornment>}
-              endAdornment={<InputAdornment position="end">{'°'}</InputAdornment>}
+              endAdornment={<InputAdornment position="end">{'rad'}</InputAdornment>}
             />:
             <Input
               value={this.getValue(type, axis)}
