@@ -46,7 +46,7 @@ class Annotation extends React.Component {
     }
     return new Promise((resolve, reject) => {
       RequestClient.get(
-        this.props.labelTool.getURL('frame_labels', frameNumber - 1),
+        this.props.labelTool.getURL('frame_labels', frameNumber - this.props.controls.getFixedSkipFrameCount()),
         {try_lock: false},
         res => {
           const instanceIds = new Map();
