@@ -129,6 +129,18 @@ spec:
               value: latest
             - name: JOB_EXTRACTOR_MEMORY
               value: 1024Mi
+            - name: JOB_ROSBAG2_ANALYZER_IMAGE_NAME
+              value: automan-rosbag2-analyzer
+            - name: JOB_ROSBAG2_ANALYZER_IMAGE_TAG
+              value: latest
+            - name: JOB_ROSBAG2_ANALYZER_MEMORY
+              value: 1024Mi
+            - name: JOB_ROSBAG2_EXTRACTOR_IMAGE_NAME
+              value: automan-rosbag2-extractor
+            - name: JOB_ROSBAG2_EXTRACTOR_IMAGE_TAG
+              value: latest
+            - name: JOB_ROSBAG2_EXTRACTOR_MEMORY
+              value: 1024Mi
       restartPolicy: Always
       volumes:
         - name: app-persistent-storage

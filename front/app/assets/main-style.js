@@ -69,6 +69,10 @@ export const mainStyle = theme => ({
     ...theme.mixins.toolbar,
     justifyContent: 'flex-end'
   },
+  dialogPaper: {
+    margin: 5,
+    padding: 5
+  },
   table: {
     minWidth: 500
   },

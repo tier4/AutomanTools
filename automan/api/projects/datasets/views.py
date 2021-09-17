@@ -88,6 +88,8 @@ def __get_extension(candidate_id):
     msg_type = json.loads(candidate['analyzed_info'])['msg_type']
     if msg_type == 'sensor_msgs/PointCloud2':
         return '.pcd'
+    if msg_type == 'sensor_msgs/msg/PointCloud2':
+        return '.pcd'
     return '.jpg'
 
 

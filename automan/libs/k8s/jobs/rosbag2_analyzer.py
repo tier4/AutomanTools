@@ -5,15 +5,15 @@ from projects.storages.aws_s3 import AwsS3Client
 from automan_website import settings
 
 
-class RosbagAnalyzer(BaseJob):
-    IMAGE_NAME = settings.JOB['ANALYZER']['IMAGE_NAME']
-    REPOSITORY_NAME = (settings.JOB_DOCKER_REGISTRY_HOST + '/' if settings.JOB_DOCKER_REGISTRY_HOST else "") + IMAGE_NAME + ':' + settings.JOB['ANALYZER']['IMAGE_TAG']
-    MEMORY = settings.JOB['ANALYZER']['MEMORY']
+class Rosbag2Analyzer(BaseJob):
+    IMAGE_NAME = settings.JOB['ROSBAG2_ANALYZER']['IMAGE_NAME']
+    REPOSITORY_NAME = (settings.JOB_DOCKER_REGISTRY_HOST + '/' if settings.JOB_DOCKER_REGISTRY_HOST else "") + IMAGE_NAME + ':' + settings.JOB['ROSBAG2_ANALYZER']['IMAGE_TAG']
+    MEMORY = settings.JOB['ROSBAG2_ANALYZER']['MEMORY']
 
     # TODO: automan_server_info
     def __init__(self, storage_type, storage_config, automan_config,
                  k8s_config_path=None, ros_distrib='kinetic'):
-        super(RosbagAnalyzer, self).__init__(k8s_config_path)
+        super(Rosbag2Analyzer, self).__init__(k8s_config_path)
         self.storage_type = storage_type
         if storage_type == 'LOCAL_NFS':
             self.mount_path = storage_config['mount_path']
