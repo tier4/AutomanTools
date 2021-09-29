@@ -19,16 +19,12 @@ class RosbagAnalyzer(BaseJob):
             self.mount_path = storage_config['mount_path']
             self.volume_name = storage_config['volume_name']
             self.claim_name = storage_config['claim_name']
-            self.storage_info = json.dumps({
-                'sub_file_path': storage_config['sub_file_path'],
-                'path': storage_config['path']
-            }, separators=(',', ':'))
+            self.storage_info = json.dumps({'path': storage_config['path']}, separators=(',', ':'))
             self.automan_info = json.dumps(automan_config, separators=(',', ':'))
         elif storage_type == 'AWS_S3':
             self.storage_info = json.dumps(
                 {'bucket': storage_config['bucket'],
                  'base_dir': storage_config['base_dir'],
-                 'sub_file_url': AwsS3Client().get_s3_down_url(storage_config['bucket'], storage_config['sub_file_path']),
                  'target_url': AwsS3Client().get_s3_down_url(storage_config['bucket'], storage_config['path'])},
                 separators=(',', ':'))
             print(self.storage_info)
