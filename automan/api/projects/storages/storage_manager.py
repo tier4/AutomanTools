@@ -42,6 +42,7 @@ class StorageManager(object):
         else:
             raise NotImplementedError  # FIXME
 
+    # この関数nameなんてどこにも定義されてない
     def get_url(self):
         if self.storage['storage_type'] == 'AWS_S3':
             config = self.storage['storage_config']
@@ -52,3 +53,6 @@ class StorageManager(object):
 
     def get_s3_presigned_url(self, bucket, key):
         return AwsS3Client().get_s3_put_url(bucket, key)
+
+    def get_sts(self):
+        return AwsS3Client().get_sts()

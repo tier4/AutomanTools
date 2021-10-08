@@ -9,6 +9,7 @@ from .storage_manager import StorageManager
 from api.permissions import Permission
 from api.settings import PER_PAGE, SORT_KEY
 from accounts.account_manager import AccountManager
+import pprint
 
 
 class StorageViewSet(viewsets.ModelViewSet):
@@ -61,8 +62,10 @@ class StorageViewSet(viewsets.ModelViewSet):
             return HttpResponse(status=409,
                             content=json.dumps({}),
                             content_type='application/json')
+        s3_info = {"bucket": bucket, "key": key}
+        s3_info.update(storage_manager.get_sts())
         res = {
-            'result': storage_manager.get_s3_presigned_url(bucket, key)
+            'result': s3_info
         }
         return HttpResponse(content=json.dumps(res),
                             status=200,
