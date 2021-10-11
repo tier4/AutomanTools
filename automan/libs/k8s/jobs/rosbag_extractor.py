@@ -48,7 +48,7 @@ class RosbagExtractor(BaseJob):
             spec=client.models.V1JobSpec(
                 # ttlSecondsAfterFinished = 1h
                 ttl_seconds_after_finished=3600,
-                active_deadline_seconds=10800,
+                active_deadline_seconds=21600,
                 completions=1,
                 parallelism=1,
                 # TODO: backoffLimit
