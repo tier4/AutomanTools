@@ -18,15 +18,23 @@ class AwsS3Client(object):
                 WebIdentityToken=token,
                 DurationSeconds=900
             )
+            self.__aws_access_key_id = response['Credentials']['AccessKeyId']
+            self.__aws_secret_access_key = response['Credentials']['SecretAccessKey']
+            self.__aws_session_token = response['Credentials']['SessionToken']
             self.session = boto3.Session(
-                aws_access_key_id=response['Credentials']['AccessKeyId'],
-                aws_secret_access_key=response['Credentials']['SecretAccessKey'],
-                aws_session_token=response['Credentials']['SessionToken'],
+                aws_access_key_id=self.__aws_access_key_id,
+                aws_secret_access_key=self.__aws_secret_access_key,
+                aws_session_token=self.__aws_session_token,
                 region_name='ap-northeast-1')
         elif os.path.isfile(os.environ.get('HOME') + '/.aws/config'):
             self.session = boto3.session.Session()
-
+        # ファイルが存在しなかったらここコケル
         self.s3 = self.session.client('s3', config=Config(signature_version='s3v4'))
+
+    def get_sts(self):
+        return {'aws_access_key_id': self.__aws_access_key_id,
+                'aws_secret_access_key': self.__aws_secret_access_key,
+                'aws_session_token': self.__aws_session_token}
 
     def get_s3_put_url(self, bucket, key):
         key = key.lstrip('/')

@@ -121,6 +121,8 @@ class OriginalDataForm extends React.Component {
       this.setState({ targetFileIndex: index });
       const targetFile = this.state.uploadFiles[index];
 
+      // console.debug("func uploadFileSet uploadFile");
+      // console.debug(JSON.stringify(targetFile));
       const key = await this.uploadFile(index, targetFile.fileInfo);
       this.updateFileStateKeyValue(index, 'name', key);
       const original = await this.registerUploadedFile(index, targetFile, key);
@@ -135,14 +137,16 @@ class OriginalDataForm extends React.Component {
     }
   };
   uploadFile = (index, targetFile) => {
+    // console.debug("func uploadFile:" + targetFile.name);
     const storage_type = this.state.storage.storage_type;
     const projectId = this.props.currentProject.id;
     if (storage_type === 'AWS_S3') {
       const uploadInfo = {
         storage_id: this.state.storage.id,
         key: projectId + '/bags/' + targetFile.name
-      }
+      };
       return new Promise((res, rej) => {
+        // console.debug("post api:" + targetFile.name);
         RequestClient.post(
           `/projects/${projectId}/storages/upload/`,
           uploadInfo,
@@ -152,8 +156,10 @@ class OriginalDataForm extends React.Component {
           }
         );
       }).then(data => new Promise((res, rej) => {
-        AWSS3StorageClient.upload(
-          data.result.url,
+        // console.debug("call multipart_upload");
+        // console.debug(JSON.stringify(data.result))
+        AWSS3StorageClient.multipart_upload(
+          data.result,
           targetFile,
           this.progressUpdate,
           () => res(uploadInfo.key),

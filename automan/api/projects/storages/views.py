@@ -61,8 +61,12 @@ class StorageViewSet(viewsets.ModelViewSet):
             return HttpResponse(status=409,
                             content=json.dumps({}),
                             content_type='application/json')
+        s3_info = {"bucket": bucket, "key": key}
+        s3_info.update(storage_manager.get_sts())
+        # set presigned url for extractor
+        s3_info.update(storage_manager.get_s3_presigned_url(bucket, key))
         res = {
-            'result': storage_manager.get_s3_presigned_url(bucket, key)
+            'result': s3_info
         }
         return HttpResponse(content=json.dumps(res),
                             status=200,
