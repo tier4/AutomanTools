@@ -11,7 +11,7 @@ class Job(models.Model):
     user_id = models.IntegerField(default=0)
     registered_at = models.DateTimeField(default=timezone.now)
     project = models.ForeignKey(Projects, on_delete=models.CASCADE)
-    job_config = models.CharField(max_length=1023)
+    job_config = models.CharField(max_length=2047)
     pod_log = models.CharField(max_length=1023, default='')
     status = models.CharField(max_length=45, default=STATUS_MAP['submitted'])
     started_at = models.DateTimeField(null=True)
