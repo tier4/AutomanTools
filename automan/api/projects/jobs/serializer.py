@@ -86,18 +86,21 @@ class JobSerializer(serializers.ModelSerializer):
 
     @classmethod
     def get_job_description(cls, job_type, job_config_json):
-        job_config = json.loads(job_config_json)
         desc = {}
-        if job_type == 'analyzer':
-            automan_config = job_config['automan_config']
-            desc['path'] = automan_config['path']
-            desc['lanel_type'] = automan_config['label_type']
-        elif job_type == 'extractor':
-            for key in job_config['raw_data_config']:
-                desc[key] = job_config['raw_data_config'][key]
-        elif job_type == 'archiver':
-            for key in job_config['archive_config']:
-                desc[key] = job_config['archive_config'][key]
+        try:
+            job_config = json.loads(job_config_json)
+            if job_type == 'analyzer':
+                automan_config = job_config['automan_config']
+                desc['path'] = automan_config['path']
+                desc['lanel_type'] = automan_config['label_type']
+            elif job_type == 'extractor':
+                for key in job_config['raw_data_config']:
+                    desc[key] = job_config['raw_data_config'][key]
+            elif job_type == 'archiver':
+                for key in job_config['archive_config']:
+                    desc[key] = job_config['archive_config'][key]
+        except json.JSONDecodeError as e:
+            desc['error'] = e.msg
         return json.dumps(desc)
 
     @classmethod
