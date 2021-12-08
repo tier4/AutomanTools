@@ -19,10 +19,15 @@ import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
+import { Link } from 'react-router-dom';
 
 
 function actionFormatter(cell, row) {
   return row.actions;
+}
+
+function linkFormatter(cell, row) {
+  return row.links;
 }
 
 class OriginalTable extends React.Component {
@@ -124,7 +129,7 @@ class OriginalTable extends React.Component {
     const { classes } = this.props;
     let rows = [];
     rows = this.state.data.map((row, index) => {
-      let actions = ''
+      let actions = '';
       actions = (
         <div className="text-center">
           <Tooltip title="Analyze">
@@ -161,6 +166,13 @@ class OriginalTable extends React.Component {
           </Tooltip>
         </div>
       );
+      let datasetPage = React.forwardRef((props, ref) => (<a ref={ref} {...props}>{props.children}</a>));
+      let dataset_link = "/" + this.props.currentProject.id + "/datasets/?q=" + row.name;
+      let links = (
+        <div>
+          <Link to={dataset_link} component={datasetPage}>link</Link>
+        </div>
+      );
       return {
         id: row.id,
         index: index,
@@ -168,7 +180,8 @@ class OriginalTable extends React.Component {
         size: Math.round(row.size / (1024 * 1024) * 10) / 10,
         file_type: row.file_type,
         status: row.status,
-        actions: actions
+        actions: actions,
+        links: links,
       };
     });
     const options = {
@@ -214,7 +227,7 @@ class OriginalTable extends React.Component {
           <TableHeaderColumn width="5%" dataField="id" isKey dataSort={true}>
             #
           </TableHeaderColumn>
-          <TableHeaderColumn width="" dataField="name" dataSort={true}>
+          <TableHeaderColumn width="10%" dataField="name" dataSort={true}>
             Name
           </TableHeaderColumn>
           <TableHeaderColumn width="10%" dataField="size" dataSort={true}>
@@ -225,6 +238,9 @@ class OriginalTable extends React.Component {
           </TableHeaderColumn>
           <TableHeaderColumn width="20%" dataField="status" dataSort={true}>
             Status
+          </TableHeaderColumn>
+          <TableHeaderColumn width="10%" dataField="links" dataFormat={linkFormatter}>
+            Dataset Link
           </TableHeaderColumn>
           <TableHeaderColumn width="25%" dataField="actions" dataFormat={actionFormatter}>
           </TableHeaderColumn>

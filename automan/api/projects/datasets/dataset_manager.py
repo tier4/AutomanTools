@@ -6,9 +6,9 @@ from api.common import validation_check
 from api.settings import SORT_KEY, PER_PAGE
 from .models import LabelDataset, DatasetDatasetCandidate
 from projects.originals.candidate_manager import CandidateManager
+from projects.originals.models import Original
 from projects.annotations.annotation_manager import AnnotationManager
 from projects.storages.aws_s3 import AwsS3Client
-
 
 class DatasetManager(object):
 
@@ -19,12 +19,12 @@ class DatasetManager(object):
         try:
             if is_reverse is False:
                 datasets = LabelDataset.objects.order_by(sort_key).filter(
-                    Q(project_id=project_id),
-                    Q(name__contains=search_keyword) | Q(name__contains=search_keyword))[begin:begin + per_page]
+                    Q(name__contains=search_keyword) | Q(original_name__contains=search_keyword), 
+                    Q(project_id=project_id))[begin:begin + per_page]
             else:
                 datasets = LabelDataset.objects.order_by(sort_key).reverse().filter(
-                    Q(project_id=project_id),
-                    Q(name__contains=search_keyword) | Q(name__contains=search_keyword))[begin:begin + per_page]
+                    Q(name__contains=search_keyword) | Q(original_name__contains=search_keyword), 
+                    Q(project_id=project_id))[begin:begin + per_page]
         except FieldError:
             datasets = LabelDataset.objects.order_by("id").filter(
                 Q(project_id=project_id),
@@ -39,6 +39,7 @@ class DatasetManager(object):
             record['name'] = dataset.name
             record['frame_count'] = dataset.frame_count
             record['original_id'] = dataset.original
+            record['original_name'] = dataset.original_name
             records.append(record)
         contents = {}
         contents['count'] = self.dataset_total_count(project_id)
@@ -54,12 +55,15 @@ class DatasetManager(object):
         return datasets.count()
 
     def create_dataset(self, name, file_path, frame_count, original_id, project_id, candidates):
+        original_name = Original.objects.filter(project_id=project_id, id=original_id).values('name')
         new_dataset = LabelDataset(
             name=name,
             file_path=file_path,
             frame_count=frame_count,
             original=original_id,
-            project_id=project_id)
+            project_id=project_id,
+            original_name=original_name
+        )
         new_dataset.save()
 
         for candidate in candidates:
@@ -100,6 +104,7 @@ class DatasetManager(object):
         contents['name'] = dataset.name
         contents['file_path'] = dataset.file_path
         contents['original_id'] = dataset.original
+        contents['original_name'] = dataset.original_name
         contents['frame_count'] = dataset.frame_count
         contents['created_at'] = str(dataset.created_at)
         contents['updated_at'] = str(dataset.updated_at)

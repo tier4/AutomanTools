@@ -84,7 +84,8 @@ class PagesRoute extends React.Component {
     const path = this.props.match.path;
     const { classes } = this.props;
     const pageProps = {
-      historyPush: url => this.props.history.push(url)
+      historyPush: url => this.props.history.push(url),
+      location: this.props.location
     };
     const navigationProps = {
       open: this.state.open,

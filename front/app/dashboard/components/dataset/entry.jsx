@@ -53,6 +53,7 @@ class DatasetPage extends React.Component {
         <Grid item xs={12}>
           <Paper className={classes.root}>
             <DatasetTable
+              {...this.props}
               show={this.show}
               deleteDataset={this.deleteDataset}
               needUpdate={this.state.needUpdate}
@@ -74,9 +75,9 @@ const mapStateToProps = state => {
   };
 };
 export default compose(
-  withStyles(mainStyle, { name: 'DatasetPage' }),
-  connect(
-    mapStateToProps,
-    null
-  )
-)(DatasetPage);
+    withStyles(mainStyle, { name: 'DatasetPage' }),
+    connect(
+      mapStateToProps,
+      null
+    )
+  )(DatasetPage);

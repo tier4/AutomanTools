@@ -90,6 +90,7 @@ class OriginalPage extends React.Component {
         <Grid item xs={12}>
           <Paper className={classes.root}>
             <OriginalTable
+              {...this.props}
               formOpen={this.state.analyzerSnackbar}
               extractorSnackbar={this.state.extractorSnackbar}
               extractorFormShow={this.extractorFormShow}

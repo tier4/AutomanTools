@@ -62,11 +62,16 @@ class DatasetTable extends React.Component {
   handleCancel = () => {
     this.setState({ open: false });
   };
+  handleSearchURL = url => {
+    this.props.historyPush(url);
+  };
   handleSearchChange(txt) {
     const query = this.state.query;
     if (txt === query.getSearch()) {
       return;
     }
+    let url = "?q=" + txt;
+    this.handleSearchURL(url);
     query.setSearch(txt);
     query.setPage(1);
     this.updatePage();
@@ -152,6 +157,7 @@ class DatasetTable extends React.Component {
         return {
           id: row.id,
           name: row.name,
+          original_name: row.original_name,
           frame_count: row.frame_count >= 1 ? row.frame_count : null,
           actions: actions
         };
@@ -186,6 +192,10 @@ class DatasetTable extends React.Component {
     const fetchProp = {
       dataTotalSize: this.state.total_count
     };
+    const params = new URLSearchParams(this.props.location.search);
+    const q = params.get("q");
+    this.handleSearchChange(q);
+    
 
     return (
       <div className={classes.tableWrapper}>
@@ -205,6 +215,9 @@ class DatasetTable extends React.Component {
           </TableHeaderColumn>
           <TableHeaderColumn dataField="name" width="" dataSort={true}>
             Name
+          </TableHeaderColumn>
+          <TableHeaderColumn dataField="original_name" width="" dataSort={true}>
+            Raw Name
           </TableHeaderColumn>
           <TableHeaderColumn
             dataField="frame_count"
@@ -254,3 +267,4 @@ export default compose(
     null
   )
 )(DatasetTable);
+
