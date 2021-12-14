@@ -53,11 +53,14 @@ class DatasetManager(object):
         datasets = LabelDataset.objects.filter(project_id=project_id)
         return datasets.count()
 
-    def create_dataset(self, name, file_path, frame_count, original_id, project_id, candidates):
+    def create_dataset(self, name, file_path, frame_count, original_id, project_id, candidates, version):
         new_dataset = LabelDataset(
             name=name,
             file_path=file_path,
             frame_count=frame_count,
+            version_major=version[0],
+            version_minor=version[1],
+            version_patch=version[2],
             original=original_id,
             project_id=project_id)
         new_dataset.save()
@@ -104,6 +107,11 @@ class DatasetManager(object):
         contents['created_at'] = str(dataset.created_at)
         contents['updated_at'] = str(dataset.updated_at)
         contents['candidates'] = []
+        contents['extractor_version'] = [
+            dataset.version_major,
+            dataset.version_minor,
+            dataset.version_patch
+        ]
         for candidate in candidates:
             contents['candidates'].append(candidate_manager.get_candidate(candidate.dataset_candidate_id))
         print(contents)

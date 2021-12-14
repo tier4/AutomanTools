@@ -157,6 +157,7 @@ class JobSerializer(serializers.ModelSerializer):
             'archive_dir': archive_dir,
             'archive_name': archive_name,
             'include_image': include_image,
+            'extractor_version': dataset['extractor_version'],
         }
 
     @classmethod
