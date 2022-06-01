@@ -14,16 +14,16 @@ export const mainStyle = theme => ({
     flexGrow: 1
   },
   formGroupFlex: {
-    margin: theme.spacing.unit,
+    margin: theme.spacing(1),
     display: 'flex'
   },
   formControl: {
-    margin: theme.spacing.unit,
+    margin: theme.spacing(1),
     minWidth: 120
   },
   textField: {
-    marginLeft: theme.spacing.unit,
-    marginRight: theme.spacing.unit
+    marginLeft: theme.spacing(1),
+    marginRight: theme.spacing(1)
   },
   toolbar: {
     paddingRight: 24 // keep right padding when drawer closed
@@ -38,7 +38,7 @@ export const mainStyle = theme => ({
     })
   },
   button: {
-    margin: theme.spacing.unit
+    margin: theme.spacing(1)
   },
   appBarShift: {
     marginLeft: drawerWidth,
@@ -69,11 +69,15 @@ export const mainStyle = theme => ({
     ...theme.mixins.toolbar,
     justifyContent: 'flex-end'
   },
+  dialogPaper: {
+    margin: 5,
+    padding: 5
+  },
   table: {
     minWidth: 500
   },
   tableWrapper: {
-    padding: theme.spacing.unit * 2
+    padding: theme.spacing(2)
   },
   popover: {
     pointerEvents: 'none'
@@ -103,11 +107,11 @@ export const mainStyle = theme => ({
     padding: '0 0px'
   },
   fab: {
-    margin: theme.spacing.unit
+    margin: theme.spacing(1)
   },
   content: {
     flexGrow: 1,
-    padding: theme.spacing.unit * 3,
+    padding: theme.spacing(3),
     transition: theme.transitions.create('margin', {
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.leavingScreen

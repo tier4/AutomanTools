@@ -144,6 +144,7 @@ class OriginalManager(object):
             record['original_id'] = dataset_candidate.original
             record['data_type'] = dataset_candidate.data_type
             record['analyzed_info'] = dataset_candidate.analyzed_info
+            record['calibration_info'] = dataset_candidate.calibration_info
             record['frame_count'] = dataset_candidate.frame_count
             records.append(record)
         return {'count': len(records), 'records': records}
@@ -157,8 +158,16 @@ class OriginalManager(object):
         record['original_id'] = dataset_candidate.original
         record['data_type'] = dataset_candidate.data_type
         record['analyzed_info'] = dataset_candidate.analyzed_info
+        record['calibration_info'] = dataset_candidate.calibration_info
         record['frame_count'] = dataset_candidate.frame_count
         return record
+
+    def set_calibration_info(self, candidate_id, info):
+        dataset_candidate = DatasetCandidate.objects.filter(id=candidate_id).first()
+        if dataset_candidate is not None:
+            dataset_candidate.calibration_info = info
+            dataset_candidate.save()
+
 
     def original_total_count(self, project_id):
         originals = Original.objects.filter(project_id=project_id)
@@ -186,11 +195,20 @@ class OriginalManager(object):
         file_type, is_succeeded = FileType.objects.get_or_create(name=name)
         return file_type
 
-    def set_related_file(self, name, file_path, file_type, target_rosbag):
+    def set_related_file(self, name, file_path, file_type, target_rosbag_id):
+        target_rosbag = Original.objects.get(id=target_rosbag_id)
         related_file, is_success = RelatedFile.objects.get_or_create(
             file_type=file_type, rosbag=target_rosbag,
             file_name=name, file_path=file_path)
         return related_file
+
+    def get_related_file(self, target_rosbag_id):
+        related_files = RelatedFile.objects.filter(
+            rosbag_id=target_rosbag_id
+        )
+        if len(related_files) == 0:
+            return None
+        return related_files[0]
 
     def delete_rosbag(self, project_id, user_id, original_id):
         rosbag = Original.objects.filter(project_id=project_id, id=original_id).first()
@@ -209,7 +227,7 @@ class OriginalManager(object):
         rosbag.delete()
         if storage['storage_type'] == 'LOCAL_NFS':
             path = (config['mount_path'] + config['base_dir']
-                    + '/' + rosbag.name + '/')
+                    + '/' + rosbag.name)
             shutil.rmtree(path)
         elif storage['storage_type'] == 'AWS_S3':
             key = config['base_dir'] + '/raws/' + rosbag.name

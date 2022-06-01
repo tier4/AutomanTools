@@ -12,7 +12,7 @@ import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Checkbox from '@material-ui/core/Checkbox';
 
 const initialState = {
-  include_image_flag: true,
+  include_image_flag: false,
 };
 class ArchiveDialog extends React.Component {
   constructor(props) {

@@ -75,7 +75,7 @@ class Sidebar extends React.Component {
 
     let secondaryListItems = '';
     let jobsListItems = '';
-    let pageName = window.document.location.pathname.split('/')[3];
+    let pageName = this.props.pageName;
     if (currentProject != null) {
       secondaryListItems = (
         <div>

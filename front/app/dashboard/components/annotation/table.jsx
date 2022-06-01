@@ -39,7 +39,7 @@ class AnnotationTable extends React.Component {
       data: [],
       is_loading: true,
       error: null,
-      query: RequestClient.createPageQuery(),
+      query: RequestClient.createPageQuery(true),
       snackbar: false,
       open: false,
       row_id: null,
@@ -229,7 +229,17 @@ class AnnotationTable extends React.Component {
                       res => {
                         RequestClient.getBinaryAsURL(res, (url) => {
                           let a = document.createElement('a');
-                          a.download = row.file_name;
+                          const filename = row.file_name;
+                          let download = row.name;
+                          if (filename.match(/\.tar\.gz$/)) {
+                            download += '.tar.gz';
+                          } else {
+                            const ext = filename.lastIndexOf('.');
+                            if (ext >= 0) {
+                              download += filename.slice(ext);
+                            }
+                          }
+                          a.download = download;
                           a.href = url;
                           a.click();
                         }, () => { });
@@ -338,6 +348,7 @@ class AnnotationTable extends React.Component {
       clearSearch: true,
       searchDelayTime: 1000
     };
+    this.state.query.assignTableOptions(options);
     options.onRowClick = (row, colIndex, rowIndex) => {
       if (colIndex === 3 || colIndex == null) {
         return; // skip 'actions'

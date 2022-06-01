@@ -165,6 +165,9 @@ class ImageLabelTool extends React.Component {
   name = 'Image';
   dataType = 'IMAGE';
   candidateId = -1;
+  setCandidateId(id) {
+    this.candidateId = id;
+  }
 
   isLoaded() {
     return this._loaded;
@@ -190,8 +193,9 @@ class ImageLabelTool extends React.Component {
     // TODO: use getURL
     const imgURL = this.props.labelTool.getURL('frame_blob', this.candidateId, frame);
     this._initImage(imgURL);
-    if (frame >= 1) {
-      const wipeImgURL = this.props.labelTool.getURL('frame_blob', this.candidateId, frame - 1);
+    const wipeFrame = frame - this.props.controls.getFixedSkipFrameCount();
+    if (wipeFrame >= 0) {
+      const wipeImgURL = this.props.labelTool.getURL('frame_blob', this.candidateId, wipeFrame);
       this._initWipeImage(wipeImgURL);
     } else {
       this._initWipeImage(null);

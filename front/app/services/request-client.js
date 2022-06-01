@@ -12,12 +12,12 @@ const addJWT = (urlObj, headers) => {
 
 let abortableRequests = new Set();
 class PageQuery {
-  constructor() {
+  constructor(sortRevFlag) {
     this.page = 1;
     this.perPage = 10;
     this.searchText = null;
     this.sortKey = 'id';
-    this.sortReverseFlag = false;
+    this.sortReverseFlag = !!sortRevFlag;
     this.xhr = null;
   }
   abort() {
@@ -27,6 +27,10 @@ class PageQuery {
     this.xhr.abort();
     this.xhr = null;
     abortableRequests.delete(this);
+  }
+  assignTableOptions(opt) {
+    opt.sortName = this.getSortKey();
+    opt.sortOrder = this.getSortRevFlag() ? 'desc' : 'asc';
   }
   getPage() { return this.page; }
   setPage(page) { this.page = Math.max(1, page); }
@@ -79,6 +83,8 @@ const createErrorMessage = code => {
     return 'Object does not exist';
   } else if (code === 405) {
     return 'Method not allowed';
+  } else if (code === 409) {
+    return 'Conflict';
   } else if (code === 500 || code === 501) {
     return 'Internal server error';
   } else if (501 < code && code < 600) {
@@ -250,8 +256,8 @@ const request = (url, data, method, successCB, failCB, options) => {
   return ret;
 }
 const RequestClient = {
-  createPageQuery: () => {
-    return new PageQuery();
+  createPageQuery: (sortRevFlag) => {
+    return new PageQuery(sortRevFlag);
   },
   ajax: (url, data, type, successCB, failCB, opt) => {
     return request(url, data, type.toUpperCase(), successCB, failCB, opt);

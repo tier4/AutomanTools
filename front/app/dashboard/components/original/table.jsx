@@ -33,7 +33,7 @@ class OriginalTable extends React.Component {
       total_count: 0,
       data: [],
       error: null,
-      query: RequestClient.createPageQuery(),
+      query: RequestClient.createPageQuery(true),
       open: false,
       row_id: null,
       row_name: ''
@@ -162,6 +162,7 @@ class OriginalTable extends React.Component {
         </div>
       );
       return {
+        id: row.id,
         index: index,
         name: row.name,
         size: Math.round(row.size / (1024 * 1024) * 10) / 10,
@@ -193,6 +194,7 @@ class OriginalTable extends React.Component {
       clearSearch: true,
       searchDelayTime: 1000
     };
+    this.state.query.assignTableOptions(options);
     const fetchProp = {
       dataTotalSize: this.state.total_count
     };
@@ -209,7 +211,10 @@ class OriginalTable extends React.Component {
           remote={true}
           fetchInfo={fetchProp}
         >
-          <TableHeaderColumn width="" dataField="name" isKey dataSort={true}>
+          <TableHeaderColumn width="5%" dataField="id" isKey dataSort={true}>
+            #
+          </TableHeaderColumn>
+          <TableHeaderColumn width="" dataField="name" dataSort={true}>
             Name
           </TableHeaderColumn>
           <TableHeaderColumn width="10%" dataField="size" dataSort={true}>

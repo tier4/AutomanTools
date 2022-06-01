@@ -44,6 +44,7 @@ export default class Navigation extends React.Component {
   };
   render() {
     const { open, classes } = this.props;
+    const pageName = window.document.location.pathname.split('/')[3];
 
     return (
       <div>
@@ -118,7 +119,7 @@ export default class Navigation extends React.Component {
             </IconButton>
           </div>
           <Divider />
-          <Sidebar />
+          <Sidebar pageName={pageName}/>
         </Drawer>
       </div>
     );

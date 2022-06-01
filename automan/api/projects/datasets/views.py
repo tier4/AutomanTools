@@ -51,7 +51,10 @@ class DatasetViewSet(viewsets.ModelViewSet):
         original_id = request.data.get('original_id', None)
         candidates = request.data.get('candidates')
         frames = request.data.get('frames')
-        dataset_id = dataset_manager.create_dataset(name, file_path, frame_count, original_id, project_id, candidates)
+        version = request.data.get('version')
+        if version is None or len(version) != 3:
+            version = [0, 0, 0]
+        dataset_id = dataset_manager.create_dataset(name, file_path, frame_count, original_id, project_id, candidates, version)
         frames = DatasetFrameManager.create_dataset_frame(dataset_id, frames)
 
         contents = dataset_manager.get_dataset(user_id, dataset_id)
@@ -87,6 +90,8 @@ def __get_extension(candidate_id):
     candidate = OriginalManager().get_dataset_candidate(candidate_id)
     msg_type = json.loads(candidate['analyzed_info'])['msg_type']
     if msg_type == 'sensor_msgs/PointCloud2':
+        return '.pcd'
+    if msg_type == 'sensor_msgs/msg/PointCloud2':
         return '.pcd'
     return '.jpg'
 

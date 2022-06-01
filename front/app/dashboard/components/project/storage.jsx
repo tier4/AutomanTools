@@ -18,7 +18,7 @@ class Storage extends React.Component {
       data: [],
       is_loading: true,
       error: null,
-      query: RequestClient.createPageQuery(),
+      query: RequestClient.createPageQuery(true),
       isMemberTableOpen: false,
       formOpen: false
     };
@@ -136,6 +136,7 @@ class Storage extends React.Component {
       clearSearch: true,
       searchDelayTime: 1000
     };
+    this.state.query.assignTableOptions(options);
     return (
       <div>
         <StorageForm

@@ -27,14 +27,14 @@ const styles = theme => ({
     width: '90%'
   },
   button: {
-    marginRight: theme.spacing.unit
+    marginRight: theme.spacing(1)
   },
   backButton: {
-    marginRight: theme.spacing.unit
+    marginRight: theme.spacing(1)
   },
   instructions: {
-    marginTop: theme.spacing.unit,
-    marginBottom: theme.spacing.unit
+    marginTop: theme.spacing(1),
+    marginBottom: theme.spacing(1)
   }
 });
 
@@ -50,7 +50,7 @@ class StorageForm extends React.Component {
       users: [],
       is_loading: true,
       error: null,
-      query: RequestClient.createPageQuery(),
+      query: RequestClient.createPageQuery(true),
       storageTypes: ['AZURE_BLOB', 'LOCAL_NFS', 'AWS_S3'], // FIXME: hard coding
       storageType: null,
       storageConfig: null,

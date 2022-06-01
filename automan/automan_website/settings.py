@@ -221,4 +221,14 @@ JOB = {
         'IMAGE_TAG': os.environ.get('JOB_EXTRACTOR_IMAGE_TAG'),
         'MEMORY': os.environ.get('JOB_EXTRACTOR_MEMORY'),
     },
+    'ROSBAG2_ANALYZER': {
+        'IMAGE_NAME': os.environ.get('JOB_ROSBAG2_ANALYZER_IMAGE_NAME'),
+        'IMAGE_TAG': os.environ.get('JOB_ROSBAG2_ANALYZER_IMAGE_TAG'),
+        'MEMORY': os.environ.get('JOB_ROSBAG2_ANALYZER_MEMORY'),
+    },
+    'ROSBAG2_EXTRACTOR': {
+        'IMAGE_NAME': os.environ.get('JOB_ROSBAG2_EXTRACTOR_IMAGE_NAME'),
+        'IMAGE_TAG': os.environ.get('JOB_ROSBAG2_EXTRACTOR_IMAGE_TAG'),
+        'MEMORY': os.environ.get('JOB_ROSBAG2_EXTRACTOR_MEMORY'),
+    },
 }

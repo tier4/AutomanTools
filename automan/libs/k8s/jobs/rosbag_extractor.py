@@ -48,7 +48,7 @@ class RosbagExtractor(BaseJob):
             spec=client.models.V1JobSpec(
                 # ttlSecondsAfterFinished = 1h
                 ttl_seconds_after_finished=3600,
-                active_deadline_seconds=10800,
+                active_deadline_seconds=21600,
                 completions=1,
                 parallelism=1,
                 # TODO: backoffLimit
@@ -89,6 +89,7 @@ class RosbagExtractor(BaseJob):
                     command=command,
                     args=args,
                     image=self.REPOSITORY_NAME,
+                    image_pull_policy="IfNotPresent",
                     name=self.IMAGE_NAME,
                     # env=[access_key_env, secret_key_env],
                     volume_mounts=[client.models.V1VolumeMount(mount_path=self.mount_path, name=self.volume_name)],

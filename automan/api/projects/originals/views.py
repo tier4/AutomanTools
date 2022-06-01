@@ -46,6 +46,31 @@ def index(request, project_id):
                             status=200,
                             content_type='application/json')
 
+@api_view(['POST'])
+def register_subfile(request, project_id):
+    username = request.user
+    user_id = AccountManager.get_id_by_username(username)
+    original_manager = OriginalManager()
+    if not Permission.hasPermission(user_id, 'create_original', project_id):
+        raise PermissionDenied
+    original_id = request.data['original']
+    original = original_manager.get_original(
+        project_id, original_id
+    )
+    name = request.data['name']
+    file_type = request.data['file_type']
+    size = request.data['size']
+    storage_id = int(request.data['storage_id'])
+
+    file_type = original_manager.set_file_type(file_type)
+    original_manager.set_related_file(
+        name, name, file_type, original['id']
+    )
+    return HttpResponse(content=json.dumps({}),
+                        status=201,
+                        content_type='application/json')
+
+
 
 @api_view(['POST'])
 def file_upload(request, project_id):
@@ -106,3 +131,13 @@ def candidate_info(request, project_id, original_id):
     return HttpResponse(content=json.dumps(contents),
                         status=200,
                         content_type='application/json')
+
+@api_view(['POST'])
+def set_candidate_info(request, project_id, original_id, candidate_id):
+    calibration_info = request.data.get('calibration_info')
+    original_manager = OriginalManager()
+    original_manager.set_calibration_info(candidate_id, calibration_info)
+    return HttpResponse(content=json.dumps({}),
+                        status=200,
+                        content_type='application/json')
+

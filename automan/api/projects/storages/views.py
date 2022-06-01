@@ -57,7 +57,17 @@ class StorageViewSet(viewsets.ModelViewSet):
         key = request.data.get('key')
         storage_manager = StorageManager(project_id, storage_id)
         bucket = storage_manager.storage['storage_config']['bucket']
-        res = storage_manager.get_s3_presigned_url(bucket, key)
+        if storage_manager.original_file_exists(key):
+            return HttpResponse(status=409,
+                            content=json.dumps({}),
+                            content_type='application/json')
+        s3_info = {"bucket": bucket, "key": key}
+        s3_info.update(storage_manager.get_sts())
+        # set presigned url for extractor
+        s3_info.update(storage_manager.get_s3_presigned_url(bucket, key))
+        res = {
+            'result': s3_info
+        }
         return HttpResponse(content=json.dumps(res),
                             status=200,
                             content_type='application/json')
