@@ -126,6 +126,31 @@ def get_frame(request, project_id, dataset_id, candidate_id, frame):
     }
     return HttpResponse(status=200, content=json.dumps(content), content_type='application/json')
 
+@api_view(['GET'])
+def get_map_to_base_link(request, project_id, dataset_id):
+    username = request.user
+    user_id = AccountManager.get_id_by_username(username)
+    if not Permission.hasPermission(user_id, 'get_annotationwork', project_id):
+        raise PermissionDenied
+
+    dataset = DatasetManager().get_dataset(user_id, dataset_id)
+    original = OriginalManager().get_original(project_id, dataset['original_id'])
+    storage = StorageSerializer().get_storage(project_id, original['storage_id'])
+
+    if storage['storage_type'] == 'LOCAL_NFS':
+        file_link = request.build_absolute_uri(request.path) + 'download/'
+    elif storage['storage_type'] == 'AWS_S3':
+        key = dataset['file_path'] + 'transforms.json'
+        file_link = AwsS3Client().get_s3_down_url(
+            storage['storage_config']['bucket'], key)
+    else:
+        raise UnknownStorageTypeError
+
+    content = {
+        'file_link': file_link,
+    }
+    return HttpResponse(status=200, content=json.dumps(content), content_type='application/json')
+
 
 @api_view(['GET'])
 def download_link(request, project_id, dataset_id, candidate_id, frame):
@@ -166,3 +191,16 @@ def download_local_nfs_image(request, project_id, dataset_id, candidate_id, fram
     if ext == '.pcd':
         return HttpResponse(image, content_type="application/octet-stream")
     return HttpResponse(image, content_type="image/jpeg")
+
+@api_view(['GET'])
+def download_local_map_to_base_link(request, project_id, dataset_id):
+    username = request.user
+    user_id = AccountManager.get_id_by_username(username)
+    if not Permission.hasPermission(user_id, 'get_annotationwork', project_id):
+        raise PermissionDenied
+
+    dataset_dir = DatasetManager().get_dataset_file_path(user_id, dataset_id)
+    file_path = dataset_dir + 'transforms.json'
+    transforms = open(file_path, "rb").read()
+
+    return HttpResponse(transforms, content_type="text/json")
