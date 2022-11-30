@@ -5,9 +5,10 @@ import os
 from datetime import datetime
 from django.core.exceptions import ObjectDoesNotExist, FieldError, ValidationError
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Subquery, Count, OuterRef
 from django.utils import timezone
 from projects.originals.models import Original, FileType, RelatedFile, DatasetCandidate
+from projects.datasets.models import LabelDataset
 from projects.storages.serializer import StorageSerializer
 from projects.storages.aws_s3 import AwsS3Client
 from projects.storages.storage_manager import StorageManager
@@ -100,20 +101,21 @@ class OriginalManager(object):
         begin = per_page * (page - 1)
         try:
             if is_reverse is False:
-                originals = Original.objects.order_by(sort_key).filter(
-                    Q(project_id=project_id),
-                    Q(name__contains=search_keyword),
-                    Q(status__contains=status))[begin:begin + per_page]
+                originals = Original.objects.order_by(sort_key)
             else:
-                originals = Original.objects.order_by(sort_key).reverse().filter(
-                    Q(project_id=project_id),
-                    Q(name__contains=search_keyword),
-                    Q(status__contains=status))[begin:begin + per_page]
+                originals = Original.objects.order_by(sort_key).reverse()
         except FieldError:
-            originals = Original.objects.order_by("id").filter(
-                Q(project_id=project_id),
-                Q(name__contains=search_keyword),
-                Q(status__contains=status))[begin:begin + per_page]
+            originals = Original.objects.order_by("id")
+        datasets = LabelDataset.objects.filter(
+            original=OuterRef('pk')
+        ).values('id')
+        originals = originals.filter(
+            Q(project_id=project_id),
+            Q(name__contains=search_keyword),
+            Q(status__contains=status)
+        ).annotate(
+            dataset_cnt=Count(Subquery(datasets))
+        )[begin:begin + per_page]
         records = []
         for original in originals:
             record = {}
@@ -122,6 +124,7 @@ class OriginalManager(object):
             record['file_type'] = original.file_type
             record['size'] = int(original.size)
             record['status'] = original.status
+            record['dataset_cnt'] = original.dataset_cnt
             if original.status == 'analyzed':
                 record['dataset_candidates'] = self.get_dataset_candidates(project_id, original.id)['records']
             else:

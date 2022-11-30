@@ -19,6 +19,7 @@ import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
+import Badge from '@material-ui/core/Badge';
 
 
 function actionFormatter(cell, row) {
@@ -145,7 +146,9 @@ class OriginalTable extends React.Component {
                 classes={{ root: classes.tableActionButton }}
                 onClick={() => this.props.extractorFormShow(row.id)}
               >
-                <Unarchive fontSize="small" />
+                <Badge badgeContent={row.dataset_cnt} color="primary">
+                  <Unarchive fontSize="small" />
+                </Badge>
               </Button>
             </div>
           </Tooltip>
