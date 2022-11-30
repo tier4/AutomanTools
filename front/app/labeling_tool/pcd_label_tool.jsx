@@ -591,6 +591,25 @@ class PCDLabelTool extends React.Component {
       this._scene.add(camera);
       return camera;
     });
+
+    this._projectionCameraControls = [0,1,2].map(idx => {
+      const projectionCamera = this._projectionCameras[idx]
+      const projectionRenderer = this._projectionRendereres[idx]
+      const projectionControls = new THREE.OrbitControls(projectionCamera, projectionRenderer.domElement);
+      projectionControls.zoomSpeed = 0.3;
+      projectionControls.panSpeed = 0.2;
+      projectionControls.enableZoom = true;
+      projectionControls.enablePan = true;
+      projectionControls.enableRotate = false;
+      projectionControls.enableDamping = false;
+      projectionControls.dampingFactor = 0.3;
+      projectionControls.minDistance = 0.3;
+      projectionControls.maxDistance = 0.3 * 100;
+      projectionControls.noKey = true;
+      projectionControls.enabled = false;
+      projectionControls.update();
+      return projectionControls;
+    });
   }
   _initDom() {
     const wrapper = $(this._wrapperElement.current);
@@ -799,10 +818,12 @@ class PCDLabelTool extends React.Component {
     for (let i=0; i<3; ++i) {
       const p = poses[i];
       const camera = this._projectionCameras[i];
+      const control = this._projectionCameraControls[i];
       camera.position.set(
         pos.x + p[0], pos.y + p[1], pos.z + p[2]
       );
       camera.lookAt(pos);
+      control.target.set(pos.x, pos.y, pos.z);
       if (sizes) {
         const s = sizes[i];
         camera.left = -s[0];
@@ -1472,6 +1493,7 @@ function createModeMethods(pcdTool) {
       animate: function() {
         pcdTool.redrawRequest();
         pcdTool._cameraControls.update();
+        for (let i=0; i<3; ++i) { pcdTool._projectionCameraControls[i].update(); }
       },
       mouseDown: function(e, v) {
         pcdTool.modeBusyChange(true);
@@ -1482,9 +1504,11 @@ function createModeMethods(pcdTool) {
       },
       changeFrom: function() {
         pcdTool._cameraControls.enabled = false;
+        for (let i=0; i<3; ++i) { pcdTool._projectionCameraControls[i].enabled = false; }
       },
       changeTo: function() {
         pcdTool._cameraControls.enabled = true;
+        for (let i=0; i<3; ++i) { pcdTool._projectionCameraControls[i].enabled = true; }
         //pcdTool._main.css('cursor', 'all-scroll');
       },
     },
